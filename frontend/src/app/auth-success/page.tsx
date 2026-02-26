@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function AuthSuccess() {
+// 1. Criamos um componente interno para gerenciar a lógica do Token
+function AuthSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -31,5 +32,18 @@ export default function AuthSuccess() {
         Autenticando sua conta...
       </h2>
     </div>
+  );
+}
+
+// 2. O export default envolve o conteúdo no Suspense Boundary
+export default function AuthSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center gap-4">
+        <Loader2 className="text-emerald-500 animate-spin" size={48} />
+      </div>
+    }>
+      <AuthSuccessContent />
+    </Suspense>
   );
 }
