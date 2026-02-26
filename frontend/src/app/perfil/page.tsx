@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 
 export default function PerfilPage() {
-  const { user } = useAuth(); // Pegando dados do usuário logado
+  const { user } = useAuth() as any; // Pegando dados do usuário logado
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
