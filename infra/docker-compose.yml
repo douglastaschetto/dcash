@@ -1,16 +1,41 @@
-version: "3.9"
-
 services:
-  # POSTGRES LOCAL PARA DEV
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_DB: dcash_dev
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  # BACKEND (NestJS)
+  backend-dcash:
+    build: 
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: backend-dcash
     ports:
-      - "5432:5432"
+      - "3001:3001"
+    restart: always
+    networks:
+      - dcash-network
+    environment:
+      - FRONTEND_URL=https://dcash.dtasc.com.br
+      - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=https://dcash.dtasc.com.br/api/auth/google/callback
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_HOST=redis-dcash
+    depends_on:
+      - redis-dcash
+
+  # FRONTEND (Next.js)
+  frontend-dcash:
+    container_name: frontend-dcash
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: https://dcash.dtasc.com.br/api
+    environment:
+      - NEXT_PUBLIC_API_URL=https://dcash.dtasc.com.br/api
+      - NEXTAUTH_URL=https://dcash.dtasc.com.br
+      - NEXTAUTH_SECRET=${JWT_SECRET}
+    ports:
+      - "3000:3000"
+    restart: always
     networks:
       - dcash-network
 
@@ -20,70 +45,24 @@ services:
     container_name: redis-dcash
     networks:
       - dcash-network
-
-  # BACKEND (NestJS)
-  backend-dcash:
-    build: ../apps/backend
-    container_name: backend-dcash
-    ports:
-      - "3001:3001"
     restart: always
-    networks:
-      - dcash-network
-    environment:
-      - FRONTEND_URL=http://localhost:3000
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dcash_dev
-      - GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID
-      - GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET
-      - GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
-      - JWT_SECRET=dcash_super_secret_123
-    depends_on:
-      - postgres
-      - redis-dcash
 
-  # FRONTEND (Next.js)
-  frontend-dcash:
-    build:
-      context: ../apps/frontend
-      args:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
-    container_name: frontend-dcash
-    environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
-      - NEXTAUTH_URL=http://localhost:3000
-    ports:
-      - "3000:3000"
-    restart: always
-    networks:
-      - dcash-network
-
-  # MARKET-SERVICE (Python)
+  # MARKET-SERVICE
   market-service:
-    build: ../apps/market-service
+    build: 
+      context: .
+      dockerfile: apps/market-service/Dockerfile
     container_name: market-service
+    ports:
+      - "8000:8000"
     environment:
       - REDIS_HOST=redis-dcash
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dcash_dev
+      - DATABASE_URL=${DATABASE_URL}
     depends_on:
       - redis-dcash
-      - postgres
     networks:
       - dcash-network
-
-  # NGINX (O Porteiro)
-  nginx-proxy:
-    image: nginx:alpine
-    container_name: nginx-proxy
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/certs:/etc/nginx/certs
-      - ./maintenance:/usr/share/nginx/html/maintenance
-      - /etc/letsencrypt:/etc/nginx/certs:ro
-    networks:
-      - dcash-network
+    restart: always
 
 networks:
   dcash-network:
