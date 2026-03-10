@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  # POSTGRES LOCAL PARA DEV
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: dcash_dev
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - dcash-network
+
+  # REDIS CACHE
+  redis-dcash:
+    image: redis:alpine
+    container_name: redis-dcash
+    networks:
+      - dcash-network
+
+  # BACKEND (NestJS)
+  backend-dcash:
+    build: ../apps/backend
+    container_name: backend-dcash
+    ports:
+      - "3001:3001"
+    restart: always
+    networks:
+      - dcash-network
+    environment:
+      - FRONTEND_URL=http://localhost:3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dcash_dev
+      - GOOGLE_CLIENT_ID=SEU_GOOGLE_CLIENT_ID
+      - GOOGLE_CLIENT_SECRET=SEU_GOOGLE_CLIENT_SECRET
+      - GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+      - JWT_SECRET=dcash_super_secret_123
+    depends_on:
+      - postgres
+      - redis-dcash
+
+  # FRONTEND (Next.js)
+  frontend-dcash:
+    build:
+      context: ../apps/frontend
+      args:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+    container_name: frontend-dcash
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001/api
+      - NEXTAUTH_URL=http://localhost:3000
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - dcash-network
+
+  # MARKET-SERVICE (Python)
+  market-service:
+    build: ../apps/market-service
+    container_name: market-service
+    environment:
+      - REDIS_HOST=redis-dcash
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/dcash_dev
+    depends_on:
+      - redis-dcash
+      - postgres
+    networks:
+      - dcash-network
+
+  # NGINX (O Porteiro)
+  nginx-proxy:
+    image: nginx:alpine
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/certs:/etc/nginx/certs
+      - ./maintenance:/usr/share/nginx/html/maintenance
+      - /etc/letsencrypt:/etc/nginx/certs:ro
+    networks:
+      - dcash-network
+
+networks:
+  dcash-network:
+    driver: bridge
