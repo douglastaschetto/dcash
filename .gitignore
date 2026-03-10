@@ -1,7 +1,15 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# --- PASTAS DE INFRAESTRUTURA (EXCLUSIVAS DA OCI) ---
+# Adicionamos estas pastas para que o Git as ignore e não as remova no servidor
+maintenance/
+nginx/
+infra/
+scripts/
+
+# --- DEPENDÊNCIAS ---
+node_modules/
+**/node_modules/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,33 +18,31 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# --- BUILDS E CACHE ---
 /.next/
 /out/
+/build/
+/dist/
+*.tsbuildinfo
+next-env.d.ts
+/coverage
 
-# production
-/build
+# --- VARIÁVEIS DE AMBIENTE (SENSÍVEL) ---
+.env
+.env.local
+.env.production
+.env.development
+.env*.local
 
-# misc
+# --- MISC / DEBUG ---
 .DS_Store
 *.pem
-
-# debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-
-# env files (can opt-in for committing if needed)
-.env*
-
-# vercel
 .vercel
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-git add .
+# --- DATABASE (Se usar SQLite local para testes) ---
+*.db
+*.db-journal
