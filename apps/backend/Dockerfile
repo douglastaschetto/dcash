@@ -11,7 +11,7 @@ COPY . .
 
 # Garante que o Prisma gere o cliente antes do build
 # O arquivo deve estar em ./prisma/schema.prisma em relação a esta pasta
-RUN npx prisma generate
+RUN npx prisma generate --schema=./prisma/schema.prisma || npx prisma generate --schema=./src/prisma/schema.prisma
 
 RUN npm run build
 
