@@ -2,8 +2,8 @@ services:
   # BACKEND (NestJS)
   backend-dcash:
     build: 
-      context: .
-      dockerfile: apps/backend/Dockerfile
+      context: ./apps/backend
+      dockerfile: Dockerfile
     container_name: backend-dcash
     ports:
       - "3001:3001"
@@ -25,8 +25,8 @@ services:
   frontend-dcash:
     container_name: frontend-dcash
     build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile
+      context: ./apps/frontend
+      dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://dcash.dtasc.com.br/api
     environment:
@@ -47,22 +47,22 @@ services:
       - dcash-network
     restart: always
 
-  # MARKET-SERVICE
-  market-service:
-    build: 
-      context: .
-      dockerfile: apps/market-service/Dockerfile
-    container_name: market-service
-    ports:
-      - "8000:8000"
-    environment:
-      - REDIS_HOST=redis-dcash
-      - DATABASE_URL=${DATABASE_URL}
-    depends_on:
-      - redis-dcash
-    networks:
-      - dcash-network
-    restart: always
+  # MARKET-SERVICE (Comente se a pasta ainda não existir)
+  # market-service:
+  #   build: 
+  #     context: ./apps/market-service
+  #     dockerfile: Dockerfile
+  #   container_name: market-service
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - REDIS_HOST=redis-dcash
+  #     - DATABASE_URL=${DATABASE_URL}
+  #   depends_on:
+  #     - redis-dcash
+  #   networks:
+  #     - dcash-network
+  #   restart: always
 
 networks:
   dcash-network:

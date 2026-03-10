@@ -3,11 +3,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Instala dependências
-COPY package*.json ./
+COPY apps/frontend/package*.json ./
 RUN npm install
 
 # Copia o código e faz o build
-COPY . .
+COPY apps/frontend/ .
 RUN npm run build
 
 # --- ESTÁGIO DE EXECUÇÃO (Runner) ---
