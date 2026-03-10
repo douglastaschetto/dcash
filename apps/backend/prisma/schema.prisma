@@ -1,0 +1,351 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["db_dtasc"]
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  name                String
+  email               String               @unique
+  password            String
+  createdAt           DateTime             @default(now())
+  avatar              String?
+  familyGroupId       String?
+  categories          Category[]
+  categoryLimits      CategoryLimit[]
+  debts               Debt[]
+  debtors             Debtor[]
+  dreams              DreamGoal[]
+  financialChallenges FinancialChallenge[]
+  ownedMethods        PaymentMethod[]      @relation("OwnerMethods")
+  createdMethods      PaymentMethod[]      @relation("CreatorMethods")
+  piggyBanks          PiggyBank[]
+  Todo                Todo[]
+  wishlists           Wishlist[]
+  fixed_bills         FixedBill[]
+  transactions        Transaction[]
+  familyGroup         FamilyGroup?         @relation(fields: [familyGroupId], references: [id])
+  priceHuntings       PriceHunting[]
+
+  @@map("users")
+  @@schema("db_dtasc")
+}
+
+model Category {
+  id             String          @id @default(uuid())
+  name           String
+  type           CategoryType
+  createdAt      DateTime        @default(now())
+  userId         String
+  color          String?         @default("#3b82f6")
+  icon           String?         @default("📂")
+  user           User            @relation(fields: [userId], references: [id])
+  categoryLimits CategoryLimit[]
+  fixed_bills    FixedBill[]
+  transactions   Transaction[]
+  familyGroupId  String?
+  familyGroup    FamilyGroup?    @relation(fields: [familyGroupId], references: [id])
+
+  @@unique([name, userId])
+  @@map("Category")
+  @@schema("db_dtasc")
+}
+
+model PaymentMethod {
+  id            String        @id @default(uuid())
+  name          String?
+  type          String
+  icon          String?
+  coverImage    String?
+  color         String?
+  limit         Float?
+  closingDay    Int?
+  dueDay        Int?
+  description   String?
+  userId        String
+  createdAt     DateTime      @default(now())
+  familyGroupId String?
+  ownerId       String?
+  familyGroup   FamilyGroup?  @relation(fields: [familyGroupId], references: [id])
+  owner         User?         @relation("OwnerMethods", fields: [ownerId], references: [id])
+  user          User          @relation("CreatorMethods", fields: [userId], references: [id])
+  transactions  Transaction[]
+  fixedBills    FixedBill[]
+
+  @@map("PaymentMethod")
+  @@schema("db_dtasc")
+}
+
+model Transaction {
+  id                 String         @id @default(uuid())
+  description        String
+  amount             Float
+  date               DateTime
+  type               String
+  isPaid             Boolean        @default(false)
+  installmentGroup   String?
+  totalInstallments  Int?
+  userId             String
+  categoryId         String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  debtId             String?
+  dueDate            DateTime?
+  fixedBillId        String?
+  installmentNumber  Int?
+  paymentMethodId    String?
+  piggyBankId        String?
+  familyGroupId      String?
+  currentInstallment Int?
+  paymentMethodType  String?
+  category           Category       @relation(fields: [categoryId], references: [id])
+  debt               Debt?          @relation(fields: [debtId], references: [id])
+  familyGroup        FamilyGroup?   @relation(fields: [familyGroupId], references: [id])
+  fixedBill          FixedBill?     @relation(fields: [fixedBillId], references: [id])
+  paymentMethod      PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+  piggyBank          PiggyBank?     @relation(fields: [piggyBankId], references: [id])
+  user               User           @relation(fields: [userId], references: [id])
+
+  @@map("transactions")
+  @@schema("db_dtasc")
+}
+
+model Wishlist {
+  id            String         @id @default(uuid())
+  product       String
+  imageUrl      String?
+  categoryId    String?
+  priority      String         @default("3 - Baixo")
+  link          String?
+  bought        Boolean        @default(false)
+  userId        String
+  createdAt     DateTime       @default(now())
+  familyGroupId String?
+  prices        PriceHunting[]
+  familyGroup   FamilyGroup?   @relation(fields: [familyGroupId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  dreams        DreamGoal[]
+
+  @@map("Wishlist")
+  @@schema("db_dtasc")
+}
+
+model PriceHunting {
+  id               String       @id @default(uuid())
+  store            String
+  link             String?
+  cashPrice        Float        @default(0)
+  installmentPrice Float        @default(0)
+  installments     Int          @default(1)
+  shipping         Float        @default(0)
+  observations     String?
+  decision         String       @default("PENDING")
+  wishlistId       String
+  wishlist         Wishlist     @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  userId           String?
+  familyGroupId    String?
+  familyGroup      FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  user             User?        @relation(fields: [userId], references: [id])
+
+  @@map("PriceHunting")
+  @@schema("db_dtasc")
+}
+
+model PiggyBank {
+  id            String        @id @default(uuid())
+  name          String
+  monthlyGoal   Float         @default(1000)
+  yearlyGoal    Float         @default(12000)
+  balance       Float         @default(0)
+  color         String?
+  userId        String
+  createdAt     DateTime      @default(now())
+  active        Boolean       @default(true)
+  targetDate    DateTime?
+  imageUrl      String?
+  familyGroupId String?
+  dreams        DreamGoal[]
+  familyGroup   FamilyGroup?  @relation(fields: [familyGroupId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
+  transactions  Transaction[]
+
+  @@map("PiggyBank")
+  @@schema("db_dtasc")
+}
+
+model DreamGoal {
+  id            String       @id @default(uuid())
+  title         String
+  targetValue   Float
+  savedValue    Float        @default(0)
+  imageUrl      String?
+  userId        String
+  piggyBankId   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  familyGroupId String?
+  deadline      DateTime?
+  familyGroup   FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  piggyBank     PiggyBank?   @relation(fields: [piggyBankId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+  wishlistId    String?
+  wishlist      Wishlist?    @relation(fields: [wishlistId], references: [id])
+
+  @@map("DreamGoal")
+  @@schema("db_dtasc")
+}
+
+model CategoryLimit {
+  id            String       @id @default(uuid())
+  amount        Float
+  month         Int
+  year          Int
+  userId        String
+  categoryId    String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  familyGroupId String?
+  category      Category     @relation(fields: [categoryId], references: [id])
+  familyGroup   FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, categoryId, month, year])
+  @@map("CategoryLimit")
+  @@schema("db_dtasc")
+}
+
+model Debtor {
+  id          String   @id @default(uuid())
+  name        String
+  loanDate    DateTime
+  description String
+  promiseDate DateTime
+  totalValue  Float
+  totalPaid   Float    @default(0)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("Debtor")
+  @@schema("db_dtasc")
+}
+
+model FinancialChallenge {
+  id            String       @id @default(uuid())
+  month         String
+  year          Int
+  challenge     String
+  status        String       @default("Não iniciada")
+  achieved      String       @default("Não realizado")
+  observations  String?
+  userId        String
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  familyGroupId String?
+  familyGroup   FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@unique([userId, month, year])
+  @@map("FinancialChallenge")
+  @@schema("db_dtasc")
+}
+
+model Debt {
+  id                 String        @id @default(uuid())
+  creditor           String
+  description        String
+  debtDate           DateTime
+  endDate            DateTime?
+  lastPaymentDate    DateTime?
+  nextDueDate        DateTime?
+  totalValue         Decimal       @db.Decimal(10, 2)
+  paidValue          Decimal       @default(0) @db.Decimal(10, 2)
+  pendingValue       Decimal       @db.Decimal(10, 2)
+  currentInstallment Int           @default(0)
+  totalInstallments  Int
+  paymentMethod      String
+  status             String        @default("A pagar")
+  userId             String
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  user               User          @relation(fields: [userId], references: [id])
+  transactions       Transaction[]
+
+  @@map("Debt")
+  @@schema("db_dtasc")
+}
+
+model FixedBill {
+  id                String         @id @default(uuid())
+  description       String
+  amount            Float
+  dayOfMonth        Int
+  isCreditCard      Boolean        @default(false)
+  categoryId        String
+  userId            String
+  dueDay            Int?
+  isPaid            Boolean        @default(false)
+  paymentMethodType String?        @default("OTHER")
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  familyGroupId     String?
+  category          Category       @relation(fields: [categoryId], references: [id])
+  familyGroup       FamilyGroup?   @relation(fields: [familyGroupId], references: [id])
+  user              User           @relation(fields: [userId], references: [id])
+  transactions      Transaction[]
+  paymentMethodId   String?
+  paymentMethod     PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+
+  @@map("fixed_bills")
+  @@schema("db_dtasc")
+}
+
+model Todo {
+  id            String       @id @default(uuid())
+  title         String
+  isCompleted   Boolean      @default(false)
+  createdAt     DateTime     @default(now())
+  userId        String
+  familyGroupId String?
+  familyGroup   FamilyGroup? @relation(fields: [familyGroupId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+
+  @@map("Todo")
+  @@schema("db_dtasc")
+}
+
+model FamilyGroup {
+  id                  String               @id
+  inviteCode          String               @unique
+  createdAt           DateTime             @default(now())
+  name                String?
+  categoryLimits      CategoryLimit[]
+  dreams              DreamGoal[]
+  financialChallenges FinancialChallenge[]
+  paymentMethods      PaymentMethod[]
+  piggyBanks          PiggyBank[]
+  todos               Todo[]
+  wishlists           Wishlist[]
+  fixedBills          FixedBill[]
+  transactions        Transaction[]
+  members             User[]
+  priceHuntings       PriceHunting[]
+  categories          Category[]
+
+  @@map("family_groups")
+  @@schema("db_dtasc")
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+
+  @@schema("db_dtasc")
+}
