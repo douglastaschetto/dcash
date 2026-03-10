@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import api from "@/services/api";
 import { 
@@ -23,7 +23,8 @@ interface Transaction {
   category?: { name: string };
 }
 
-export default function TransactionsPage() {
+// 1. Criamos um componente interno para a lógica que usa SearchParams
+function TransactionsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -32,7 +33,6 @@ export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   
-  // ESTADOS DOS FILTROS
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'INCOME' | 'EXPENSE'>('ALL');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PAID' | 'PENDING'>('ALL');
@@ -67,7 +67,6 @@ export default function TransactionsPage() {
     router.push(`?${params.toString()}`);
   };
 
-  // LÓGICA DE FILTRAGEM MULTI-CRITÉRIO
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
       const matchSearch = t.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -80,12 +79,10 @@ export default function TransactionsPage() {
     });
   }, [transactions, searchTerm, localDateFilter, typeFilter, statusFilter, methodFilter]);
 
-  // Identifica se há algo pendente para liquidar na visualização atual
   const hasPending = useMemo(() => 
     filteredTransactions.some(t => !t.isPaid), 
   [filteredTransactions]);
 
-  // Função para liquidar tudo o que está filtrado na tela
   const handlePayAllFiltered = async () => {
     const toPay = filteredTransactions.filter(t => !t.isPaid);
     if (toPay.length === 0) return;
@@ -96,7 +93,6 @@ export default function TransactionsPage() {
 
     if (window.confirm(confirmMsg)) {
       try {
-        // Loop de atualização (ajuste para endpoint bulk se seu backend suportar)
         await Promise.all(
           toPay.map(t => api.patch(`/transactions/${t.id}`, { isPaid: true }))
         );
@@ -116,7 +112,6 @@ export default function TransactionsPage() {
   return (
     <div className="h-screen bg-[#050505] text-zinc-400 p-4 lg:p-8 flex flex-col overflow-hidden font-sans">
       
-      {/* HEADER */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 shrink-0">
         <div className="flex items-center gap-4">
           <Link href="/calendar" className="p-2 hover:bg-zinc-800 rounded-full transition-colors text-white">
@@ -135,7 +130,6 @@ export default function TransactionsPage() {
         </div>
 
         <div className="flex items-center gap-3 w-full md:w-auto">
-          {/* BOTÃO LIQUIDAR TUDO FILTRADO */}
           {hasPending && (
             <button 
               onClick={handlePayAllFiltered}
@@ -154,9 +148,8 @@ export default function TransactionsPage() {
         </div>
       </header>
 
-      {/* BARRA DE FILTROS */}
       <div className="flex flex-wrap items-center gap-3 mb-6 shrink-0 bg-[#0f0f0f] border border-zinc-800/50 p-3 rounded-2xl">
-        <div className="relative flex-1 min-w-[150  px]">
+        <div className="relative flex-1 min-w-[150px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-600" size={14} />
           <input 
             type="text" 
@@ -225,7 +218,6 @@ export default function TransactionsPage() {
         )}
       </div>
 
-      {/* TABELA */}
       <main className="flex-1 bg-[#0f0f0f] border border-zinc-800/50 rounded-[2rem] overflow-hidden flex flex-col shadow-2xl">
         <div className="overflow-y-auto flex-1 custom-scrollbar">
           <table className="w-full text-left border-collapse">
@@ -283,7 +275,6 @@ export default function TransactionsPage() {
         </div>
       </main>
 
-      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/90 backdrop-blur-md" onClick={() => setIsModalOpen(false)} />
@@ -306,5 +297,18 @@ export default function TransactionsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// 2. O export default agora envolve o conteúdo em um Suspense
+export default function TransactionsPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-[#050505] flex items-center justify-center text-zinc-500 font-black uppercase italic text-xs tracking-widest">
+        Carregando Extrato...
+      </div>
+    }>
+      <TransactionsContent />
+    </Suspense>
   );
 }
