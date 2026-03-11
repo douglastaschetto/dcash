@@ -16,6 +16,8 @@ COPY apps/backend/ .
 # 4. Gera o Prisma Client
 RUN npx prisma generate
 
+RUN npm install date-fns
+
 # 5. Build do NestJS
 RUN npm run build
 
