@@ -1,23 +1,22 @@
 FROM node:20-alpine
-# Bibliotecas essenciais para o Prisma no Alpine
 RUN apk add --no-cache openssl libc6-compat
-
 WORKDIR /app
 
-# 1. Dependências
-COPY package*.json ./
+# 1. Copia as dependências (Caminho completo a partir da raiz)
+COPY apps/backend/package*.json ./
 RUN npm install
 
-# 2. Copia TUDO primeiro (incluindo a pasta prisma)
-COPY . .
+# 2. Copia a pasta prisma (Caminho completo a partir da raiz)
+# Isso resolve o erro "prisma not found"
+COPY apps/backend/prisma ./prisma
 
-# 3. Comando de diagnóstico: Isso vai imprimir no log se a pasta prisma existe
-RUN ls -la ./prisma && ls -la ./
+# 3. Copia o código fonte do backend
+COPY apps/backend/ .
 
-# 4. Gera o cliente apontando o caminho exato para não ter erro
-RUN npx prisma generate --schema=./prisma/schema.prisma
+# 4. Gera o Prisma Client
+RUN npx prisma generate
 
-# 5. Build
+# 5. Build do NestJS
 RUN npm run build
 
 EXPOSE 3001
