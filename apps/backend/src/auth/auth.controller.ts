@@ -48,10 +48,10 @@ export class AuthController {
   async googleAuthRedirect(@Request() req, @Response() res) {
     // O AuthService deve processar o usuário e gerar um JWT
     const { access_token } = await this.authService.loginSocial(req.user);
-    
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
     // Redireciona o usuário de volta para o Frontend com o Token na URL
     // O Frontend deve capturar esse token e salvar no LocalStorage
-    return res.redirect(`http://localhost:3000/auth-success?token=${access_token}`);
+    return res.redirect(`${frontendUrl}/auth-success?token=${access_token}`);
   }
 
   // --- LOGIN SOCIAL MOBILE/API (POST TOKEN) ---

@@ -1,31 +1,34 @@
-# --- ESTÁGIO DE BUILD ---
+# --- ESTÁGIO 1: Build ---
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Instala dependências
+# Copia arquivos de dependência
 COPY apps/frontend/package*.json ./
 RUN npm install
 
-# Copia o código e faz o build
-COPY apps/frontend/ .
+# Copia o código fonte
+COPY apps/frontend/ ./
 
+# --- INJEÇÃO DE VARIÁVEIS DE AMBIENTE ---
+# Isso mata o erro "undefined" nas URLs do frontend
 ARG NEXT_PUBLIC_API_URL
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://dcash.dtasc.com.br/api}
 
 RUN npm run build
 
-# --- ESTÁGIO DE EXECUÇÃO (Runner) ---
+# --- ESTÁGIO 2: Runner ---
 FROM node:20-alpine AS runner
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Copia apenas o que é necessário do estágio anterior
+# Copia o que é estritamente necessário
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
-# ATENÇÃO: Verifique se é .js ou .mjs no seu PC. Pelas fotos anteriores, é .js
-COPY --from=builder /app/next.config.mjs ./
+
+# O "truque" para a pasta public: só copia se ela existir de fato no builder
 COPY --from=builder /app/public* ./public/
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+CMD ["npm", "run", "start"]

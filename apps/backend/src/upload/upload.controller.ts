@@ -17,16 +17,17 @@ export class UploadController {
       },
     }),
   }))
-  // Se o erro persistir, você pode usar ': any' temporariamente, 
-  // mas o ideal é 'Express.Multer.File' após instalar os tipos.
   uploadFile(@UploadedFile() file: Express.Multer.File) {
     if (!file) {
       throw new Error('Falha ao carregar arquivo');
     }
     
-    // Retorna a URL para o frontend
+    // IMPORTANTE: Em produção, o frontend acessa via /api/uploads/
+    // O FRONTEND_URL aqui deve ser https://dcash.dtasc.com.br
+    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    
     return { 
-      url: `http://localhost:3001/uploads/${file.filename}` 
+      url: `${baseUrl}/api/uploads/${file.filename}` 
     };
   }
 }

@@ -11,17 +11,16 @@ RUN npm install
 COPY apps/backend/prisma ./prisma/
 COPY apps/backend/ .
 
-# Gera o cliente Prisma e faz o build do NestJS
+# Gera o cliente Prisma e faz o build
 RUN npx prisma generate
-RUN npm run build && ls -la dist/
-RUN ls -la /app/dist
+RUN npm run build
 
 # --- ESTÁGIO 2: Execução (Runner) ---
 FROM node:20-alpine AS runner
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Copia apenas o necessário do estágio de build
+# Copia as dependências e o build do estágio anterior
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
@@ -29,5 +28,6 @@ COPY --from=builder /app/prisma ./prisma
 
 EXPOSE 3001
 
-# Rodar via node diretamente é mais rápido e seguro em containers
-CMD ["node", "/app/dist/main.js"]
+# O AJUSTE: Usamos o comando 'find' para localizar o main.js e executá-lo.
+# Isso resolve o problema de caminhos diferentes em Monorepos (ex: dist/apps/backend/main.js)
+CMD ["sh", "-c", "node $(find dist -name main.js | head -n 1)"]
