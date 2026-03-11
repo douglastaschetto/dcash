@@ -1,25 +1,32 @@
-FROM node:20-alpine
+# --- ESTÁGIO 1: Build ---
+FROM node:20-alpine AS builder
 RUN apk add --no-cache openssl libc6-compat
 WORKDIR /app
 
-# 1. Copia as dependências (Caminho completo a partir da raiz)
+# Instala dependências
 COPY apps/backend/package*.json ./
 RUN npm install
 
-# 2. Copia a pasta prisma (Caminho completo a partir da raiz)
-# Isso resolve o erro "prisma not found"
-COPY apps/backend/prisma ./prisma
-
-# 3. Copia o código fonte do backend
+# Copia Prisma e código fonte
+COPY apps/backend/prisma ./prisma/
 COPY apps/backend/ .
 
-# 4. Gera o Prisma Client
+# Gera o cliente Prisma e faz o build do NestJS
 RUN npx prisma generate
-
-RUN npm install date-fns
-
-# 5. Build do NestJS
 RUN npm run build
 
+# --- ESTÁGIO 2: Execução (Runner) ---
+FROM node:20-alpine AS runner
+RUN apk add --no-cache openssl
+WORKDIR /app
+
+# Copia apenas o necessário do estágio de build
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/prisma ./prisma
+
 EXPOSE 3001
-CMD ["npm", "run", "start:prod"]
+
+# Rodar via node diretamente é mais rápido e seguro em containers
+CMD ["node", "dist/main"]

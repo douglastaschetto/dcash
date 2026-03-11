@@ -8,6 +8,10 @@ RUN npm install
 
 # Copia o código e faz o build
 COPY apps/frontend/ .
+
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+
 RUN npm run build
 
 # --- ESTÁGIO DE EXECUÇÃO (Runner) ---
