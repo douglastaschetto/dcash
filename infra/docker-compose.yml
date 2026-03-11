@@ -2,7 +2,7 @@ services:
   # BACKEND (NestJS)
   backend-dcash:
     build: 
-      context: ./apps/backend
+      context: ../apps/backend
       dockerfile: Dockerfile
     container_name: backend-dcash
     ports:
@@ -25,7 +25,7 @@ services:
   frontend-dcash:
     container_name: frontend-dcash
     build:
-      context: ./apps/frontend
+      context: ../apps/frontend
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_API_URL: https://dcash.dtasc.com.br/api
