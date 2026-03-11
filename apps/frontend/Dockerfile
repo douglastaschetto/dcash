@@ -17,10 +17,10 @@ WORKDIR /app
 # Copia apenas o que é necessário do estágio anterior
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
 # ATENÇÃO: Verifique se é .js ou .mjs no seu PC. Pelas fotos anteriores, é .js
-COPY --from=builder /app/next.config.cjs ./
+COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/public* ./public/
 
 EXPOSE 3000
 
