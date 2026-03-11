@@ -13,7 +13,8 @@ COPY apps/backend/ .
 
 # Gera o cliente Prisma e faz o build do NestJS
 RUN npx prisma generate
-RUN npm run build
+RUN npm run build && ls -la dist/
+RUN ls -la /app/dist
 
 # --- ESTÁGIO 2: Execução (Runner) ---
 FROM node:20-alpine AS runner
