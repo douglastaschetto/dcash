@@ -2,10 +2,10 @@
 
 # --- PASTAS DE INFRAESTRUTURA (EXCLUSIVAS DA OCI) ---
 # Adicionamos estas pastas para que o Git as ignore e não as remova no servidor
-maintenance/
-nginx/
-infra/
-scripts/
+# maintenance/
+# nginx/
+# infra/
+# scripts/
 
 # --- DEPENDÊNCIAS ---
 node_modules/
