@@ -30,4 +30,4 @@ COPY --from=builder /app/prisma ./prisma
 EXPOSE 3001
 
 # Rodar via node diretamente é mais rápido e seguro em containers
-CMD ["node", "dist/main"]
+CMD ["node", "/app/dist/main.js"]
