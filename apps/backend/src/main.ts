@@ -16,7 +16,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'https://dcash.dtasc.com.br', // Seu domínio oficial
-      'http://localhost:3000'       // Para testes locais
+      // 'http://localhost:3000'       // Para testes locais
     ],
     credentials: true,
   });

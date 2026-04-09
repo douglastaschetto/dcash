@@ -6,7 +6,7 @@ import {
   LucideMenu, LucideX, LucideLayoutDashboard, LucideCalendar, 
   LucideTarget, LucideCheckSquare, LucidePiggyBank, LucideAlertCircle, 
   LucideHistory, LucideTrophy, LucideHeart, LucideSparkles, LucideUser,
-  LucideLogOut
+  LucideLogOut, LucideSettings
 } from 'lucide-react';
 
 export function Navbar() {
@@ -15,7 +15,6 @@ export function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
-  // 1. CARREGAR DADOS DO USUÁRIO (LocalStorage)
   useEffect(() => {
     const savedUser = localStorage.getItem('@dcash:user');
     if (savedUser) {
@@ -27,7 +26,6 @@ export function Navbar() {
     }
   }, []);
 
-  // 2. BLOQUEIO DE SCROLL NO MENU ABERTO
   useEffect(() => {
     document.body.style.overflow = isOpen ? 'hidden' : 'unset';
   }, [isOpen]);
@@ -36,37 +34,34 @@ export function Navbar() {
     "/": "Dashboard",
     "/dashboard": "Dashboard",
     "/perfil": "Meu Perfil",
-    "/calendar": "Contas",
+    "/calendar": "Calendário",
     "/category-limits": "Limites",
     "/todos": "Tarefas",
     "/piggy-banks": "Cofrinhos",
-    "/debts": "Dívidas",
     "/transactions": "Lançamentos",
     "/fixed-bills": "Contas Fixas",
     "/categories": "Categorias",
-    "/payments": "Formas de Pagamento",
+    "/payments": "Pagamentos",
     "/challenges": "Desafios",
     "/wishlist": "Desejos",
     "/dreams": "Mural",
   };
 
   const navItems = [
-    { name: "Dashboard", path: "/dashboard", icon: <LucideLayoutDashboard size={18} />, },
-    { name: "Limites", path: "/category-limits", icon: <LucideTarget size={18} /> },
-    { name: "Categorias", path: "/categories", icon: <LucideTarget size={18} /> },
-    { name: "Formas Pagamento", path: "/payments", icon: <LucideTarget size={18} /> },
-    { name: "Cofrinhos", path: "/piggy-banks", icon: <LucidePiggyBank size={18} /> },
-    { name: "Desafios", path: "/challenges", icon: <LucideTrophy size={18} /> },
-    { name: "Mural", path: "/dreams", icon: <LucideSparkles size={18} /> },
-    { name: "Calendário", path: "/calendar", icon: <LucideCalendar size={18} /> },
-    // { name: "Dívidas", path: "/debts", icon: <LucideAlertCircle size={18} /> },
-    { name: "Lançamentos", path: "/transactions", icon: <LucideHistory size={18} /> },
-    { name: "Desejos", path: "/wishlist", icon: <LucideHeart size={18} /> },
-    { name: "Contas Fixas", path: "/fixed-bills", icon: <LucideHeart size={18} /> },
-    { name: "Tarefas", path: "/todos", icon: <LucideCheckSquare size={18} /> },
+    { name: "Dashboard", path: "/dashboard", icon: <LucideLayoutDashboard size={20} />, },
+    { name: "Limites", path: "/category-limits", icon: <LucideTarget size={20} /> },
+    { name: "Categorias", path: "/categories", icon: <LucideSettings size={20} /> },
+    { name: "Pagamentos", path: "/payments", icon: <LucideHistory size={20} /> },
+    { name: "Cofrinhos", path: "/piggy-banks", icon: <LucidePiggyBank size={20} /> },
+    { name: "Desafios", path: "/challenges", icon: <LucideTrophy size={20} /> },
+    { name: "Mural", path: "/dreams", icon: <LucideSparkles size={20} /> },
+    { name: "Calendário", path: "/calendar", icon: <LucideCalendar size={20} /> },
+    { name: "Lançamentos", path: "/transactions", icon: <LucideHistory size={20} /> },
+    { name: "Desejos", path: "/wishlist", icon: <LucideHeart size={20} /> },
+    { name: "Contas Fixas", path: "/fixed-bills", icon: <LucideAlertCircle size={20} /> },
+    { name: "Tarefas", path: "/todos", icon: <LucideCheckSquare size={20} /> },
   ];
 
-  // 3. LOGOUT CUSTOMIZADO (Limpa storage e redireciona)
   const handleLogout = () => {
     localStorage.removeItem('@dcash:token');
     localStorage.removeItem('@dcash:user');
@@ -76,9 +71,8 @@ export function Navbar() {
 
   return (
     <>
-      {/* --- BARRA SUPERIOR --- */}
       <nav className="h-[72px] w-full bg-zinc-950 border-b border-white/5 px-6 flex justify-between items-center sticky top-0 z-[200]">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <button 
             onClick={() => setIsOpen(!isOpen)}
             className="p-2 hover:bg-white/5 rounded-xl transition-colors text-white relative z-[210]"
@@ -95,7 +89,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* BOTÃO DE PERFIL COM AVATAR DO STORAGE */}
           <button 
             onClick={() => { setIsOpen(false); router.push('/perfil'); }}
             className="w-10 h-10 rounded-full bg-zinc-900 border border-emerald-500/20 overflow-hidden flex items-center justify-center hover:border-emerald-500 transition-all shadow-lg"
@@ -110,39 +103,42 @@ export function Navbar() {
           <button 
             onClick={handleLogout}
             className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-zinc-500 hover:text-red-500 hover:bg-red-500/10 transition-all"
-            title="Sair do Sistema"
           >
             <LucideLogOut size={18} />
           </button>
         </div>
       </nav>
 
-      {/* --- OVERLAY DO MENU --- */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-[#050505]/95 backdrop-blur-md z-[150] pt-[72px] animate-in fade-in duration-200"
+          className="fixed inset-0 bg-black/95 backdrop-blur-xl z-[150] animate-in fade-in duration-300"
           onClick={() => setIsOpen(false)}
         >
-          <div 
-            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 p-8 max-w-7xl mx-auto h-fit"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {navItems.map((item) => (
-              <button
-                key={item.path}
-                onClick={() => {
-                  router.push(item.path);
-                  setIsOpen(false);
-                }}
-                className={`flex flex-col items-center justify-center p-8 rounded-[2.5rem] border transition-all duration-300
-                  ${pathname === item.path 
-                    ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]' 
-                    : 'bg-zinc-900/50 border-white/5 text-zinc-500 hover:border-emerald-500/50 hover:text-white'}`}
-              >
-                <div className="mb-4 text-inherit">{item.icon}</div>
-                <span className="text-[10px] font-black uppercase tracking-widest text-center">{item.name}</span>
-              </button>
-            ))}
+          {/* ScrollView do Menu */}
+          <div className="h-full w-full overflow-y-auto pt-[80px] pb-10 custom-scrollbar">
+            <div 
+              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 p-6 max-w-6xl mx-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {navItems.map((item) => (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    router.push(item.path);
+                    setIsOpen(false);
+                  }}
+                  className={`flex flex-col items-center justify-center aspect-square sm:aspect-auto p-4 sm:p-8 rounded-[1.5rem] sm:rounded-[2.5rem] border transition-all duration-300
+                    ${pathname === item.path 
+                      ? 'bg-emerald-500 border-emerald-400 text-white shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] scale-[1.02]' 
+                      : 'bg-zinc-900/40 border-white/5 text-zinc-500 hover:border-emerald-500/50 hover:text-white hover:bg-zinc-900'}`}
+                >
+                  <div className="mb-2 sm:mb-4 text-inherit">{item.icon}</div>
+                  <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-center leading-tight">
+                    {item.name}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       )}

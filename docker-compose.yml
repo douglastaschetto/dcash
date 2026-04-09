@@ -1,0 +1,53 @@
+services:
+  # BACKEND (NestJS)
+  backend-dcash:
+    build: 
+      context: .
+      dockerfile: apps/backend/Dockerfile
+    container_name: backend-dcash
+    ports:
+      - "3001:3001"
+    restart: always
+    networks:
+      - dcash-network
+    environment:
+      - FRONTEND_URL=${FRONTEND_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    volumes:
+      - ./uploads:/app/uploads
+
+  # FRONTEND (Next.js)
+  frontend-dcash:
+    container_name: frontend-dcash
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NEXTAUTH_URL=${FRONTEND_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+    ports:
+      - "3000:3000"
+    restart: always
+    networks:
+      - dcash-network
+
+  # REDIS CACHE
+  redis-dcash:
+    image: redis:alpine
+    container_name: redis-dcash
+    restart: always
+    networks:
+      - dcash-network
+
+networks:
+  dcash-network:
+    driver: bridge

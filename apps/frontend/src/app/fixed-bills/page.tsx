@@ -16,7 +16,7 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
   
   const [formData, setFormData] = useState({
     description: "",
-    amount: "",
+    amount: "", // Mantemos como string interna para facilitar a manipulação
     dayOfMonth: "10",
     paymentMethodType: "PIX",
     paymentMethodId: "", 
@@ -25,6 +25,32 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
   });
 
   const creditCards = paymentMethods?.filter((m: any) => m.type === 'CREDIT_CARD') || [];
+
+  // Função para formatar o valor visualmente (R$ 1.500,10)
+  const formatCurrency = (value: string | number) => {
+    if (!value) return "";
+    const amount = typeof value === "string" ? value : value.toString();
+    const floatValue = parseFloat(amount);
+    
+    return new Intl.NumberFormat("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(floatValue);
+  };
+
+  // Handler para a máscara de digitação
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/\D/g, ""); // Remove tudo que não é número
+    
+    if (!rawValue) {
+      setFormData({ ...formData, amount: "" });
+      return;
+    }
+
+    // Lógica de centavos: 150010 -> 1500.10
+    const floatValue = parseFloat(rawValue) / 100;
+    setFormData({ ...formData, amount: floatValue.toString() });
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +65,6 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
           endDate: initialData.endDate ? initialData.endDate.substring(0, 7) : "" 
         });
       } else {
-        // Para novos lançamentos, sugere 12 meses por padrão
         setFormData({ 
           description: "", amount: "", dayOfMonth: "10", 
           paymentMethodType: "PIX", paymentMethodId: "", 
@@ -59,10 +84,9 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
     
     const payload = {
       ...formData,
-      amount: Number(formData.amount),
+      amount: Number(formData.amount), // Converte para número real antes de enviar
       dayOfMonth: Number(formData.dayOfMonth),
       paymentMethodId: isCard ? formData.paymentMethodId : null,
-      // Agora enviamos a data final independente do tipo
       endDate: formData.endDate ? `${formData.endDate}-28` : null 
     };
 
@@ -83,14 +107,13 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
       <div className="bg-[#111] border border-zinc-800 w-full max-w-md rounded-[3rem] overflow-hidden shadow-2xl">
         <div className="p-8 border-b border-zinc-900 flex justify-between items-center">
           <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">
-            {initialData ? "Editar Plano Fixo" : "Novo Lançamento Fixo"}
+            {initialData ? "Editar Plano Fixo" : "Nova Conta Fixa"}
           </h2>
           <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors"><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6 max-h-[80vh] overflow-y-auto custom-scrollbar">
           
-          {/* SEÇÃO 1: DADOS BÁSICOS */}
           <div className="space-y-4">
             <div>
               <label className="text-[10px] font-black uppercase text-zinc-600 mb-2 block tracking-widest">O que é este gasto?</label>
@@ -101,8 +124,18 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-[10px] font-black uppercase text-zinc-600 mb-2 block tracking-widest">Valor (R$)</label>
-                <input type="number" step="0.01" required className={inputClass.replace("focus:border-orange-500", "focus:border-emerald-500")}
-                  value={formData.amount} onChange={e => setFormData({...formData, amount: e.target.value})} />
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-600 font-black text-xs">R$</span>
+                  <input 
+                    type="text" 
+                    inputMode="numeric" 
+                    required 
+                    className={`${inputClass.replace("focus:border-orange-500", "focus:border-emerald-500")} pl-12`}
+                    placeholder="0,00"
+                    value={formatCurrency(formData.amount)} 
+                    onChange={handleAmountChange} 
+                  />
+                </div>
               </div>
               <div>
                 <label className="text-[10px] font-black uppercase text-zinc-600 mb-2 block tracking-widest">Dia do Venc.</label>
@@ -123,6 +156,7 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
               <select className={`${inputClass} border-orange-500/20 bg-orange-500/5`}
                 value={formData.paymentMethodType} 
                 onChange={e => setFormData({...formData, paymentMethodType: e.target.value, paymentMethodId: ""})}>
+                <option value="DINHEIRO" className="bg-zinc-900">DINHEIRO</option>
                 <option value="PIX" className="bg-zinc-900">PIX / TRANSFERÊNCIA</option>
                 <option value="BOLETO" className="bg-zinc-900">BOLETO BANCÁRIO</option>
                 <option value="CREDIT_CARD" className="bg-zinc-900">CARTÃO DE CRÉDITO</option>
@@ -130,7 +164,6 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
               </select>
             </div>
 
-            {/* Campos Dinâmicos Baseados na Forma de Pagamento */}
             {formData.paymentMethodType === 'CREDIT_CARD' ? (
               <div className="animate-in slide-in-from-top-2 duration-300">
                 <label className="text-[10px] font-black uppercase text-zinc-600 mb-2 block tracking-widest">Qual Cartão?</label>
@@ -162,7 +195,7 @@ function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMethods, 
             )}
           </div>
 
-          {/* SEÇÃO 3: PROJEÇÃO (DATA FINAL) - FIXA PARA AMBOS */}
+          {/* SEÇÃO 3: PROJEÇÃO */}
           <div className="p-5 bg-zinc-900/50 border border-zinc-800 rounded-[2rem] space-y-3">
             <div className="flex items-center justify-between">
               <label className="text-[10px] font-black uppercase text-zinc-400 tracking-[0.15em] flex items-center gap-2">
@@ -246,7 +279,7 @@ export default function FixedBillsPage() {
         <header className="mb-12 flex items-center justify-between">
           <div className="flex flex-col">
             <h1 className="text-4xl font-black text-white uppercase italic tracking-tighter leading-none">
-              D<span className="text-orange-500 italic">C</span>ASH <span className="text-zinc-800">FIXED</span>
+              C<span className="text-orange-500 italic">O</span>NTAS <span className="text-zinc-800">FIXAS</span>
             </h1>
             <div className="h-1 w-12 bg-orange-500 mt-2 rounded-full" />
           </div>
@@ -329,7 +362,7 @@ export default function FixedBillsPage() {
           <button onClick={() => setModalState({ open: true, data: null })} 
             className="group bg-white text-black hover:bg-orange-500 hover:text-white px-12 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center gap-4 shadow-2xl active:scale-95">
             <Plus size={20} className="group-hover:rotate-90 transition-transform" />
-            Novo Lançamento Fixo
+            Nova Conta Fixa
           </button>
         </div>
       </div>
