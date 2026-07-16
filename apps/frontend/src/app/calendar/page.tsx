@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, Suspense } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'next/navigation';
@@ -108,7 +108,7 @@ function DayTooltip({ data, day }: { data: DayData; day: number }) {
 }
 
 /* ── Component ─────────────────────────────────────────────────── */
-export default function CalendarPage() {
+function CalendarPageContent() {
   useAuth();
   const searchParams = useSearchParams();
 
@@ -667,5 +667,17 @@ export default function CalendarPage() {
         </div>
       )}
     </AppLayout>
+  );
+}
+
+export default function CalendarPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-full bg-[#050505] flex items-center justify-center text-[10px] font-black uppercase italic tracking-[0.5em] text-zinc-700">
+        Carregando...
+      </div>
+    }>
+      <CalendarPageContent />
+    </Suspense>
   );
 }
