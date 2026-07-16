@@ -11,7 +11,7 @@ const MIGRATABLE_TABLES = [
   'dream_goal',
   'wishlist',
   'category_limit',
-  'fixed_bill',
+  'fixed_bills',
   'payment_method',
   'todo',
   'financial_challenge',
