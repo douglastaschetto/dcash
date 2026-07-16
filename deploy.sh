@@ -9,6 +9,8 @@ ssh 137.131.154.53 '
 
   echo "--- git ---"
   git fetch origin
+  git reset --hard HEAD
+  git clean -fd apps/
   git checkout -B v2 origin/v2
   git reset --hard origin/v2
 
