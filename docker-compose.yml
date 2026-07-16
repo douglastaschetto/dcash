@@ -1,0 +1,15 @@
+services:
+  db-local:
+    image: postgres:15-alpine
+    container_name: dcash-db-local
+    environment:
+      POSTGRES_USER: dtasc_admin
+      POSTGRES_PASSWORD: your_local_password
+      POSTGRES_DB: dcash
+    ports:
+      - "5432:5432"
+    volumes:
+      - dcash_data:/var/lib/postgresql/data
+
+volumes:
+  dcash_data:

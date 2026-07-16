@@ -1,0 +1,18 @@
+# root env (local dev secrets, never commit)
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+
+# safety net (each app also has its own .gitignore)
+node_modules/
+dist/
+.next/

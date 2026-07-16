@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+/* Dark mode responds to [data-theme="dark"] on <html> (Tailwind v4 custom variant) */
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  --background: #f0fdf4;
+  --foreground: #064e3b;
+  --surface: #ffffff;
+  --surface-secondary: #ecfdf5;
+  --border: #d1fae5;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #082f25;
+    --foreground: #e7f5ef;
+    --surface: #0d3d30;
+    --surface-secondary: #0a3328;
+    --border: #1a5c41;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}

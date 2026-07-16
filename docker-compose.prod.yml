@@ -1,0 +1,38 @@
+services:
+  dcash-backend:
+    build:
+      context: .
+      dockerfile: ./apps/backend/Dockerfile
+    container_name: dcash-backend
+    env_file:
+      - .env
+    networks:
+      - proxy_network
+    environment:
+      - DB_HOST=postgres-db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - DB_SCHEMA=db_dtasc
+      - FRONTEND_URL=https://dcash.dtasc.com.br
+      - GOOGLE_CALLBACK_URL=https://dcash.dtasc.com.br/api/auth/google/callback
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    restart: always
+
+  dcash-frontend:
+    build:
+      context: .
+      dockerfile: ./apps/frontend/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=https://dcash.dtasc.com.br/api
+    container_name: dcash-frontend
+    env_file:
+      - .env
+    networks:
+      - proxy_network
+    restart: always
+
+networks:
+  proxy_network:
+    external: true

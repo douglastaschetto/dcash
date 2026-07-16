@@ -1,0 +1,160 @@
+import {
+  Injectable,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
+import { DatabaseService } from '../database/database.service';
+import { UpsertCategoryLimitDto } from './dto/upsert-category-limit.dto';
+
+const S = 'db_dtasc';
+
+@Injectable()
+export class CategoryLimitsService {
+  constructor(private readonly db: DatabaseService) {}
+
+  private async getScope(userId: string, paramIndex: number) {
+    const res = await this.db.query(
+      `SELECT family_group_id FROM ${S}.users WHERE id = $1`,
+      [userId],
+    );
+    const familyGroupId = res[0]?.family_group_id;
+    const filter = familyGroupId
+      ? `family_group_id = $${paramIndex}`
+      : `user_id = $${paramIndex} AND family_group_id IS NULL`;
+    return { familyGroupId, filter, param: familyGroupId || userId };
+  }
+
+  async getDashboard(userId: string, month: number, year: number) {
+    try {
+      const scopeMain = await this.getScope(userId, 1);
+      const scopeSpent = await this.getScope(userId, 6);
+
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+      const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
+
+      const sql = `
+        SELECT
+          cl.id,
+          cl.amount,
+          cl.month,
+          cl.year,
+          cl.category_id AS "categoryId",
+          json_build_object(
+            'id', c.id,
+            'name', c.name,
+            'color', c.color,
+            'icon', c.icon
+          ) AS category,
+          COALESCE((
+            SELECT SUM(t.amount)
+            FROM ${S}.transactions t
+            WHERE t.category_id = cl.category_id
+              AND t.type = 'EXPENSE'
+              AND t.date BETWEEN $2 AND $3
+              AND t.${scopeSpent.filter}
+          ), 0) AS spent
+        FROM ${S}.category_limit cl
+        INNER JOIN ${S}.category c ON cl.category_id = c.id
+        WHERE cl.month = $4 AND cl.year = $5 AND cl.${scopeMain.filter}
+      `;
+
+      const limits = await this.db.query(sql, [
+        scopeMain.param,
+        startDate,
+        endDate,
+        Number(month),
+        Number(year),
+        scopeSpent.param,
+      ]);
+
+      return limits.map((l) => ({
+        ...l,
+        amount: Number(l.amount),
+        spent: Number(l.spent),
+        percent: l.amount > 0 ? (Number(l.spent) / Number(l.amount)) * 100 : 0,
+      }));
+    } catch (error) {
+      console.error('getDashboard error:', error);
+      throw new InternalServerErrorException('Falha ao carregar planejamento.');
+    }
+  }
+
+  async getHistoricalSpending(userId: string, month: number, year: number) {
+    try {
+      const scope = await this.getScope(userId, 3);
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')} 23:59:59`;
+
+      const sql = `
+        SELECT c.id AS "categoryId", COALESCE(SUM(t.amount), 0) AS spent
+        FROM ${S}.category c
+        LEFT JOIN ${S}.transactions t ON t.category_id = c.id
+          AND t.type = 'EXPENSE'
+          AND t.date BETWEEN $1 AND $2
+          AND t.${scope.filter}
+        GROUP BY c.id
+        HAVING COALESCE(SUM(t.amount), 0) > 0
+        ORDER BY spent DESC
+      `;
+
+      const result = await this.db.query(sql, [startDate, endDate, scope.param]);
+      return result.map((row: any) => ({ categoryId: row.categoryId, spent: Number(row.spent) }));
+    } catch (error) {
+      console.error('getHistoricalSpending error:', error);
+      throw new InternalServerErrorException('Falha ao carregar histórico.');
+    }
+  }
+
+  async upsertLimit(userId: string, data: UpsertCategoryLimitDto) {
+    const scope = await this.getScope(userId, 4);
+
+    const existing = await this.db.query(
+      `SELECT id FROM ${S}.category_limit
+       WHERE category_id = $1 AND month = $2 AND year = $3 AND ${scope.filter}`,
+      [data.categoryId, Number(data.month), Number(data.year), scope.param],
+    );
+
+    if (existing.length > 0) {
+      const updated = await this.db.query(
+        `UPDATE ${S}.category_limit SET amount = $1 WHERE id = $2 RETURNING *`,
+        [data.amount, existing[0].id],
+      );
+      return updated[0];
+    }
+
+    const inserted = await this.db.query(
+      `INSERT INTO ${S}.category_limit (amount, month, year, category_id, user_id, family_group_id)
+       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+      [data.amount, Number(data.month), Number(data.year), data.categoryId, userId, scope.familyGroupId ?? null],
+    );
+    return inserted[0];
+  }
+
+  async remove(id: string, userId: string) {
+    const scope = await this.getScope(userId, 2);
+    const result = await this.db.query(
+      `DELETE FROM ${S}.category_limit WHERE id = $1 AND ${scope.filter} RETURNING id`,
+      [id, scope.param],
+    );
+    if (result.length === 0) throw new NotFoundException('Limite não encontrado.');
+    return { success: true };
+  }
+
+  async getYearlyStatus(userId: string, year: number) {
+    const scope = await this.getScope(userId, 1);
+
+    const sql = `
+      SELECT
+        m.month,
+        EXISTS (
+          SELECT 1 FROM ${S}.category_limit cl
+          WHERE cl.month = m.month AND cl.year = $2 AND cl.${scope.filter}
+        ) AS "hasPlanning"
+      FROM (SELECT generate_series(1,12) AS month) m
+    `;
+
+    const result = await this.db.query(sql, [scope.param, Number(year)]);
+    return result.map((row) => ({ month: Number(row.month), hasPlanning: row.hasPlanning }));
+  }
+}

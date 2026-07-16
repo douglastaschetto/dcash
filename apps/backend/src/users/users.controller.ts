@@ -1,0 +1,1 @@
+[{'@nestjs/common': 'import { UsersService'}, {"./users.entity';\n\n@Controller('users": 'export class UsersController {\n  constructor(private readonly usersService: UsersService) {'}, {"Get('": "id')\n  findOne(@Param('id') id: string) {\n    return this.usersService.findOne(id);"}, {}]
