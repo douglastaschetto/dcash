@@ -1227,8 +1227,7 @@ export default function DashboardV2Page() {
               </button>
               {catIconPicker && (
                 <div className="mt-2">
-                  <IconPicker value={catIcon} onChange={v => { setCatIcon(v); setCatIconPicker(false); }}
-                    open={catIconPicker} onOpenChange={setCatIconPicker} />
+                  <IconPicker selected={catIcon} onSelect={v => { setCatIcon(v); setCatIconPicker(false); }} />
                 </div>
               )}
             </div>

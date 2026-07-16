@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, type CSSProperties } from 'react';
 import {
   Search, X,
   Wallet, Banknote, CreditCard, TrendingUp, Landmark, Briefcase, BadgeDollarSign, HandCoins,
@@ -52,13 +52,15 @@ export function LucideIcon({
   name,
   size = 20,
   className,
+  style,
 }: {
   name: string;
   size?: number;
   className?: string;
+  style?: CSSProperties;
 }) {
   const IconComponent = ICON_MAP[name] ?? HelpCircle;
-  return <IconComponent size={size} className={className} />;
+  return <IconComponent size={size} className={className} style={style} />;
 }
 
 export function IconPicker({ selected, onSelect }: Props) {
