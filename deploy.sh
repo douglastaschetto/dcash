@@ -18,6 +18,9 @@ ssh 137.131.154.53 '
   docker compose -f docker-compose.prod.yml up -d --build
   docker image prune -f
 
+  echo "--- reload proxy (containers get new IPs on recreate, nginx caches the old one) ---"
+  docker exec nginx-proxy-manager nginx -s reload
+
   echo "--- status ---"
   docker ps --filter "name=dcash-" --format "table {{.Names}}\t{{.Status}}"
 '
