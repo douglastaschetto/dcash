@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copia apenas os arquivos de dependências primeiro para aproveitar o cache do Docker
 COPY apps/backend/package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copia todo o código do backend (exceto o que estiver no .dockerignore)
 COPY apps/backend/ .
@@ -22,7 +22,7 @@ ENV NODE_ENV production
 # Copiamos apenas o necessário para a execução
 COPY --from=builder /app/package*.json ./
 # Instalamos apenas as dependências de produção para reduzir o tamanho final
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 
 COPY --from=builder /app/dist ./dist
 
