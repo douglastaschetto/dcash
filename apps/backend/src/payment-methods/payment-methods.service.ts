@@ -37,11 +37,20 @@ export class PaymentMethodsService {
              pm.family_group_id AS "familyGroupId",
              pm.owner_id        AS "ownerId",
              json_build_object('id', u.id, 'name', u.name, 'avatar', u.avatar) AS owner,
-             COALESCE((
-               SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END)
-               FROM db_dtasc.transactions t
-               WHERE t.payment_method_id = pm.id
-             ), 0) AS balance
+             CASE
+               WHEN pm.type IN ('credit_card', 'financing') THEN
+                 pm.payment_limit - COALESCE((
+                   SELECT SUM(t.amount)
+                   FROM db_dtasc.transactions t
+                   WHERE t.payment_method_id = pm.id AND t.is_paid = false
+                 ), 0)
+               ELSE
+                 COALESCE((
+                   SELECT SUM(CASE WHEN t.type = 'INCOME' THEN t.amount ELSE -t.amount END)
+                   FROM db_dtasc.transactions t
+                   WHERE t.payment_method_id = pm.id
+                 ), 0)
+             END AS balance
       FROM db_dtasc.payment_method pm
       LEFT JOIN db_dtasc.users u ON pm.owner_id = u.id
       WHERE pm.${scope.filter}

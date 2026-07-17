@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   Loader2, ChevronLeft, ChevronRight, Check,
-  ArrowRight, ArrowLeft, Trash2, Plus, X, Target,
+  ArrowRight, ArrowLeft, Trash2, Plus, X, Target, Pencil, Copy,
 } from 'lucide-react';
 import { LucideIcon } from '@/lib/icon-picker';
 import { CurrencyInput } from '@/lib/currency-input';
@@ -27,7 +27,7 @@ function fmt(n: number) {
   return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-type YearlyStatus = { month: number; hasPlanning: boolean };
+type YearlyStatus = { month: number; hasPlanning: boolean; totalPlanned: number; totalSpent: number; percent: number };
 
 type CategoryLimit = {
   id: string;
@@ -79,7 +79,6 @@ export default function PlanningPage() {
   const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
   const [catInputs, setCatInputs] = useState<CatInput[]>([]);
   const [existingLimits, setExistingLimits] = useState<CategoryLimit[]>([]);
-  const [addingCat, setAddingCat] = useState(false);
 
   const reserveAmt = income * (reservePct / 100);
   const available = income - reserveAmt;
@@ -102,14 +101,27 @@ export default function PlanningPage() {
   useEffect(() => { loadYearlyStatus(); }, [loadYearlyStatus]);
 
   // ── Load expense categories ───────────────────────────────────────────────
-  const loadExpenseCategories = useCallback(async () => {
+  const loadExpenseCategories = useCallback(async (): Promise<ExpenseCategory[]> => {
     try {
       const res = await fetch(`${API}/categories`, { headers: getAuthHeaders() });
-      if (!res.ok) return;
+      if (!res.ok) return [];
       const all = await res.json();
-      setExpenseCategories(all.filter((c: any) => c.type === 'expense'));
-    } catch {}
+      const expenses = all.filter((c: any) => c.type === 'expense');
+      setExpenseCategories(expenses);
+      return expenses;
+    } catch { return []; }
   }, []);
+
+  // ── Merge the full expense-category list with whatever limits exist ──────
+  const mergeWithCategories = (categories: ExpenseCategory[], limits: CategoryLimit[]): CatInput[] =>
+    categories.map((c) => {
+      const l = limits.find((x) => x.categoryId === c.id);
+      return {
+        categoryId: c.id, name: c.name, color: c.color, icon: c.icon,
+        amount: l ? l.amount : 0,
+        limitId: l?.id,
+      };
+    });
 
   // ── Open month panel ──────────────────────────────────────────────────────
   const openMonth = async (month: number) => {
@@ -122,24 +134,17 @@ export default function PlanningPage() {
       setExistingLimits([]);
       return;
     }
-    // Has planning → load limits and go to categories
+    // Has planning → load limits + all expense categories, then go to categories
     setPanelLoading(true);
     try {
-      const res = await fetch(`${API}/category-limits?month=${month}&year=${year}`, {
-        headers: getAuthHeaders(),
-      });
+      const [res, categories] = await Promise.all([
+        fetch(`${API}/category-limits?month=${month}&year=${year}`, { headers: getAuthHeaders() }),
+        loadExpenseCategories(),
+      ]);
       if (!res.ok) { setStep('empty'); return; }
       const limits: CategoryLimit[] = await res.json();
       setExistingLimits(limits);
-      const inputs: CatInput[] = limits.map((l) => ({
-        categoryId: l.categoryId,
-        name: l.category.name,
-        color: l.category.color,
-        icon: l.category.icon,
-        amount: l.amount,
-        limitId: l.id,
-      }));
-      setCatInputs(inputs);
+      setCatInputs(mergeWithCategories(categories, limits));
       setStep('categories');
     } finally {
       setPanelLoading(false);
@@ -152,6 +157,41 @@ export default function PlanningPage() {
   const startPlanning = async () => {
     await loadExpenseCategories();
     setStep('income');
+  };
+
+  // ── Quick-create: open panel straight into the income step (skip the empty screen) ──
+  const createPlanning = async (month: number) => {
+    setSelectedMonth(month);
+    setIncome(0); setReservePct(20);
+    setCatInputs([]); setExistingLimits([]);
+    await loadExpenseCategories();
+    setStep('income');
+  };
+
+  // ── Replicate previous month's category amounts into this month ──────────
+  const [replicating, setReplicating] = useState(false);
+  const replicatePrevMonth = async (month: number) => {
+    const prevMonth = month === 1 ? 12 : month - 1;
+    const prevYear  = month === 1 ? year - 1 : year;
+    setReplicating(true);
+    try {
+      const [res, categories] = await Promise.all([
+        fetch(`${API}/category-limits?month=${prevMonth}&year=${prevYear}`, { headers: getAuthHeaders() }),
+        loadExpenseCategories(),
+      ]);
+      const limits: CategoryLimit[] = res.ok ? await res.json() : [];
+      if (limits.length === 0) {
+        alert(`Não há planejamento em ${MONTHS[prevMonth - 1]} para replicar.`);
+        return;
+      }
+      setSelectedMonth(month);
+      setIncome(0); setReservePct(20);
+      setExistingLimits([]);
+      setCatInputs(mergeWithCategories(categories, limits).map((c) => ({ ...c, limitId: undefined })));
+      setStep('categories');
+    } finally {
+      setReplicating(false);
+    }
   };
 
   // ── Go to categories step ─────────────────────────────────────────────────
@@ -209,26 +249,17 @@ export default function PlanningPage() {
     }
   };
 
-  // ── Delete individual limit ───────────────────────────────────────────────
-  const deleteLimit = async (limitId: string, categoryId: string) => {
+  // ── Clear an individual category's planned amount (category stays listed) ──
+  const clearLimit = async (limitId: string | undefined, categoryId: string) => {
     if (limitId) {
       await fetch(`${API}/category-limits/${limitId}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
     }
-    setCatInputs((prev) => prev.filter((c) => c.categoryId !== categoryId));
+    setCatInputs((prev) => prev.map((c) => (c.categoryId === categoryId ? { ...c, amount: 0, limitId: undefined } : c)));
     setExistingLimits((prev) => prev.filter((l) => l.id !== limitId));
   };
-
-  // ── Add category picker ───────────────────────────────────────────────────
-  const addCategory = (cat: ExpenseCategory) => {
-    if (catInputs.some((c) => c.categoryId === cat.id)) return;
-    setCatInputs((prev) => [...prev, { categoryId: cat.id, name: cat.name, color: cat.color, icon: cat.icon, amount: 0 }]);
-    setAddingCat(false);
-  };
-
-  const notAdded = expenseCategories.filter((c) => !catInputs.some((i) => i.categoryId === c.id));
 
   const hasPlanning = yearlyStatus.find((s) => s.month === selectedMonth)?.hasPlanning ?? false;
 
@@ -270,10 +301,13 @@ export default function PlanningPage() {
             const planned = status?.hasPlanning ?? false;
 
             return (
-              <button
+              <div
                 key={month}
+                role="button"
+                tabIndex={0}
                 onClick={() => openMonth(month)}
-                className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 p-5 text-left transition
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openMonth(month)}
+                className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 p-5 text-left transition cursor-pointer
                   ${isSelected
                     ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-md'
                     : isCurrent
@@ -288,6 +322,20 @@ export default function PlanningPage() {
                   </span>
                 )}
 
+                {/* Create / edit action icon */}
+                <button
+                  type="button"
+                  title={planned ? 'Editar planejamento' : 'Criar planejamento'}
+                  onClick={(e) => { e.stopPropagation(); planned ? openMonth(month) : createPlanning(month); }}
+                  className={`absolute bottom-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition
+                    ${planned
+                      ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
+                      : 'text-slate-400 dark:text-slate-500 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600'
+                    }`}
+                >
+                  {planned ? <Pencil className="h-3.5 w-3.5" /> : <Plus className="h-4 w-4" />}
+                </button>
+
                 {/* Month name */}
                 <p className={`text-base font-bold ${isSelected ? 'text-emerald-800 dark:text-emerald-200' : 'text-emerald-950 dark:text-white'}`}>
                   {monthName}
@@ -295,14 +343,24 @@ export default function PlanningPage() {
 
                 {/* Status */}
                 {planned ? (
-                  <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                    Planejado
-                  </span>
+                  <>
+                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
+                      Planejado
+                    </span>
+                    {status && status.totalPlanned > 0 && (
+                      <div className="w-full pr-8">
+                        <ProgressBar percent={status.percent} color="#10b981" />
+                        <p className={`text-[11px] font-semibold mt-1 ${status.percent > 100 ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
+                          {status.percent.toFixed(0)}% realizado
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <span className="text-xs text-slate-400 dark:text-slate-500">Sem planejamento</span>
                 )}
-              </button>
+              </div>
             );
           })}
         </div>
@@ -375,6 +433,14 @@ export default function PlanningPage() {
                       <Plus className="h-4 w-4" />
                       Iniciar planejamento
                     </button>
+                    <button
+                      onClick={() => selectedMonth && replicatePrevMonth(selectedMonth)}
+                      disabled={replicating}
+                      className="flex items-center gap-2 mt-3 rounded-xl border border-slate-200 dark:border-slate-600 px-8 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition"
+                    >
+                      {replicating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
+                      Replicar mês anterior
+                    </button>
                   </div>
                 )}
 
@@ -444,104 +510,62 @@ export default function PlanningPage() {
                       </p>
                     )}
 
-                    <div className="space-y-3">
-                      {catInputs.map((cat) => {
-                        const existing = existingLimits.find((l) => l.categoryId === cat.categoryId);
-                        const spentPct = cat.amount > 0 && existing
-                          ? (existing.spent / cat.amount) * 100
-                          : 0;
+                    {catInputs.length > 0 && (
+                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                        {/* Header row */}
+                        <div className="grid grid-cols-[1fr_130px_64px_36px] gap-3 items-center px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Categoria</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Valor</span>
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">% Total</span>
+                          <span />
+                        </div>
 
-                        return (
-                          <div
-                            key={cat.categoryId}
-                            className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"
-                          >
-                            <div className="flex items-center gap-3 mb-3">
+                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                          {catInputs.map((cat) => {
+                            const pctOfTotal = distributed > 0 ? (cat.amount / distributed) * 100 : null;
+
+                            return (
                               <div
-                                className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
-                                style={{ backgroundColor: `${cat.color}22`, color: cat.color || '#10b981' }}
+                                key={cat.categoryId}
+                                className="grid grid-cols-[1fr_130px_64px_36px] gap-3 items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
                               >
-                                <LucideIcon name={cat.icon || 'Tag'} size={18} />
-                              </div>
-                              <p className="flex-1 text-sm font-semibold text-emerald-950 dark:text-white">{cat.name}</p>
-                              <button
-                                onClick={() => deleteLimit(cat.limitId ?? '', cat.categoryId)}
-                                className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            </div>
-
-                            <CurrencyInput
-                              value={cat.amount}
-                              onChange={(val) =>
-                                setCatInputs((prev) =>
-                                  prev.map((c) => (c.categoryId === cat.categoryId ? { ...c, amount: val } : c)),
-                                )
-                              }
-                              placeholder="0,00"
-                              className="w-full rounded-lg bg-emerald-50 dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-900 dark:text-white outline-none focus:border-emerald-500 dark:focus:border-emerald-400 transition"
-                            />
-
-                            {existing && cat.amount > 0 && (
-                              <div className="mt-2">
-                                <ProgressBar percent={spentPct} color={cat.color} />
-                                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                  R$ {fmt(existing.spent)} gastos · {spentPct.toFixed(1)}%
-                                </p>
-                              </div>
-                            )}
-
-                            {available > 0 && cat.amount > 0 && (
-                              <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                                {((cat.amount / available) * 100).toFixed(1)}% da receita disponível
-                              </p>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Add category */}
-                    {notAdded.length > 0 && (
-                      <div className="mt-4">
-                        {!addingCat ? (
-                          <button
-                            onClick={() => { loadExpenseCategories(); setAddingCat(true); }}
-                            className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-600 py-3 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition"
-                          >
-                            <Plus className="h-4 w-4" /> Adicionar categoria
-                          </button>
-                        ) : (
-                          <div className="rounded-xl border border-emerald-200 dark:border-slate-600 bg-emerald-50 dark:bg-slate-800 p-3">
-                            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
-                              Selecionar categoria
-                            </p>
-                            <div className="space-y-1 max-h-48 overflow-y-auto">
-                              {notAdded.map((cat) => (
-                                <button
-                                  key={cat.id}
-                                  onClick={() => addCategory(cat)}
-                                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-white dark:hover:bg-slate-700 transition"
-                                >
+                                <div className="flex items-center gap-2 min-w-0">
                                   <div
                                     className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
-                                    style={{ backgroundColor: `${cat.color}22`, color: cat.color }}
+                                    style={{ backgroundColor: `${cat.color}22`, color: cat.color || '#10b981' }}
                                   >
                                     <LucideIcon name={cat.icon || 'Tag'} size={14} />
                                   </div>
-                                  <span className="text-sm text-slate-700 dark:text-slate-300">{cat.name}</span>
+                                  <span className="text-sm font-medium text-emerald-950 dark:text-white truncate">{cat.name}</span>
+                                </div>
+
+                                <CurrencyInput
+                                  value={cat.amount}
+                                  onChange={(val) =>
+                                    setCatInputs((prev) =>
+                                      prev.map((c) => (c.categoryId === cat.categoryId ? { ...c, amount: val } : c)),
+                                    )
+                                  }
+                                  placeholder="0,00"
+                                  className="w-full rounded-lg bg-emerald-50 dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-right text-slate-900 dark:text-white outline-none focus:border-emerald-500 dark:focus:border-emerald-400 transition"
+                                />
+
+                                <span className="text-xs font-semibold text-right text-slate-500 dark:text-slate-400">
+                                  {pctOfTotal !== null ? `${pctOfTotal.toFixed(0)}%` : '—'}
+                                </span>
+
+                                <button
+                                  onClick={() => clearLimit(cat.limitId, cat.categoryId)}
+                                  disabled={cat.amount === 0 && !cat.limitId}
+                                  title="Zerar valor"
+                                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:hover:bg-transparent transition justify-self-end"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
                                 </button>
-                              ))}
-                            </div>
-                            <button
-                              onClick={() => setAddingCat(false)}
-                              className="mt-2 text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 transition"
-                            >
-                              Cancelar
-                            </button>
-                          </div>
-                        )}
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>

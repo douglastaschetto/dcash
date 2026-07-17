@@ -201,6 +201,15 @@ export default function DashboardV2Page() {
     } catch {} finally { setAddingTask(false); }
   };
 
+  const [completingTodo, setCompletingTodo] = useState<string | null>(null);
+  const completeTodo = async (id: string) => {
+    setCompletingTodo(id);
+    try {
+      await api.patch(`/todos/${id}/complete`);
+      setTodos((prev) => prev.filter((t) => t.id !== id));
+    } catch {} finally { setCompletingTodo(null); }
+  };
+
   /* ── Category modal ───────────────────────── */
   const [catOpen,    setCatOpen]    = useState(false);
   const [catName,    setCatName]    = useState('');
@@ -536,7 +545,21 @@ export default function DashboardV2Page() {
   ], [dash, catBreakdown, categories, dreams, todos]);
 
   const onboardDone     = onboardSteps.filter(s => s.done).length;
-  const showOnboard     = onboardDone < onboardSteps.length;
+  const onboardComplete = onboardDone === onboardSteps.length;
+
+  /* ── onboarding is a one-time checklist: once fully done, never show it again ── */
+  const [onboardDismissed, setOnboardDismissed] = useState(false);
+  useEffect(() => {
+    if (localStorage.getItem('dcash:onboarding-done') === 'true') setOnboardDismissed(true);
+  }, []);
+  useEffect(() => {
+    if (onboardComplete && !onboardDismissed) {
+      localStorage.setItem('dcash:onboarding-done', 'true');
+      setOnboardDismissed(true);
+    }
+  }, [onboardComplete, onboardDismissed]);
+
+  const showOnboard = !onboardDismissed && !onboardComplete;
   const activeDream     = dreams[dreamIdx];
   const overBudgetCount = catBreakdownWithPlanning.filter(c => c.overBudget).length;
   const hasPlanning     = catBreakdownWithPlanning.some(c => c.planned !== null);
@@ -859,7 +882,15 @@ export default function DashboardV2Page() {
               <div className="space-y-2 flex-1">
                 {todos.slice(0, 7).map((todo: any) => (
                   <div key={todo.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
-                    <Circle size={13} className="text-zinc-400 shrink-0" />
+                    <button
+                      onClick={() => completeTodo(todo.id)}
+                      disabled={completingTodo === todo.id}
+                      className="shrink-0 text-zinc-400 hover:text-emerald-500 disabled:opacity-50 transition"
+                    >
+                      {completingTodo === todo.id
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <Circle size={13} />}
+                    </button>
                     <span className="flex-1 text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{todo.title}</span>
                     {todo.familyGroupId && (
                       <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 uppercase shrink-0">Fam.</span>

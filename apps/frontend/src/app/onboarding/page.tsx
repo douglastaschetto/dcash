@@ -121,7 +121,7 @@ export default function OnboardingPage() {
                 </p>
               </div>
               <button
-                onClick={() => router.push('/dashboard')}
+                onClick={() => router.push('/dashboard-v2')}
                 className="w-full h-14 rounded-2xl text-sm font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2"
                 style={{ background: '#10b981' }}
               >

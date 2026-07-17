@@ -150,11 +150,36 @@ export class CategoryLimitsService {
         EXISTS (
           SELECT 1 FROM ${S}.category_limit cl
           WHERE cl.month = m.month AND cl.year = $2 AND cl.${scope.filter}
-        ) AS "hasPlanning"
+        ) AS "hasPlanning",
+        COALESCE((
+          SELECT SUM(cl2.amount) FROM ${S}.category_limit cl2
+          WHERE cl2.month = m.month AND cl2.year = $2 AND cl2.${scope.filter}
+        ), 0) AS "totalPlanned",
+        COALESCE((
+          SELECT SUM(t.amount) FROM ${S}.transactions t
+          WHERE t.type = 'EXPENSE'
+            AND t.date >= make_date($2::int, m.month, 1)
+            AND t.date <  make_date($2::int, m.month, 1) + interval '1 month'
+            AND t.${scope.filter}
+            AND t.category_id IN (
+              SELECT cl3.category_id FROM ${S}.category_limit cl3
+              WHERE cl3.month = m.month AND cl3.year = $2 AND cl3.${scope.filter}
+            )
+        ), 0) AS "totalSpent"
       FROM (SELECT generate_series(1,12) AS month) m
     `;
 
     const result = await this.db.query(sql, [scope.param, Number(year)]);
-    return result.map((row) => ({ month: Number(row.month), hasPlanning: row.hasPlanning }));
+    return result.map((row) => {
+      const totalPlanned = Number(row.totalPlanned);
+      const totalSpent = Number(row.totalSpent);
+      return {
+        month: Number(row.month),
+        hasPlanning: row.hasPlanning,
+        totalPlanned,
+        totalSpent,
+        percent: totalPlanned > 0 ? (totalSpent / totalPlanned) * 100 : 0,
+      };
+    });
   }
 }

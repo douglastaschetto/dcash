@@ -22,7 +22,7 @@ function AuthSuccessContent() {
     localStorage.setItem('dcash:token', token);
     localStorage.setItem('dcash:user', JSON.stringify({ name, email }));
 
-    router.replace(firstLogin ? '/plans' : '/dashboard');
+    router.replace(firstLogin ? '/plans' : '/dashboard-v2');
   }, []);
 
   return (

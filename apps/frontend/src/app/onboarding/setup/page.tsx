@@ -251,7 +251,7 @@ export default function OnboardingSetupPage() {
   };
 
   const handleFinish = () => {
-    router.push('/dashboard');
+    router.push('/dashboard-v2');
   };
 
   const step = steps[currentStep];
@@ -269,7 +269,7 @@ export default function OnboardingSetupPage() {
             </p>
           </div>
           <button
-            onClick={() => router.push('/dashboard')}
+            onClick={() => router.push('/dashboard-v2')}
             className="p-2 text-slate-600 hover:text-slate-950 transition"
           >
             <X className="h-6 w-6" />

@@ -158,7 +158,7 @@ export default function LoginPage() {
       if (!res.ok) throw new Error(data.message ?? 'Usuário ou senha inválidos.');
       localStorage.setItem('dcash:token', data.token);
       localStorage.setItem('dcash:user', JSON.stringify(data.user));
-      router.push(data.firstLogin ? '/plans' : '/dashboard');
+      router.push(data.firstLogin ? '/plans' : '/dashboard-v2');
     } catch (err) {
       setError((err as Error).message);
     } finally {
