@@ -5,9 +5,13 @@ import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Home, Wallet, PieChart, LogOut, Menu, Bell, UserCircle, CalendarCheck, CheckSquare, Trophy, Heart, PiggyBank, Star, Receipt, CalendarDays,
-  AlertCircle, X, ExternalLink, MessageCircle, Shield, ArrowLeftRight, ChevronDown, ChevronRight, Layers, Landmark, Target, ListChecks
+  AlertCircle, X, ExternalLink, MessageCircle, Shield, ArrowLeftRight, ChevronDown, ChevronRight, Layers, Landmark, Target, ListChecks, HelpCircle,
+  GraduationCap,
 } from 'lucide-react';
 import logoSrc from '@/app/dcash.png';
+import { SupportChatWidget } from '@/components/support-chat-widget';
+import { GuidedTourProvider } from '@/components/guided-tour/GuidedTourProvider';
+import { useGuidedTour } from '@/components/guided-tour/guided-tour-context';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -60,6 +64,54 @@ const NAV_GROUPS: { label: string | null; icon?: React.ElementType; items: { hre
     ],
   },
 ];
+
+type ActiveTour = { key: string; title: string };
+
+function TourMenuButton({ onNavigate }: { onNavigate: () => void }) {
+  const { startTour } = useGuidedTour();
+  const [tours, setTours] = useState<ActiveTour[]>([]);
+
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('dcash:token') : null;
+    if (!token) return;
+    fetch(`${API}/guided-tours`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setTours(Array.isArray(data) ? data : []))
+      .catch(() => setTours([]));
+  }, []);
+
+  if (tours.length === 0) return null;
+
+  if (tours.length === 1) {
+    return (
+      <button
+        onClick={() => { onNavigate(); startTour(tours[0].key); }}
+        className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium text-left"
+      >
+        <GraduationCap className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+        🎓 Tutorial guiado
+      </button>
+    );
+  }
+
+  return (
+    <div>
+      <p className="px-4 pt-2 pb-1 text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-emerald-400/60">
+        🎓 Tutoriais guiados
+      </p>
+      {tours.map((tour) => (
+        <button
+          key={tour.key}
+          onClick={() => { onNavigate(); startTour(tour.key); }}
+          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium text-left"
+        >
+          <GraduationCap className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+          {tour.title}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function AppLayout({
   children,
@@ -148,6 +200,7 @@ export function AppLayout({
   const initial = userName.charAt(0).toUpperCase();
 
   return (
+    <GuidedTourProvider>
     <div className="flex h-screen w-screen bg-emerald-50 dark:bg-black text-slate-950 dark:text-emerald-50 overflow-hidden">
 
       {/* ── Sidebar com efeito Hover de Expansão ────────────────────────── */}
@@ -245,6 +298,9 @@ export function AppLayout({
 
             <div className="flex items-center gap-3">
               {actions}
+
+              {/* Assistente de suporte */}
+              <SupportChatWidget />
 
               {/* Notificações */}
               <div ref={bellRef} className="relative">
@@ -402,6 +458,17 @@ export function AppLayout({
                       </a>
                     )}
 
+                    <a
+                      href="/ajuda"
+                      onClick={() => setAvatarOpen(false)}
+                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium"
+                    >
+                      <HelpCircle className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+                      Ajuda / Guia do usuário
+                    </a>
+
+                    <TourMenuButton onNavigate={() => setAvatarOpen(false)} />
+
                     <div className="border-t border-slate-100 dark:border-emerald-900 my-1" />
 
                     <button
@@ -436,5 +503,6 @@ export function AppLayout({
         />
       )}
     </div>
+    </GuidedTourProvider>
   );
 }

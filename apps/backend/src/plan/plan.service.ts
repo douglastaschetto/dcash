@@ -11,7 +11,8 @@ export type FeatureKey =
   | 'dreams_goals'
   | 'whatsapp_alerts'
   | 'google_calendar'
-  | 'financial_challenges';
+  | 'financial_challenges'
+  | 'ofx_import';
 
 export interface FeatureValue {
   enabled: boolean;
@@ -30,9 +31,68 @@ function higherPlan(a: string, b: string): string {
   return bi > ai ? b.toLowerCase() : a.toLowerCase();
 }
 
+const DEFAULT_FEATURE_SEEDS: Array<{
+  plan: string;
+  featureKey: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+}> = [
+  {
+    plan: 'free',
+    featureKey: 'ofx_import',
+    enabled: false,
+    label: 'Importação de Extrato (OFX/CSV)',
+    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+  },
+  {
+    plan: 'basico',
+    featureKey: 'ofx_import',
+    enabled: false,
+    label: 'Importação de Extrato (OFX/CSV)',
+    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+  },
+  {
+    plan: 'intermediario',
+    featureKey: 'ofx_import',
+    enabled: true,
+    label: 'Importação de Extrato (OFX/CSV)',
+    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+  },
+  {
+    plan: 'pro',
+    featureKey: 'ofx_import',
+    enabled: true,
+    label: 'Importação de Extrato (OFX/CSV)',
+    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+  },
+];
+
 @Injectable()
 export class PlanService {
+  private featureDefaultsSeeded = false;
+
   constructor(private readonly db: DatabaseService) {}
+
+  /**
+   * plan_features não tem seed/migration formal (é dado vivo no Postgres).
+   * Garante que novas feature keys introduzidas em código existam para todos
+   * os planos, sem sobrescrever nenhum valor já customizado via /admin.
+   */
+  private async ensureFeatureDefaults() {
+    if (this.featureDefaultsSeeded) return;
+    for (const seed of DEFAULT_FEATURE_SEEDS) {
+      await this.db.query(
+        `INSERT INTO db_dtasc.plan_features (plan, feature_key, enabled, label, description, updated_at)
+         SELECT $1::text, $2::text, $3, $4, $5, NOW()
+         WHERE NOT EXISTS (
+           SELECT 1 FROM db_dtasc.plan_features WHERE plan = $1::text AND feature_key = $2::text
+         )`,
+        [seed.plan, seed.featureKey, seed.enabled, seed.label, seed.description],
+      );
+    }
+    this.featureDefaultsSeeded = true;
+  }
 
   /**
    * Resolves the effective plan for a user.
@@ -61,6 +121,7 @@ export class PlanService {
   }
 
   async getFeatures(plan: string): Promise<PlanFeatureMap> {
+    await this.ensureFeatureDefaults();
     const rows = await this.db.query(
       `SELECT feature_key AS "featureKey", enabled, num_value AS "numValue", label, description
        FROM db_dtasc.plan_features WHERE plan = $1`,
@@ -92,6 +153,7 @@ export class PlanService {
   }
 
   async getAllPlanFeatures() {
+    await this.ensureFeatureDefaults();
     return this.db.query(
       `SELECT plan, feature_key AS "featureKey", enabled,
               num_value AS "numValue", label, description, updated_at AS "updatedAt"

@@ -8,6 +8,7 @@ import {
   Loader2, FileUp, CheckCheck, X, Info,
 } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
+import { PlanGate } from '@/components/plan-gate';
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const fmtDate = (iso: string) => { const d = new Date(iso); return `${pad2(d.getDate())}/${pad2(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)}`; };
 import { cn } from '@/lib/utils';
@@ -147,6 +148,7 @@ export default function OFXImportPage() {
   /* ── render ─────────────────────────────────────────────── */
   return (
     <AppLayout>
+      <PlanGate feature="ofx_import">
       <div className="max-w-4xl mx-auto space-y-8 pb-8">
 
         {/* Page title */}
@@ -377,6 +379,7 @@ export default function OFXImportPage() {
           </ul>
         </div>
       </div>
+      </PlanGate>
     </AppLayout>
   );
 }

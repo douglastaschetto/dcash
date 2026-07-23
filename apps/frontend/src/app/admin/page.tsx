@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { AppLayout } from '@/components/app-layout';
 import {
   Shield, Users, Zap, Check, X, Loader2,
-  ToggleLeft, ToggleRight, Hash, Crown,
+  ToggleLeft, ToggleRight, Hash, Crown, GraduationCap,
 } from 'lucide-react';
+import { GuidedToursAdmin } from '@/components/admin/guided-tours-admin';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -48,7 +49,7 @@ const PLAN_COLORS: Record<string, string> = {
 };
 
 export default function AdminPage() {
-  const [tab, setTab] = useState<'plans' | 'users'>('plans');
+  const [tab, setTab] = useState<'plans' | 'users' | 'guides'>('plans');
   const [features, setFeatures] = useState<PlanFeature[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,6 +182,13 @@ export default function AdminPage() {
         >
           <Users className="h-4 w-4" /> Usuários
         </button>
+        <button
+          onClick={() => setTab('guides')}
+          className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition
+            ${tab === 'guides' ? 'bg-emerald-950 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300'}`}
+        >
+          <GraduationCap className="h-4 w-4" /> Guias
+        </button>
       </div>
 
       {loading ? (
@@ -268,6 +276,8 @@ export default function AdminPage() {
             <p className="text-xs text-slate-400">Clique em Ativo/Inativo para alternar. Para limites numéricos, edite o valor e clique fora para salvar.</p>
           </div>
         </div>
+      ) : tab === 'guides' ? (
+        <GuidedToursAdmin />
       ) : (
         /* ── Users Table ──────────────────────────────────────────── */
         <div className="rounded-[32px] bg-white border border-slate-200 shadow-lg overflow-hidden">

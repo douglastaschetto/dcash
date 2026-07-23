@@ -96,6 +96,7 @@ export default function FixedBillsPage() {
 
   const addButton = (
     <button
+      data-tour="fixed-bills-add-btn"
       onClick={() => setModalState({ open: true, data: null })}
       className="flex items-center gap-3 px-6 py-3 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-orange-500 dark:hover:bg-orange-500 dark:hover:text-white shadow-xl transition-all active:scale-95"
     >
@@ -118,7 +119,7 @@ export default function FixedBillsPage() {
             Fluxo Recorrente
           </div>
 
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
+          <div data-tour="fixed-bills-month-nav" className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-xl border border-zinc-200 dark:border-zinc-800">
             <button
               onClick={prevMonth}
               className="p-2 hover:bg-white dark:hover:bg-zinc-800 rounded-lg transition active:scale-90"
@@ -141,7 +142,7 @@ export default function FixedBillsPage() {
         </div>
 
         {/* Summary cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div data-tour="fixed-bills-kpi-cards" className="grid grid-cols-3 gap-3">
           {[
             { label: 'Total do Mês', value: fmt(totalMonth), color: 'text-zinc-900 dark:text-white' },
             { label: 'Pendente', value: fmt(totalPending), color: 'text-red-500' },
@@ -157,7 +158,7 @@ export default function FixedBillsPage() {
 
         {/* Scrollable zone: bills table */}
         <div className="flex-1 overflow-y-auto px-6 lg:px-8 pb-6 max-w-5xl mx-auto w-full">
-        <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-xl">
+        <div data-tour="fixed-bills-table" className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] overflow-hidden shadow-xl">
           {loading ? (
             <div className="py-24 flex justify-center">
               <Loader2 className="text-orange-500 animate-spin" size={32} />

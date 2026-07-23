@@ -18,6 +18,7 @@ const PLAN_LABELS: Record<string, string> = {
   dreams_goals: 'Intermediário ou superior',
   google_calendar: 'Intermediário ou superior',
   whatsapp_alerts: 'Pro',
+  ofx_import: 'Intermediário ou superior',
 };
 
 export function PlanGate({ feature, children, fallback, showUpgradePrompt = true }: PlanGateProps) {

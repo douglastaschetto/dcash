@@ -18,6 +18,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { TransactionsService, StagingResult } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { ImportConfirmDto } from './dto/import-confirm.dto';
+import { AnalyzeStagingDto } from './dto/analyze-staging.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('transactions')
@@ -108,5 +109,10 @@ export class TransactionsController {
   confirmImport(@Req() req, @Body() dto: ImportConfirmDto) {
     const items = (dto as any).items || [];
     return this.transactionsService.confirmImport(this.getUserId(req), items);
+  }
+
+  @Post('import/analyze')
+  analyzeStaging(@Req() req, @Body() dto: AnalyzeStagingDto) {
+    return this.transactionsService.analyzeStaging(this.getUserId(req), dto.ids);
   }
 }

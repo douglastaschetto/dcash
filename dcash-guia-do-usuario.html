@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DCash — Guia Completo do Usuário</title>
+<style>
+  :root{
+    --bg:#f5f7fa;
+    --bg-alt:#ffffff;
+    --card:#ffffff;
+    --text:#1a2233;
+    --text-soft:#4b5567;
+    --border:#e2e6ee;
+    --accent:#0f766e;
+    --accent-soft:#e6f4f2;
+    --accent2:#7c3aed;
+    --accent2-soft:#f1eafe;
+    --good:#0f8a4b;
+    --good-soft:#e7f7ee;
+    --warn:#b45309;
+    --warn-soft:#fef3e2;
+    --bad:#c0293a;
+    --bad-soft:#fdeaec;
+    --pill-basico:#0f766e;
+    --pill-inter:#7c3aed;
+    --pill-pro:#b45309;
+    --shadow:0 1px 3px rgba(20,30,50,.06), 0 8px 24px rgba(20,30,50,.06);
+    --radius:14px;
+    --sidebar-w:280px;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1420;
+    --bg-alt:#151b2b;
+    --card:#161d2e;
+    --text:#e8ecf5;
+    --text-soft:#a7b0c3;
+    --border:#252d42;
+    --accent:#2dd4bf;
+    --accent-soft:#0f2b28;
+    --accent2:#a78bfa;
+    --accent2-soft:#241a3d;
+    --good:#34d399;
+    --good-soft:#0e2a20;
+    --warn:#fbbf24;
+    --warn-soft:#2e2308;
+    --bad:#f87171;
+    --bad-soft:#2e1316;
+    --pill-basico:#2dd4bf;
+    --pill-inter:#a78bfa;
+    --pill-pro:#fbbf24;
+    --shadow:0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f1420;
+      --bg-alt:#151b2b;
+      --card:#161d2e;
+      --text:#e8ecf5;
+      --text-soft:#a7b0c3;
+      --border:#252d42;
+      --accent:#2dd4bf;
+      --accent-soft:#0f2b28;
+      --accent2:#a78bfa;
+      --accent2-soft:#241a3d;
+      --good:#34d399;
+      --good-soft:#0e2a20;
+      --warn:#fbbf24;
+      --warn-soft:#2e2308;
+      --bad:#f87171;
+      --bad-soft:#2e1316;
+      --pill-basico:#2dd4bf;
+      --pill-inter:#a78bfa;
+      --pill-pro:#fbbf24;
+      --shadow:0 1px 3px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.6;
+    font-size:16px;
+  }
+  a{color:var(--accent);}
+  h1,h2,h3,h4{line-height:1.25; font-weight:700;}
+  .topbar{
+    position:sticky; top:0; z-index:50;
+    display:flex; align-items:center; gap:12px;
+    padding:10px 20px;
+    background:var(--bg-alt);
+    border-bottom:1px solid var(--border);
+  }
+  .topbar .logo{font-weight:800; font-size:1.15rem; display:flex; align-items:center; gap:8px;}
+  .topbar .logo .dot{width:10px;height:10px;border-radius:50%;background:var(--accent);display:inline-block;}
+  .topbar input[type="search"]{
+    flex:1; max-width:420px; margin-left:auto;
+    padding:8px 14px; border-radius:999px; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); font-size:.9rem;
+  }
+  .icon-btn{
+    border:1px solid var(--border); background:var(--bg); color:var(--text);
+    border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:1rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .menu-btn{display:none;}
+  .layout{display:flex; max-width:1320px; margin:0 auto;}
+  .sidebar{
+    width:var(--sidebar-w); flex-shrink:0;
+    position:sticky; top:59px; align-self:flex-start;
+    height:calc(100vh - 59px); overflow-y:auto;
+    padding:22px 14px 40px;
+    border-right:1px solid var(--border);
+  }
+  .sidebar h4{
+    font-size:.72rem; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--text-soft); margin:20px 10px 8px;
+  }
+  .sidebar h4:first-child{margin-top:0;}
+  .sidebar a{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 10px; border-radius:10px; text-decoration:none;
+    color:var(--text-soft); font-size:.9rem;
+  }
+  .sidebar a:hover{background:var(--accent-soft); color:var(--accent);}
+  main{flex:1; min-width:0; padding:32px clamp(16px,4vw,48px) 80px;}
+  .hero{
+    background:linear-gradient(135deg,var(--accent-soft),var(--accent2-soft));
+    border:1px solid var(--border);
+    border-radius:20px; padding:40px clamp(20px,5vw,56px); margin-bottom:36px;
+  }
+  .hero h1{font-size:clamp(1.6rem,3.5vw,2.4rem); margin:0 0 10px;}
+  .hero p{color:var(--text-soft); max-width:60ch; margin:0 0 6px; font-size:1.02rem;}
+  .hero .tags{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+  .tag{
+    font-size:.78rem; font-weight:600; padding:5px 12px; border-radius:999px;
+    background:var(--card); border:1px solid var(--border); color:var(--text-soft);
+  }
+  section.page-section{
+    margin:52px 0; padding-top:8px; scroll-margin-top:75px;
+  }
+  section.page-section > .head{
+    display:flex; align-items:center; gap:14px; margin-bottom:6px;
+  }
+  section.page-section > .head .emoji{
+    font-size:1.7rem; width:52px; height:52px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    background:var(--card); border:1px solid var(--border); border-radius:14px;
+  }
+  section.page-section h2{font-size:1.5rem; margin:0;}
+  section.page-section .subtitle{color:var(--text-soft); margin:2px 0 0; font-size:.95rem;}
+  .card{
+    background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+    padding:22px 24px; box-shadow:var(--shadow); margin:18px 0;
+  }
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  @media (max-width:820px){.grid2{grid-template-columns:1fr;}}
+  .callout{
+    border-radius:14px; padding:16px 18px; margin:16px 0;
+    border:1px solid var(--border); display:flex; gap:12px; align-items:flex-start;
+  }
+  .callout .ic{font-size:1.2rem; flex-shrink:0; margin-top:1px;}
+  .callout.example{background:var(--accent-soft); border-color:transparent;}
+  .callout.tip{background:var(--good-soft); border-color:transparent;}
+  .callout.warn{background:var(--warn-soft); border-color:transparent;}
+  .callout.bad{background:var(--bad-soft); border-color:transparent;}
+  .callout b{display:block; margin-bottom:2px;}
+  ol,ul{padding-left:1.3em; margin:10px 0;}
+  li{margin:5px 0;}
+  .plan-pill{
+    display:inline-flex; align-items:center; gap:5px;
+    font-size:.72rem; font-weight:700; padding:3px 10px; border-radius:999px;
+    color:#fff; margin-left:6px; vertical-align:middle;
+  }
+  .plan-pill.basico{background:var(--pill-basico); color:#04302c;}
+  .plan-pill.inter{background:var(--pill-inter); color:#2b1259;}
+  .plan-pill.pro{background:var(--pill-pro); color:#3a2404;}
+  table{width:100%; border-collapse:collapse; font-size:.92rem;}
+  th,td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left;}
+  th{color:var(--text-soft); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;}
+  td.center, th.center{text-align:center;}
+  .badge-yes{color:var(--good); font-weight:700;}
+  .badge-no{color:var(--text-soft);}
+  details{
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+    padding:14px 18px; margin:10px 0;
+  }
+  details summary{cursor:pointer; font-weight:600; list-style:none;}
+  details summary::-webkit-details-marker{display:none;}
+  details summary::before{content:"▸ "; color:var(--accent);}
+  details[open] summary::before{content:"▾ "; }
+  details p, details ul{margin-top:10px;}
+  .stepnum{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:22px; height:22px; border-radius:50%; background:var(--accent);
+    color:#fff; font-size:.75rem; font-weight:700; margin-right:8px;
+  }
+  code{
+    background:var(--accent-soft); color:var(--accent); padding:1px 6px;
+    border-radius:5px; font-size:.85em;
+  }
+  .toc-group-title{font-weight:700;}
+  footer{
+    text-align:center; color:var(--text-soft); font-size:.82rem;
+    padding:30px 20px; border-top:1px solid var(--border); margin-top:40px;
+  }
+  hr.sep{border:none; border-top:1px solid var(--border); margin:40px 0;}
+  .search-hidden{display:none !important;}
+  @media (max-width:960px){
+    .menu-btn{display:flex;}
+    .sidebar{
+      position:fixed; left:0; top:59px; z-index:60; background:var(--bg-alt);
+      transform:translateX(-105%); transition:transform .2s ease; box-shadow:var(--shadow);
+      width:82vw; max-width:320px; height:calc(100vh - 59px);
+    }
+    .sidebar.open{transform:translateX(0);}
+    .topbar input[type="search"]{max-width:none;}
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <button class="icon-btn menu-btn" id="menuBtn" aria-label="Abrir menu">☰</button>
+  <div class="logo"><span class="dot"></span> DCash</div>
+  <input type="search" id="searchBox" placeholder="Buscar no guia (ex.: cofrinho, fatura, plano)…">
+  <button class="icon-btn" id="themeBtn" title="Alternar tema claro/escuro">🌗</button>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar">
+    <h4>Comece por aqui</h4>
+    <a href="#intro">👋 O que é o DCash</a>
+    <a href="#primeiros-passos">🚀 Primeiros passos</a>
+
+    <h4>Início</h4>
+    <a href="#dashboard">🏠 Painel Início</a>
+
+    <h4>Finanças</h4>
+    <a href="#contas">💳 Contas / Carteira</a>
+    <a href="#transacoes">🔁 Transações</a>
+    <a href="#contas-fixas">📌 Contas Fixas</a>
+    <a href="#parcelamentos">🧩 Parcelamentos</a>
+    <a href="#categorias">🏷️ Categorias</a>
+    <a href="#planejamento">🎯 Planejamento</a>
+    <a href="#importar-extrato">📥 Importar Extrato</a>
+
+    <h4>Metas</h4>
+    <a href="#cofrinhos">🐷 Cofrinhos</a>
+    <a href="#sonhos">🌟 Sonhos</a>
+    <a href="#desejos">🛍️ Desejos</a>
+    <a href="#desafios">🏆 Desafios</a>
+
+    <h4>Organização</h4>
+    <a href="#agenda">📅 Agenda</a>
+    <a href="#tarefas">✅ Tarefas</a>
+    <a href="#investimentos">📈 Investimentos</a>
+
+    <h4>Conta e assinatura</h4>
+    <a href="#perfil">👤 Perfil e Família</a>
+    <a href="#planos">💎 Planos e Assinatura</a>
+
+    <h4>Ajuda</h4>
+    <a href="#faq">❓ Perguntas Frequentes</a>
+    <a href="#glossario">📖 Glossário</a>
+  </nav>
+
+  <main>
+
+    <div class="hero" id="intro">
+      <h1>Guia Completo do DCash</h1>
+      <p>O DCash é o seu app de finanças pessoais (e familiares): organiza contas, gastos, contas fixas, parcelamentos, metas e investimentos em um só lugar. Este guia explica, em linguagem simples, para que serve cada tela e como tirar o melhor proveito dela — com exemplos práticos do dia a dia.</p>
+      <div class="tags">
+        <span class="tag">Sem jargão técnico</span>
+        <span class="tag">Exemplo em cada seção</span>
+        <span class="tag">Atualizado com o app atual</span>
+      </div>
+    </div>
+
+    <section class="page-section" id="primeiros-passos">
+      <div class="head"><div class="emoji">🚀</div><div><h2>Primeiros passos</h2><p class="subtitle">O caminho mais rápido para o DCash começar a te ajudar de verdade</p></div></div>
+      <div class="card">
+        <p>Ao entrar pela primeira vez, você verá um checklist "Primeiros passos" na tela Início. Ele te guia por estas 5 etapas — e some sozinho quando todas estiverem concluídas:</p>
+        <ol>
+          <li><span class="stepnum">1</span> Cadastre <b>uma conta</b> (seu banco, carteira de dinheiro, cartão de crédito etc.) em <a href="#contas">Contas</a>.</li>
+          <li><span class="stepnum">2</span> Lance <b>sua primeira transação</b> (uma receita ou despesa) em <a href="#transacoes">Transações</a>.</li>
+          <li><span class="stepnum">3</span> Organize seus gastos em pelo menos <b>2 categorias de despesa</b> em <a href="#categorias">Categorias</a>.</li>
+          <li><span class="stepnum">4</span> Crie <b>1 sonho</b> (uma meta de longo prazo) em <a href="#sonhos">Sonhos</a>.</li>
+          <li><span class="stepnum">5</span> Deixe suas <b>tarefas em dia</b> — zere a lista em <a href="#tarefas">Tarefas</a>.</li>
+        </ol>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Dica</b>O quiz de boas-vindas que aparece logo no primeiro acesso serve só para te apresentar o app — ele não salva os dados que você digita ali (nome, telefone, cartões, categorias sugeridas). Configure essas informações de verdade nas telas <a href="#perfil">Perfil</a>, <a href="#categorias">Categorias</a>, <a href="#contas">Contas</a> e <a href="#planejamento">Planejamento</a>.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- DASHBOARD -->
+    <section class="page-section" id="dashboard">
+      <div class="head"><div class="emoji">🏠</div><div><h2>Painel Início</h2><p class="subtitle">Sua visão geral do mês assim que você entra no app</p></div></div>
+      <div class="card">
+        <p>É a primeira tela que você vê ao entrar. Ela reúne, num só lugar, um resumo do seu dinheiro no mês selecionado: quanto entrou, quanto saiu, quanto sobrou, quanto está comprometido em parcelas e como você está indo comparado ao planejado.</p>
+        <ul>
+          <li><b>Cartões de resumo:</b> receita, despesa e saldo do mês, com a comparação (▲/▼) em relação ao mês anterior.</li>
+          <li><b>Gráfico por categoria:</b> mostra onde o dinheiro foi gasto, separado por membro da família quando aplicável. Se uma categoria passar do valor planejado, ela aparece em vermelho com o aviso "acima do orçamento".</li>
+          <li><b>Aba "DRE"</b> (Demonstrativo de Resultado): visão tipo "empresa", com resultado do mês, margem (%) e ponto de equilíbrio.</li>
+          <li><b>Raio-X de parcelamentos:</b> mostra que fatia da sua renda já está comprometida com parcelas. Passando de 30%, o card muda de "Saudável" para "Atenção".</li>
+          <li><b>Mini-calendário</b> com bolinhas coloridas: verde = receita, vermelho = despesa, azul = investimento, laranja = conta fixa.</li>
+          <li><b>Botões rápidos</b> para lançar Nova Receita, Nova Despesa ou Nova Categoria sem sair da tela.</li>
+        </ul>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo</b>Você ganhou R$ 5.000 no mês e gastou R$ 3.800, sendo R$ 900 em parcelas. O painel mostra saldo de R$ 1.200, e no Raio-X de Parcelamentos você vê que 18% da sua renda está comprometida — dentro da faixa saudável.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTAS -->
+    <section class="page-section" id="contas">
+      <div class="head"><div class="emoji">💳</div><div><h2>Contas / Carteira</h2><p class="subtitle">Onde você cadastra bancos, dinheiro, cartões e financiamentos</p></div></div>
+      <div class="card">
+        <p>Aqui você cadastra cada "lugar" onde seu dinheiro entra ou sai: conta bancária, dinheiro em espécie, PIX, boleto, cartão de crédito ou um financiamento. Cada uma vira um cartão nesta tela, mostrando o saldo e (para cartão) o limite.</p>
+        <ul>
+          <li>Clique em <b>Nova conta</b> para cadastrar; escolha o tipo, dê um nome e informe limite/dia de vencimento se for cartão.</li>
+          <li>Use os filtros no topo para ver só Cartões, só Dinheiro, só Boleto etc.</li>
+          <li>Editar e excluir ficam nos três pontinhos de cada cartão.</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Como o saldo é calculado</b>
+            <ul style="margin-top:6px">
+              <li><b>Dinheiro, PIX ou boleto:</b> saldo = tudo que entrou menos tudo que saiu naquela conta.</li>
+              <li><b>Cartão de crédito ou financiamento:</b> o número mostrado é o <b>limite ainda disponível</b> (limite total menos as faturas em aberto) — não é "dinheiro guardado".</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Atenção ao "Saldo Total"</b>O card de saldo total soma o dinheiro das suas contas com o limite disponível dos cartões. Isso significa que um cartão com bastante limite livre pode "inflar" esse número — ele não representa só o seu dinheiro em caixa.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRANSAÇÕES -->
+    <section class="page-section" id="transacoes">
+      <div class="head"><div class="emoji">🔁</div><div><h2>Transações</h2><p class="subtitle">O extrato completo de tudo que você lança no DCash</p></div></div>
+      <div class="card">
+        <p>É a tela onde ficam registradas todas as suas receitas, despesas e investimentos, com filtros por data, categoria, conta, cofrinho e status de pagamento.</p>
+        <ul>
+          <li><b>Lançar:</b> use o botão principal para escolher Nova Receita, Nova Despesa ou Investimento.</li>
+          <li><b>Marcar como pago:</b> selecione uma ou várias transações e confirme o pagamento em lote.</li>
+          <li><b>Editar/excluir:</b> disponível em cada linha; se for uma parcela, você escolhe entre excluir só aquela parcela ou o parcelamento inteiro.</li>
+          <li><b>Importar OFX:</b> atalho direto para a tela de <a href="#importar-extrato">Importação de Extrato</a>.</li>
+          <li>Ícones da lista: 📅 conta fixa vinculada, 🧩 parcelado, 🐷 aporte de cofrinho.</li>
+        </ul>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo — parcelamento no cartão</b>Você compra um celular de R$ 1.200 em 4x no cartão. O DCash cria 4 transações de R$ 300, uma por mês. Se a compra foi feita depois do dia de fechamento da fatura, a primeira parcela automaticamente "pula" para o mês seguinte — igual acontece na fatura real do cartão.</div>
+        </div>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Investir em um cofrinho ou sonho</b>Ao lançar um "Investimento", você pode escolher para onde o dinheiro vai: um <a href="#cofrinhos">Cofrinho</a> específico ou direto para um <a href="#sonhos">Sonho</a>. O valor só entra de fato no saldo do cofrinho quando a transação é marcada como paga.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTAS FIXAS -->
+    <section class="page-section" id="contas-fixas">
+      <div class="head"><div class="emoji">📌</div><div><h2>Contas Fixas <span class="plan-pill basico">Plano Básico+</span></h2><p class="subtitle">Aluguel, internet, fatura de cartão — tudo que se repete todo mês</p></div></div>
+      <div class="card">
+        <p>Cadastre uma vez e o DCash lembra por você. Existem dois tipos de conta fixa:</p>
+        <ul>
+          <li><b>Conta comum:</b> aluguel, internet, luz, plano de celular etc. Você define descrição, valor, dia de vencimento e categoria.</li>
+          <li><b>Fatura de cartão:</b> vincula direto a um cartão já cadastrado; o valor é somado automaticamente a partir das compras feitas naquele cartão no mês, e o dia de vencimento vem do próprio cadastro do cartão.</li>
+        </ul>
+        <p>Ao criar uma conta comum, você escolhe se ela deve <b>gerar lançamentos automáticos</b> todo mês (aparecem prontos em Transações) ou ficar <b>apenas como lembrete</b>. Se não definir uma data final, o DCash já gera os lançamentos dos próximos 12 meses.</p>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo</b>Você cadastra "Aluguel — R$ 1.500, vence dia 5" sem data final. O DCash cria automaticamente o lançamento de aluguel para os próximos 12 meses, e você só marca como pago mês a mês.</div>
+        </div>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Ao excluir uma conta fixa</b>O DCash apaga a regra e todas as parcelas futuras <b>ainda não pagas</b>. O que já foi pago no passado permanece no seu histórico.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PARCELAMENTOS -->
+    <section class="page-section" id="parcelamentos">
+      <div class="head"><div class="emoji">🧩</div><div><h2>Parcelamentos</h2><p class="subtitle">O raio-X de tudo que você está pagando parcelado</p></div></div>
+      <div class="card">
+        <p>Uma tela só de consulta (não é aqui que você cria ou edita — isso é feito em <a href="#transacoes">Transações</a>) que agrupa todas as suas compras parceladas e mostra:</p>
+        <ul>
+          <li>Quanto ainda falta pagar no total (saldo devedor).</li>
+          <li>Quanto vence este mês e quanto vence no mês seguinte, com a variação entre eles.</li>
+          <li>Quais parcelamentos <b>começam</b> e quais <b>terminam</b> no mês — útil para saber quando vai "sobrar" dinheiro no orçamento.</li>
+          <li>Expandindo um grupo, você vê parcela por parcela: valor, vencimento e se já foi paga.</li>
+        </ul>
+        <p>Um parcelamento totalmente pago ganha o selo <b>"Quitado"</b>.</p>
+      </div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section class="page-section" id="categorias">
+      <div class="head"><div class="emoji">🏷️</div><div><h2>Categorias</h2><p class="subtitle">Como você organiza para onde o dinheiro vai (e de onde vem)</p></div></div>
+      <div class="card">
+        <p>As categorias existem em 3 grupos: <b>Receita</b> (salário, freelas...), <b>Despesa</b> (mercado, transporte...) e <b>Reserva/Investimento</b>. Cada categoria tem uma cor e um ícone escolhidos por você, o que ajuda a identificar rapidinho os gráficos do painel Início.</p>
+        <ul>
+          <li>Crie ou edite pelo painel lateral, com prévia ao vivo da cor/ícone escolhidos.</li>
+          <li>Os cartões de cada grupo podem ser recolhidos para economizar espaço na tela.</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Dica</b>Quanto mais específicas suas categorias de despesa (ex.: "Mercado", "Delivery", "Transporte" em vez de só "Gastos gerais"), mais útil fica o gráfico do painel Início e o <a href="#planejamento">Planejamento</a> mensal.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLANEJAMENTO -->
+    <section class="page-section" id="planejamento">
+      <div class="head"><div class="emoji">🎯</div><div><h2>Planejamento</h2><p class="subtitle">Seu orçamento mês a mês, categoria por categoria</p></div></div>
+      <div class="card">
+        <p>Aqui você define, para cada mês, quanto pretende gastar em cada categoria de despesa — e depois acompanha se está cumprindo. É diferente da tela "Planos", que é sobre <a href="#planos">assinatura do DCash</a>.</p>
+        <p>Criar um planejamento tem 2 passos:</p>
+        <ol>
+          <li><span class="stepnum">1</span> Informe a <b>receita prevista</b> do mês e escolha, num controle deslizante, que <b>% quer guardar de reserva</b>. O DCash calcula sozinho quanto sobra para gastar.</li>
+          <li><span class="stepnum">2</span> Distribua esse valor disponível entre as <b>categorias de despesa</b>. Um contador mostra, em tempo real, quanto ainda falta distribuir (fica vermelho se você passar do limite).</li>
+        </ol>
+        <p>Não quer redigitar tudo todo mês? Use <b>"Replicar mês anterior"</b> para copiar os valores do mês passado de uma vez.</p>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo</b>Renda prevista de R$ 4.000, meta de reserva de 10% (R$ 400) → disponível para gastar: R$ 3.600. Você distribui R$ 1.200 em Mercado, R$ 500 em Transporte, R$ 400 em Lazer... e acompanha ao longo do mês se está estourando alguma categoria.</div>
+        </div>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div>No calendário de 12 meses, meses sem planejamento aparecem em cinza ("Sem planejamento"); a barra fica vermelha quando os gastos passam de 100% do planejado naquele mês.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- IMPORTAR EXTRATO -->
+    <section class="page-section" id="importar-extrato">
+      <div class="head"><div class="emoji">📥</div><div><h2>Importar Extrato</h2><p class="subtitle">Traga de uma vez os lançamentos do seu banco (OFX ou CSV)</p></div></div>
+      <div class="card">
+        <p>Em vez de digitar cada lançamento na mão, você pode importar o arquivo de extrato do seu banco (<code>.ofx</code>) ou uma planilha simples (<code>.csv</code>).</p>
+        <ol>
+          <li><span class="stepnum">1</span> Envie o arquivo e, se quiser, já associe a uma conta/cartão específico.</li>
+          <li><span class="stepnum">2</span> O DCash mostra uma prévia de todas as linhas encontradas. Linhas que parecem <b>duplicadas</b> (mesma data, valor e descrição de algo já lançado) ficam marcadas em amarelo e não podem ser selecionadas de novo.</li>
+          <li><span class="stepnum">3</span> Escolha a categoria de cada lançamento (ou deixe em branco para ajustar depois).</li>
+          <li><span class="stepnum">4</span> Confirme para gravar os lançamentos selecionados de uma vez.</li>
+        </ol>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Revise antes de confirmar</b>Hoje, tudo que vem de um extrato importado entra inicialmente como <b>despesa</b> — mesmo um PIX recebido ou um depósito. Antes de confirmar (ou logo depois, em Transações), edite manualmente para "receita" os lançamentos que forem entradas de dinheiro.</div>
+        </div>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Cofrinhos não são atualizados sozinhos</b>A importação de extrato não altera o saldo dos seus <a href="#cofrinhos">Cofrinhos</a> automaticamente. Se um valor importado for na verdade um aporte, registre o depósito manualmente na tela de Cofrinhos.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- COFRINHOS -->
+    <section class="page-section" id="cofrinhos">
+      <div class="head"><div class="emoji">🐷</div><div><h2>Cofrinhos</h2><p class="subtitle">Reservas de dinheiro com metas mensais ou totais</p></div></div>
+      <div class="card">
+        <p>Um cofrinho é uma "caixinha" digital para guardar dinheiro com um objetivo — viagem, reserva de emergência, presente. Você deposita e retira quando quiser, e acompanha uma barra de progresso.</p>
+        <ul>
+          <li><b>Depositar/Retirar:</b> botões dedicados em cada cofrinho.</li>
+          <li><b>Arquivar:</b> "aposenta" o cofrinho sem apagar o histórico — ele some da lista principal, mas os dados continuam guardados.</li>
+        </ul>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Defina uma meta</b>Se você não definir nenhuma meta mensal ou total, o progresso é calculado como se a meta fosse R$ 1 — ou seja, qualquer valor guardado já aparece como "100% concluído". Sempre defina uma meta real para o progresso fazer sentido.</div>
+        </div>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo</b>Cofrinho "Viagem para a praia", meta de R$ 3.000. Você deposita R$ 750 → a barra mostra 25% de progresso.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SONHOS -->
+    <section class="page-section" id="sonhos">
+      <div class="head"><div class="emoji">🌟</div><div><h2>Sonhos <span class="plan-pill inter">Plano Intermediário+</span></h2><p class="subtitle">Suas metas de longo prazo, com foto e prazo</p></div></div>
+      <div class="card">
+        <p>É um "quadro de sonhos" visual: casa própria, carro, viagem dos sonhos. Cada sonho tem uma imagem, um valor-alvo e, se quiser, um prazo.</p>
+        <p>Você escolhe como o valor guardado é controlado:</p>
+        <ul>
+          <li><b>Manual:</b> você mesmo atualiza o valor guardado sempre que quiser.</li>
+          <li><b>Vinculado a um Cofrinho:</b> o valor guardado do sonho passa a acompanhar automaticamente o saldo daquele cofrinho.</li>
+          <li><b>Vinculado a um item de Desejos:</b> conecta o sonho a um produto da sua lista de desejos.</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Dica</b>Se escolher "Manual" e esquecer de atualizar o valor de tempos em tempos, o progresso fica parado — ele não se atualiza sozinho como no modo vinculado a cofrinho.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESEJOS -->
+    <section class="page-section" id="desejos">
+      <div class="head"><div class="emoji">🛍️</div><div><h2>Desejos</h2><p class="subtitle">Sua lista de "quero comprar" com caça-preços embutido</p></div></div>
+      <div class="card">
+        <p>Cadastre produtos que você quer comprar, com prioridade (Essencial, Médio, Baixo) e link de referência. Para cada item, você pode abrir o <b>Caça Preços</b>:</p>
+        <ul>
+          <li><b>Preços Salvos:</b> compare cotações que você mesmo cadastrou de diferentes lojas; a mais barata ganha o selo dourado "Melhor".</li>
+          <li><b>Buscar Online:</b> pesquisa automática de preços (precisa estar configurada pelo administrador do sistema; se não estiver disponível, aparece um aviso explicando).</li>
+          <li><b>Adicionar Manual:</b> registre você mesmo uma cotação que viu em alguma loja.</li>
+        </ul>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Confira o frete</b>Preços trazidos automaticamente pela busca online são salvos sem considerar o valor real do frete. Antes de decidir onde comprar, confirme o frete direto no site da loja.</div>
+        </div>
+        <p>Quando você compra o item, marque como <b>"Já Adquirido"</b> — ele fica em tons de cinza na lista, mas continua no seu histórico.</p>
+      </div>
+    </section>
+
+    <!-- DESAFIOS -->
+    <section class="page-section" id="desafios">
+      <div class="head"><div class="emoji">🏆</div><div><h2>Desafios <span class="plan-pill basico">Plano Básico+</span></h2><p class="subtitle">Seu diário mensal de metas pessoais</p></div></div>
+      <div class="card">
+        <p>Não é um jogo automático — é um espaço para você escrever, todo mês, um desafio ou meta pessoal ("Registrar 100% das receitas", "Não comer fora por 30 dias") e acompanhar o andamento.</p>
+        <ul>
+          <li>Um desafio por mês, com status: <b>Não iniciada</b>, <b>Em andamento</b> ou <b>Concluída</b>.</li>
+          <li>Um anel de progresso mostra sua taxa de desafios concluídos no ano.</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div>Não existem pontos, streaks ou recompensas automáticas — é um registro para sua própria disciplina e reflexão mensal.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- AGENDA -->
+    <section class="page-section" id="agenda">
+      <div class="head"><div class="emoji">📅</div><div><h2>Agenda</h2><p class="subtitle">Seu calendário financeiro e pessoal, com bolinhas coloridas</p></div></div>
+      <div class="card">
+        <p>Combina, num único calendário, tudo que tem data: suas transações, contas fixas e eventos que você mesmo cria (consultas, reuniões, lembretes).</p>
+        <ul>
+          <li><b>Bolinhas no dia:</b> verde = receita, vermelho = despesa, azul = investimento, laranja = conta fixa.</li>
+          <li><b>Novo Evento:</b> escolha tipo, horário (ou "dia todo"), cor e, se quiser, um alerta por WhatsApp <span class="plan-pill pro">Plano Pro</span>.</li>
+          <li><b>Google Agenda:</b> se conectado no seu Perfil, os eventos podem sincronizar automaticamente <span class="plan-pill inter">Plano Intermediário+</span>.</li>
+          <li>Clique em qualquer dia para ver o resumo detalhado dele num painel lateral.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- TAREFAS -->
+    <section class="page-section" id="tarefas">
+      <div class="head"><div class="emoji">✅</div><div><h2>Tarefas</h2><p class="subtitle">Uma lista simples de afazeres, pessoal ou da família</p></div></div>
+      <div class="card">
+        <p>Adicione tarefas rápidas com Enter ou pelo botão "+". Marque como concluída para movê-la para a seção recolhida "Concluídas".</p>
+        <p>Se você faz parte de um grupo familiar, a tarefa é automaticamente marcada como <b>"Família"</b> (visível para todos os membros); caso contrário é <b>"Pessoal"</b>.</p>
+      </div>
+    </section>
+
+    <!-- INVESTIMENTOS -->
+    <section class="page-section" id="investimentos">
+      <div class="head"><div class="emoji">📈</div><div><h2>Investimentos <span class="plan-pill pro">Exclusivo Plano Pro</span></h2><p class="subtitle">Acompanhe sua carteira de ações e FIIs</p></div></div>
+      <div class="card">
+        <p>Módulo exclusivo do plano Pro para quem investe na bolsa (B3). Três abas:</p>
+        <ul>
+          <li><b>Carteira:</b> cadastre suas posições (ticker, quantidade, preço médio) e veja o resultado (lucro/prejuízo) com preços atualizados.</li>
+          <li><b>Pesquisar:</b> consulte indicadores de qualquer ação/FII (dividendos, variação em 12 meses, P/L, P/VP).</li>
+          <li><b>Alertas:</b> seja avisado quando um ativo atingir um preço-alvo (para cima ou para baixo).</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Dica</b>Ao pesquisar, digite só o código (ex.: <code>ITSA4</code> ou <code>MXRF11</code>) — não precisa incluir o sufixo ".SA".</div>
+        </div>
+        <div class="callout warn">
+          <div class="ic">⚠️</div>
+          <div><b>Alertas disparados não reativam sozinhos</b>Depois que um alerta de preço é disparado (e você é avisado por WhatsApp, se configurado), ele é desativado automaticamente. Para continuar monitorando, crie um novo alerta.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- PERFIL -->
+    <section class="page-section" id="perfil">
+      <div class="head"><div class="emoji">👤</div><div><h2>Perfil e Família</h2><p class="subtitle">Seus dados, preferências e grupo familiar</p></div></div>
+      <div class="card">
+        <p>Central de configurações da sua conta:</p>
+        <ul>
+          <li><b>Dados pessoais:</b> nome, telefone, foto.</li>
+          <li><b>Tema:</b> claro, escuro ou "seguir o sistema".</li>
+          <li><b>Alertas por WhatsApp</b> <span class="plan-pill pro">Plano Pro</span>: exige telefone cadastrado; escolha o horário preferido para receber avisos.</li>
+          <li><b>Google Agenda</b> <span class="plan-pill inter">Plano Intermediário+</span>: conecte sua conta Google para sincronizar eventos da Agenda.</li>
+          <li><b>Grupo Familiar</b> <span class="plan-pill inter">Plano Intermediário+</span>: crie um grupo e compartilhe um código de convite (formato <code>DCASH-XXXXXX</code>) para que outras pessoas entrem. Dados de contas, transações, categorias e afins passam a ser vistos por todo o grupo.</li>
+        </ul>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Vantagem de estar numa família</b>Se o criador do grupo tiver um plano superior ao seu, você herda automaticamente os benefícios desse plano enquanto estiver no grupo.</div>
+        </div>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div>Só o <b>criador</b> do grupo pode renomeá-lo. Qualquer membro pode copiar o código de convite para compartilhar.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLANOS -->
+    <section class="page-section" id="planos">
+      <div class="head"><div class="emoji">💎</div><div><h2>Planos e Assinatura</h2><p class="subtitle">O que cada plano libera no DCash</p></div></div>
+      <div class="card">
+        <p>O DCash tem 4 planos: <b>Grátis</b>, <b>Básico</b>, <b>Intermediário</b> e <b>Pro</b>. Você pode ver os preços atuais e fazer upgrade a qualquer momento na tela de Planos (acessível pelo Perfil ou por qualquer aviso de "recurso bloqueado").</p>
+        <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Recurso</th><th class="center">Grátis</th><th class="center">Básico</th><th class="center">Intermediário</th><th class="center">Pro</th></tr></thead>
+          <tbody>
+            <tr><td>Contas, Transações, Categorias, Planejamento, Agenda, Desejos, Cofrinhos, Tarefas</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Contas Fixas</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Desafios Financeiros</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Exportar relatórios</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Sonhos</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Grupo Familiar</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Google Agenda</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Alertas por WhatsApp</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td></tr>
+            <tr><td>Investimentos</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-no">—</td><td class="center badge-yes">✓</td></tr>
+          </tbody>
+        </table>
+        </div>
+        <p style="margin-top:14px">Formas de pagamento aceitas: cartão de crédito, PIX e boleto, processadas com segurança pelos nossos parceiros de pagamento. Após a confirmação do pagamento, seu plano é liberado automaticamente — isso pode levar alguns instantes enquanto o pagamento é confirmado pelo banco/operadora.</p>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Pagamento via boleto ou PIX</b>Boleto pode levar até 3 dias úteis para compensar; PIX e cartão costumam ser confirmados quase na hora. Se a tela de confirmação demorar, não se preocupe — assim que o pagamento for aprovado, seu plano é atualizado automaticamente.</div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- FAQ -->
+    <section class="page-section" id="faq">
+      <div class="head"><div class="emoji">❓</div><div><h2>Perguntas Frequentes</h2><p class="subtitle">As dúvidas mais comuns, respondidas direto</p></div></div>
+
+      <details>
+        <summary>Por que meu "Saldo Total" está maior do que eu esperava?</summary>
+        <p>Porque ele soma o dinheiro das suas contas normais com o <b>limite disponível</b> dos seus cartões de crédito. O limite livre de um cartão não é dinheiro que você tem em caixa — é só quanto ainda pode gastar nele. Veja o saldo de cada conta individualmente em <a href="#contas">Contas</a>.</p>
+      </details>
+
+      <details>
+        <summary>Preenchi meus dados no quiz inicial (onboarding), mas eles não aparecem no Perfil. Por quê?</summary>
+        <p>O quiz de boas-vindas é apenas uma apresentação do app — ele não grava as informações digitadas. Cadastre seus dados reais diretamente em <a href="#perfil">Perfil</a>, <a href="#contas">Contas</a>, <a href="#categorias">Categorias</a> e <a href="#planejamento">Planejamento</a>.</p>
+      </details>
+
+      <details>
+        <summary>Importei meu extrato e um PIX que recebi apareceu como despesa. Isso é normal?</summary>
+        <p>Sim, é um comportamento atual da importação: todo lançamento importado entra como despesa por padrão. Edite manualmente para "receita" os itens que forem entradas de dinheiro logo após a importação.</p>
+      </details>
+
+      <details>
+        <summary>Meu cofrinho já mostra 100% de progresso com pouco dinheiro guardado. O que houve?</summary>
+        <p>Provavelmente você não definiu uma meta (mensal ou total) para esse cofrinho. Sem meta definida, o DCash considera R$ 1 como referência, então qualquer valor já aparece como "concluído". Edite o cofrinho e defina uma meta real.</p>
+      </details>
+
+      <details>
+        <summary>Por que não consigo usar Contas Fixas / Sonhos / Investimentos?</summary>
+        <p>Esses recursos são liberados a partir de determinados planos — veja a tabela em <a href="#planos">Planos e Assinatura</a>. A tela do recurso mostra um aviso com botão "Ver planos" quando isso acontece.</p>
+      </details>
+
+      <details>
+        <summary>Cadastrei uma conta fixa sem data final. Isso nunca mais vai parar de gerar lançamentos?</summary>
+        <p>O DCash gera automaticamente os lançamentos dos próximos 12 meses a partir da data de cadastro. Perto do fim desse período, revise a conta fixa (ela continua ativa; se quiser, edite para renovar o período).</p>
+      </details>
+
+      <details>
+        <summary>Excluí uma conta fixa e algumas contas dos meses anteriores sumiram. É normal?</summary>
+        <p>Não — excluir uma conta fixa remove a regra e as parcelas <b>futuras não pagas</b>. Lançamentos já pagos no passado não são apagados. Se algo pago sumiu, entre em contato com o suporte.</p>
+      </details>
+
+      <details>
+        <summary>Um alerta de preço de uma ação disparou e agora não aviso mais nada sobre ela. Por quê?</summary>
+        <p>Alertas disparados são desativados automaticamente após o aviso. Crie um novo alerta em <a href="#investimentos">Investimentos → Alertas</a> se quiser continuar acompanhando aquele ativo.</p>
+      </details>
+
+      <details>
+        <summary>Pedi recuperação de senha e recebi a mensagem de sucesso, mas o e-mail não chegou. O que fazer?</summary>
+        <p>Por segurança, o DCash sempre mostra a mensagem de "e-mail enviado" mesmo que o endereço digitado não esteja cadastrado (assim ninguém descobre quais e-mails existem no sistema). Confira se digitou o e-mail correto — o mesmo usado no cadastro — e verifique a caixa de spam antes de tentar de novo.</p>
+      </details>
+    </section>
+
+    <hr class="sep">
+
+    <!-- GLOSSARIO -->
+    <section class="page-section" id="glossario">
+      <div class="head"><div class="emoji">📖</div><div><h2>Glossário</h2><p class="subtitle">Termos usados no DCash, explicados rapidinho</p></div></div>
+      <div class="card">
+        <div class="grid2">
+          <div>
+            <p><b>Conta fixa</b> — despesa que se repete todo mês (aluguel, internet).</p>
+            <p><b>Parcelamento</b> — compra dividida em várias transações mensais ligadas entre si.</p>
+            <p><b>Cofrinho</b> — reserva de dinheiro com meta e saldo próprio.</p>
+            <p><b>Sonho</b> — meta de longo prazo com imagem e valor-alvo.</p>
+          </div>
+          <div>
+            <p><b>Grupo familiar</b> — conjunto de pessoas que compartilham as mesmas contas/transações/metas no app.</p>
+            <p><b>DRE</b> — Demonstrativo de Resultado: visão "receita menos despesa" do mês, como um mini-balanço.</p>
+            <p><b>Recurso "gated"/bloqueado</b> — funcionalidade disponível apenas a partir de determinado plano de assinatura.</p>
+            <p><b>Staging de importação</b> — área temporária onde ficam os lançamentos de um extrato antes de você confirmar a importação.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      DCash — Guia do Usuário gerado a partir do funcionamento real do sistema · uso interno e de suporte ao cliente
+    </footer>
+
+  </main>
+</div>
+
+<script>
+  const root = document.documentElement;
+  const themeBtn = document.getElementById('themeBtn');
+  const saved = localStorage.getItem('dcash-guide-theme');
+  if(saved){ root.setAttribute('data-theme', saved); }
+  themeBtn.addEventListener('click', () => {
+    const current = root.getAttribute('data-theme') ||
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    const next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('dcash-guide-theme', next);
+  });
+
+  const menuBtn = document.getElementById('menuBtn');
+  const sidebar = document.getElementById('sidebar');
+  menuBtn.addEventListener('click', () => sidebar.classList.toggle('open'));
+  sidebar.querySelectorAll('a').forEach(a => a.addEventListener('click', () => sidebar.classList.remove('open')));
+
+  const searchBox = document.getElementById('searchBox');
+  const sections = Array.from(document.querySelectorAll('section.page-section'));
+  searchBox.addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    sections.forEach(sec => {
+      if(!q){ sec.classList.remove('search-hidden'); return; }
+      const match = sec.textContent.toLowerCase().includes(q);
+      sec.classList.toggle('search-hidden', !match);
+    });
+  });
+</script>
+
+</body>
+</html>

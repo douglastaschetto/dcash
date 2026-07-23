@@ -265,6 +265,7 @@ function CalendarPageContent() {
 
   const novoEventoButton = (
     <button
+      data-tour="calendar-add-btn"
       onClick={() => openCreate()}
       className="flex items-center gap-2 px-5 py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white transition active:scale-95"
     >
@@ -278,7 +279,7 @@ function CalendarPageContent() {
 
         {/* Frozen: monthly summary + month nav */}
         <div className="shrink-0 px-6 pt-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
+          <div data-tour="calendar-summary-cards" className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 mb-4">
             {[
               { label: 'Receitas',      value: summary.income,     color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-500/5', icon: TrendingUp,  iconColor: 'text-emerald-500' },
               { label: 'Despesas',      value: summary.expense,    color: 'text-red-500',     bg: 'bg-red-500/5',     icon: TrendingDown, iconColor: 'text-red-500'     },
@@ -296,7 +297,7 @@ function CalendarPageContent() {
           </div>
 
           {/* Month nav */}
-          <div className="flex items-center justify-between mb-3">
+          <div data-tour="calendar-month-nav" className="flex items-center justify-between mb-3">
             <button
               onClick={() => setCurrentDate(d => new Date(d.getFullYear(), d.getMonth() - 1, 1))}
               className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition active:scale-90"
@@ -333,7 +334,7 @@ function CalendarPageContent() {
                 <Loader2 size={32} className="animate-spin text-zinc-300" />
               </div>
             ) : (
-              <div className="grid grid-cols-7 gap-1">
+              <div data-tour="calendar-grid" className="grid grid-cols-7 gap-1">
                 {cells.map((day, i) => {
                   if (!day) return <div key={i} />;
                   const data = dayMap[day];

@@ -8,5 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [DatabaseModule, AuthModule],
   controllers: [CategoryLimitsController],
   providers: [CategoryLimitsService],
+  exports: [CategoryLimitsService],
 })
 export class CategoryLimitsModule {}

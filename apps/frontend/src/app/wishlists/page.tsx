@@ -112,6 +112,7 @@ export default function WishlistPage() {
 
   const headerButton = (
     <button
+      data-tour="wishlists-add-btn"
       onClick={() => (editingId ? resetForm() : setShowForm(!showForm))}
       className={cn(
         'px-5 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all active:scale-95 flex items-center gap-2',
@@ -130,7 +131,7 @@ export default function WishlistPage() {
       <div className="max-w-7xl mx-auto space-y-6 font-sans">
 
         {/* Summary label */}
-        <div className="flex items-center gap-2 text-emerald-500 font-black text-[10px] tracking-[0.3em] uppercase italic">
+        <div data-tour="wishlists-summary" className="flex items-center gap-2 text-emerald-500 font-black text-[10px] tracking-[0.3em] uppercase italic">
           <Target size={13} />
           {pending.length} pendentes
           {acquired.length > 0 && <span className="text-zinc-400"> · {acquired.length} adquiridos</span>}
@@ -256,7 +257,7 @@ export default function WishlistPage() {
 
         {/* Pending items */}
         {pending.length > 0 && (
-          <section>
+          <section data-tour="wishlists-pending-section">
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em] mb-3">
               Pendentes — {pending.length}
             </h3>

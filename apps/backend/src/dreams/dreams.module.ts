@@ -8,5 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [DatabaseModule, AuthModule],
   controllers: [DreamsController],
   providers: [DreamsService],
+  exports: [DreamsService],
 })
 export class DreamsModule {}

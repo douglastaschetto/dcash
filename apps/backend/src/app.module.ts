@@ -22,9 +22,11 @@ import { AdminModule } from './admin/admin.module';
 import { PaymentModule } from './payment/payment.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { InvestmentsModule } from './investments/investments.module';
+import { SupportAiModule } from './support-ai/support-ai.module';
+import { GuidedToursModule } from './guided-tours/guided-tours.module';
 
 @Module({
-  imports: [DatabaseModule, AuthModule, CategoriesModule, DashboardModule, PaymentMethodsModule, FamilyModule, CategoryLimitsModule, TodosModule, ChallengesModule, WishlistModule, UploadModule, PiggyBanksModule, DreamsModule, FixedBillsModule, CalendarEventsModule, NotificationsModule, PlanModule, AdminModule, PaymentModule, TransactionsModule, InvestmentsModule],
+  imports: [DatabaseModule, AuthModule, CategoriesModule, DashboardModule, PaymentMethodsModule, FamilyModule, CategoryLimitsModule, TodosModule, ChallengesModule, WishlistModule, UploadModule, PiggyBanksModule, DreamsModule, FixedBillsModule, CalendarEventsModule, NotificationsModule, PlanModule, AdminModule, PaymentModule, TransactionsModule, InvestmentsModule, SupportAiModule, GuidedToursModule],
   controllers: [AppController],
   providers: [AppService],
 })

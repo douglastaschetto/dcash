@@ -120,6 +120,7 @@ export default function PiggyBanksPage() {
 
   const addButton = (
     <button
+      data-tour="piggy-banks-add-btn"
       onClick={openCreate}
       className="flex items-center gap-2 px-5 py-3 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl font-black text-[11px] uppercase tracking-widest hover:bg-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white transition-all shadow-lg active:scale-95"
     >
@@ -135,7 +136,7 @@ export default function PiggyBanksPage() {
         {/* Frozen zone: KPIs + section label (does not scroll) */}
         <div className="shrink-0 px-6 lg:px-8 pt-6 space-y-6">
           {banks.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div data-tour="piggy-banks-kpi-cards" className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
                 { label: 'Cofrinhos ativos', value: banks.length.toString() },
                 { label: 'Total poupado', value: fmt(totalSaved) },
@@ -188,7 +189,7 @@ export default function PiggyBanksPage() {
 
         {/* Grid */}
         {!loading && banks.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          <div data-tour="piggy-banks-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
             {banks.map((bank) => {
               const color = bank.color ?? '#10b981';
               const goal = bank.yearlyGoal || bank.monthlyGoal || 0;

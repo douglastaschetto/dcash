@@ -1,7 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { DatabaseService } from '../database/database.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { createHash, randomUUID } from 'crypto';
+import { PlanService } from '../plan/plan.service';
+import { CategoriesService } from '../categories/categories.service';
 
 export interface StagingResult {
   id: string;
@@ -15,7 +19,27 @@ export interface StagingResult {
 
 @Injectable()
 export class TransactionsService {
-  constructor(private readonly db: DatabaseService) {}
+  private readonly logger = new Logger(TransactionsService.name);
+  private readonly genAI: GoogleGenerativeAI;
+  private readonly modelName: string;
+
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly config: ConfigService,
+    private readonly planService: PlanService,
+    private readonly categoriesService: CategoriesService,
+  ) {
+    this.genAI = new GoogleGenerativeAI(this.config.get<string>('GEMINI_API_KEY') ?? '');
+    this.modelName = this.config.get<string>('GEMINI_MODEL_NAME') || 'gemini-2.5-flash';
+  }
+
+  /** Importação de extrato (OFX/CSV) é recurso do plano Intermediário para cima. */
+  private async assertOfxImportAllowed(userId: string) {
+    const allowed = await this.planService.hasFeature(userId, 'ofx_import');
+    if (!allowed) {
+      throw new ForbiddenException('Importação de extrato disponível a partir do plano Intermediário.');
+    }
+  }
 
   // ─── Scope helper ───────────────────────────────────────────────────────────
 
@@ -95,6 +119,83 @@ export class TransactionsService {
       ORDER BY t.date ASC
     `;
     return this.db.query(sql, [scope.param]);
+  }
+
+  async getMonthlySummary(userId: string, month: number, year: number) {
+    const scope = await this.getScope(userId);
+    const start = `${year}-${String(month).padStart(2, '0')}-01 00:00:00`;
+    const end = new Date(year, month, 0, 23, 59, 59).toISOString();
+
+    const totals = await this.db.query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN type = 'INCOME'  THEN amount ELSE 0 END), 0) AS income,
+         COALESCE(SUM(CASE WHEN type = 'EXPENSE' THEN amount ELSE 0 END), 0) AS expense,
+         COALESCE(SUM(CASE WHEN type = 'INVESTMENT' THEN amount ELSE 0 END), 0) AS invested
+       FROM db_dtasc.transactions t
+       WHERE t.date BETWEEN $1 AND $2 AND t.${scope.filter.replace('$1', '$3')}`,
+      [start, end, scope.param],
+    );
+
+    const topCategories = await this.db.query(
+      `SELECT c.name AS category, SUM(t.amount) AS total
+       FROM db_dtasc.transactions t
+       LEFT JOIN db_dtasc.category c ON t.category_id = c.id
+       WHERE t.type = 'EXPENSE' AND t.date BETWEEN $1 AND $2 AND t.${scope.filter.replace('$1', '$3')}
+       GROUP BY c.name
+       ORDER BY total DESC
+       LIMIT 8`,
+      [start, end, scope.param],
+    );
+
+    const income = Number(totals[0]?.income ?? 0);
+    const expense = Number(totals[0]?.expense ?? 0);
+    const invested = Number(totals[0]?.invested ?? 0);
+
+    return {
+      month,
+      year,
+      income,
+      expense,
+      invested,
+      balance: income - expense,
+      topCategories: topCategories.map((c) => ({ category: c.category ?? 'Sem categoria', total: Number(c.total) })),
+    };
+  }
+
+  async getTransactionsFiltered(
+    userId: string,
+    filters: { from?: string; to?: string; type?: string; limit?: number },
+  ) {
+    const scope = await this.getScope(userId);
+    const now = new Date();
+    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const from = filters.from || defaultFrom;
+    const to = filters.to || defaultTo;
+    const limit = Math.min(Math.max(Number(filters.limit) || 30, 1), 50);
+
+    const params: any[] = [from, to];
+    let typeClause = '';
+    if (filters.type) {
+      params.push(filters.type.toUpperCase());
+      typeClause = `AND t.type = $${params.length}`;
+    }
+    params.push(scope.param);
+    const scopeClause = scope.filter.replace('$1', `$${params.length}`);
+    params.push(limit);
+
+    const sql = `
+      SELECT
+        t.description, t.amount, t.type, t.date,
+        t.is_paid AS "isPaid",
+        c.name AS category
+      FROM db_dtasc.transactions t
+      LEFT JOIN db_dtasc.category c ON t.category_id = c.id
+      WHERE t.date BETWEEN $1 AND $2 ${typeClause} AND t.${scopeClause}
+      ORDER BY t.date DESC
+      LIMIT $${params.length}
+    `;
+    return this.db.query(sql, params);
   }
 
   // ─── Create ─────────────────────────────────────────────────────────────────
@@ -427,6 +528,7 @@ export class TransactionsService {
     fileBuffer: string,
     paymentMethodId?: string,
   ): Promise<StagingResult[]> {
+    await this.assertOfxImportAllowed(userId);
     await this.ensureStagingTable();
     await this.ensureImportHashColumn();
 
@@ -482,6 +584,7 @@ export class TransactionsService {
   }
 
   async getStaging(userId: string, paymentMethodId?: string) {
+    await this.assertOfxImportAllowed(userId);
     await this.ensureStagingTable();
     let sql = `
       SELECT s.*,
@@ -502,6 +605,7 @@ export class TransactionsService {
   }
 
   async deleteStagingItem(userId: string, id: string) {
+    await this.assertOfxImportAllowed(userId);
     await this.db.query(
       'DELETE FROM db_dtasc.reconciliation_staging WHERE id = $1 AND user_id = $2',
       [id, userId],
@@ -511,8 +615,9 @@ export class TransactionsService {
 
   async confirmImport(
     userId: string,
-    items: Array<{ id: string; categoryId?: string }>,
+    items: Array<{ id: string; categoryId?: string; installment?: { current: number; total: number } }>,
   ) {
+    await this.assertOfxImportAllowed(userId);
     await this.ensureImportHashColumn();
 
     for (const it of items) {
@@ -543,21 +648,32 @@ export class TransactionsService {
         : [];
 
       const scope = await this.getScope(userId);
+      const categoryId = it.categoryId || item.category_id || null;
+      const installment = it.installment;
+      const installmentGroup = installment ? randomUUID() : null;
+      const description = installment
+        ? `${item.description} (${installment.current}/${installment.total})`
+        : item.description;
+
       await this.db.query(
         `INSERT INTO db_dtasc.transactions
            (description, amount, type, date, user_id, family_group_id,
-            category_id, payment_method_id, payment_method_type, import_hash)
-         VALUES ($1, $2, 'EXPENSE', $3, $4, $5, $6, $7, $8, $9)`,
+            category_id, payment_method_id, payment_method_type, import_hash,
+            installment_group, installment_number, total_installments)
+         VALUES ($1, $2, 'EXPENSE', $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
         [
-          item.description,
+          description,
           Number(item.amount),
           item.transaction_date,
           userId,
           scope.familyGroupId || null,
-          it.categoryId || item.category_id || null,
+          categoryId,
           item.payment_method_id || null,
           pmRes[0]?.type || 'OTHER',
           item.import_hash,
+          installmentGroup,
+          installment?.current || null,
+          installment?.total || null,
         ],
       );
 
@@ -565,8 +681,177 @@ export class TransactionsService {
         'DELETE FROM db_dtasc.reconciliation_staging WHERE id = $1',
         [it.id],
       );
+
+      if (installment && installmentGroup && installment.current < installment.total) {
+        await this.createFutureInstallments(userId, scope.familyGroupId, {
+          group: installmentGroup,
+          baseDescription: item.description,
+          amount: Number(item.amount),
+          paymentMethodId: item.payment_method_id || null,
+          paymentMethodType: pmRes[0]?.type || 'OTHER',
+          categoryId,
+          anchorDate: item.transaction_date,
+          current: installment.current,
+          total: installment.total,
+        });
+      }
     }
     return { success: true };
+  }
+
+  /**
+   * Gera as parcelas futuras (current+1..total) de um parcelamento identificado
+   * numa transação já importada, ancorado na data real do extrato (não "hoje") —
+   * mesma ideia de `handleInstallments`, mas partindo de uma parcela conhecida.
+   */
+  private async createFutureInstallments(
+    userId: string,
+    familyGroupId: string | undefined,
+    opts: {
+      group: string;
+      baseDescription: string;
+      amount: number;
+      paymentMethodId: string | null;
+      paymentMethodType: string;
+      categoryId: string | null;
+      anchorDate: string;
+      current: number;
+      total: number;
+    },
+  ) {
+    const anchor = new Date(opts.anchorDate);
+    for (let n = opts.current + 1; n <= opts.total; n++) {
+      const monthsAhead = n - opts.current;
+      const dueDate = new Date(anchor.getFullYear(), anchor.getMonth() + monthsAhead, anchor.getDate());
+      await this.db.query(
+        `INSERT INTO db_dtasc.transactions
+           (description, amount, type, date, user_id, family_group_id,
+            category_id, payment_method_id, payment_method_type,
+            installment_group, installment_number, total_installments)
+         VALUES ($1, $2, 'EXPENSE', $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+        [
+          `${opts.baseDescription} (${n}/${opts.total})`,
+          opts.amount,
+          dueDate.toISOString(),
+          userId,
+          familyGroupId || null,
+          opts.categoryId,
+          opts.paymentMethodId,
+          opts.paymentMethodType,
+          opts.group,
+          n,
+          opts.total,
+        ],
+      );
+    }
+  }
+
+  /**
+   * Usa o Gemini para sugerir a categoria de cada transação em staging e
+   * detectar parcelamentos pelo texto da descrição (ex.: "PARC 3/12").
+   * Nunca lança erro para o chamador — em qualquer falha da IA, devolve
+   * sugestões vazias e deixa a categorização manual normalmente.
+   */
+  async analyzeStaging(userId: string, ids?: string[]): Promise<Array<{
+    id: string;
+    categoryId: string | null;
+    isInstallment: boolean;
+    installmentCurrent?: number;
+    installmentTotal?: number;
+  }>> {
+    await this.assertOfxImportAllowed(userId);
+
+    const staging = await this.getStaging(userId);
+    const idSet = ids && ids.length ? new Set(ids) : null;
+    const items = staging.filter((s: any) => !s.is_duplicate && (!idSet || idSet.has(s.id)));
+
+    if (items.length === 0) return [];
+
+    const fallback = items.map((it: any) => ({
+      id: it.id,
+      categoryId: null,
+      isInstallment: false,
+    }));
+
+    try {
+      const categories = (await this.categoriesService.findAll(userId)).filter(
+        (c: any) => c.type === 'expense',
+      );
+      const categoryIds = categories.map((c: any) => c.id);
+
+      const model = this.genAI.getGenerativeModel({
+        model: this.modelName,
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: SchemaType.ARRAY,
+            items: {
+              type: SchemaType.OBJECT,
+              properties: {
+                id: { type: SchemaType.STRING, description: 'Mesmo id da transação recebida.' },
+                categoryId: {
+                  type: SchemaType.STRING,
+                  format: 'enum',
+                  enum: [...categoryIds, 'NONE'],
+                  description: 'ID da categoria de despesa mais PRÓXIMA/aproximada, escolhida quase sempre. Use "NONE" só quando a lista de categorias for realmente irrelevante para o gasto (deve ser raro).',
+                } as any,
+                isInstallment: {
+                  type: SchemaType.BOOLEAN,
+                  description: 'true se a descrição indicar claramente uma parcela de compra (ex.: "PARC 3/12").',
+                },
+                installmentCurrent: { type: SchemaType.INTEGER, description: 'Número da parcela atual, se isInstallment=true.' },
+                installmentTotal: { type: SchemaType.INTEGER, description: 'Total de parcelas, se isInstallment=true.' },
+              },
+              required: ['id', 'categoryId', 'isInstallment'],
+            },
+          },
+        },
+      });
+
+      const prompt = `Você vai analisar transações de um extrato bancário/cartão importado, em português do Brasil.
+
+Para CADA transação da lista abaixo, retorne:
+- "categoryId": escolha SEMPRE a categoria mais próxima possível dentre a lista fornecida, mesmo que a combinação não seja perfeita — pense no tipo geral do gasto, não só no nome literal do estabelecimento. Exemplos de aproximação aceitável: uma farmácia ou plano de saúde pode ir em "Saúde" se existir, ou na categoria de despesa geral mais próxima se não existir uma específica; uma compra em loja online (Shopee, Amazon etc.) deve ser aproximada pelo tipo de produto mais provável (roupa, eletrônico, casa) usando a categoria mais parecida disponível; contas de consumo (água, luz, telefone) vão na categoria de utilidades/contas se existir, senão na mais genérica disponível. Só retorne "NONE" se a lista de categorias for realmente irrelevante para qualquer gasto do dia a dia (deve ser raro, não o padrão).
+- "isInstallment": true somente se a descrição indicar claramente que é uma parcela de uma compra parcelada, com padrões comuns como "PARC 3/12", "3/12", "(03/12)", "PARCELA 3 DE 12", "3 DE 12X". Se não houver esse padrão explícito, retorne false. Uma transação ser parcelada NÃO significa que ela não tem categoria — categorize normalmente mesmo quando isInstallment for true.
+- Se "isInstallment" for true, informe também "installmentCurrent" (número da parcela atual) e "installmentTotal" (total de parcelas), extraídos da própria descrição.
+
+Categorias de despesa disponíveis (id | nome):
+${categories.map((c: any) => `${c.id} | ${c.name}`).join('\n') || '(nenhuma categoria cadastrada)'}
+
+Transações a analisar (id | descrição | valor | data):
+${items.map((it: any) => `${it.id} | ${it.description} | ${it.amount} | ${it.transaction_date}`).join('\n')}
+
+Responda apenas com o array JSON pedido, um item por transação, na mesma ordem.`;
+
+      const result = await model.generateContent(prompt);
+      const raw = JSON.parse(result.response.text());
+      if (!Array.isArray(raw)) return fallback;
+
+      const validIds = new Set(items.map((it: any) => it.id));
+      const validCategoryIds = new Set(categoryIds);
+
+      return raw
+        .filter((r: any) => r && validIds.has(r.id))
+        .map((r: any) => {
+          const current = Number(r.installmentCurrent);
+          const total = Number(r.installmentTotal);
+          const soundInstallment =
+            r.isInstallment === true &&
+            Number.isInteger(current) && Number.isInteger(total) &&
+            current >= 1 && total >= current && total <= 48;
+
+          return {
+            id: r.id,
+            categoryId: validCategoryIds.has(r.categoryId) ? r.categoryId : null,
+            isInstallment: soundInstallment,
+            ...(soundInstallment ? { installmentCurrent: current, installmentTotal: total } : {}),
+          };
+        });
+    } catch (error) {
+      this.logger.error(`Erro ao analisar staging com IA: ${error.message}`);
+      return fallback;
+    }
   }
 
   async getHistory(userId: string) {

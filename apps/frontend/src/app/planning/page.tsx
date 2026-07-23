@@ -270,7 +270,7 @@ export default function PlanningPage() {
     <AppLayout title="Planejamento" subtitle="Controle seus gastos por categoria">
 
       {/* Year selector */}
-      <div className="flex items-center justify-between mb-6 rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-4 shadow-sm">
+      <div data-tour="planning-year-nav" className="flex items-center justify-between mb-6 rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-4 shadow-sm">
         <button
           onClick={() => setYear((y) => y - 1)}
           className="p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition"
@@ -292,7 +292,7 @@ export default function PlanningPage() {
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div data-tour="planning-months-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {MONTHS.map((monthName, idx) => {
             const month = idx + 1;
             const status = getStatus(month);
@@ -427,6 +427,7 @@ export default function PlanningPage() {
                       Defina limites por categoria e controle seus gastos mensais de forma inteligente.
                     </p>
                     <button
+                      data-tour="planning-start-btn"
                       onClick={startPlanning}
                       className="flex items-center gap-2 rounded-xl bg-emerald-950 px-8 py-3.5 text-sm font-bold text-white hover:bg-emerald-800 transition"
                     >

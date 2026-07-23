@@ -8,5 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [DatabaseModule, AuthModule],
   controllers: [PiggyBanksController],
   providers: [PiggyBanksService],
+  exports: [PiggyBanksService],
 })
 export class PiggyBanksModule {}

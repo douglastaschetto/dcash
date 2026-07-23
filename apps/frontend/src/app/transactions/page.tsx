@@ -202,6 +202,7 @@ function TransactionsContent() {
       {/* Create dropdown */}
       <div className="relative">
         <button
+          data-tour="transactions-lancar-btn"
           onClick={() => setShowOptions(!showOptions)}
           className="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3.5 rounded-2xl font-black uppercase italic text-[10px] tracking-widest flex items-center gap-2 transition-all shadow-lg shadow-emerald-600/30"
         >
@@ -227,7 +228,7 @@ function TransactionsContent() {
                 </button>
               ))}
               <button
-                onClick={() => { router.push('/payments/import'); setShowOptions(false); }}
+                onClick={() => { router.push('/payments/import-ofx'); setShowOptions(false); }}
                 className="w-full p-4 flex items-center gap-3 hover:bg-zinc-50 dark:hover:bg-white/5 transition"
               >
                 <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500"><ArrowRightCircle size={16} /></div>

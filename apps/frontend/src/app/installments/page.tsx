@@ -153,7 +153,7 @@ export default function InstallmentsPage() {
 
         {/* ── Seletor de mês ─────────────────────────────────────── */}
         <div className="flex justify-end">
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl p-1">
+          <div data-tour="installments-month-nav" className="flex items-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl p-1">
             <button
               onClick={() => setCurrentDate(prev => addMonths(prev, -1))}
               className="p-2 hover:bg-emerald-500 hover:text-white rounded-lg transition-all text-zinc-600 dark:text-zinc-300"
@@ -177,7 +177,7 @@ export default function InstallmentsPage() {
 
         {/* ── Dashboard / Raio-X ─────────────────────────────────── */}
         {insights && (
-          <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <section data-tour="installments-insights" className="grid grid-cols-2 md:grid-cols-4 gap-3">
 
             {/* Total comprometido */}
             <div className="col-span-2 bg-zinc-900 dark:bg-zinc-800 text-white rounded-xl p-4 flex flex-col gap-2">
@@ -299,7 +299,7 @@ export default function InstallmentsPage() {
 
         {/* Scrollable zone: lista de grupos */}
         <div className="flex-1 overflow-y-auto px-6 lg:px-8 pb-6">
-        <div className="space-y-3">
+        <div data-tour="installments-groups-list" className="space-y-3">
           <div className="flex items-center gap-4 px-1">
             <div className="h-px bg-zinc-200 dark:bg-zinc-700 flex-1" />
             <span className="text-[9px] font-black uppercase tracking-[0.5em] text-zinc-500">

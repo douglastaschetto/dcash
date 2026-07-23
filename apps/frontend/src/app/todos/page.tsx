@@ -98,7 +98,7 @@ export default function TodosPage() {
 
         {/* Frozen: new task card */}
         <div className="shrink-0 px-6 pt-4">
-          <div className="rounded-2xl bg-emerald-950 p-4 shadow-lg">
+          <div data-tour="todos-add-card" className="rounded-2xl bg-emerald-950 p-4 shadow-lg">
             <p className="text-emerald-300 text-[10px] uppercase tracking-widest font-semibold mb-2">Nova tarefa</p>
             <div className="flex items-center gap-2.5">
               <input
@@ -134,7 +134,7 @@ export default function TodosPage() {
           {!loading && (
             <div className="space-y-4">
               {/* Pending */}
-              <div className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-sm">
+              <div data-tour="todos-pending-card" className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Pendentes</p>
@@ -172,6 +172,7 @@ export default function TodosPage() {
               {completed.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm opacity-90">
                   <button
+                    data-tour="todos-completed-toggle"
                     onClick={() => setCompletedOpen((v) => !v)}
                     className="w-full flex items-center justify-between p-4"
                   >

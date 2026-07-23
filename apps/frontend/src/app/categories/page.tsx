@@ -141,6 +141,7 @@ export default function CategoriesPage() {
 
   const addButton = (
     <button
+      data-tour="categories-add-btn"
       onClick={openCreate}
       className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white bg-emerald-950 hover:bg-emerald-800 shadow transition"
     >
@@ -159,7 +160,7 @@ export default function CategoriesPage() {
 
         {/* Frozen: summary cards */}
         <div className="shrink-0 px-6 pt-4">
-          <div className="grid grid-cols-3 gap-3 mb-3">
+          <div data-tour="categories-type-filters" className="grid grid-cols-3 gap-3 mb-3">
             {TYPE_OPTIONS.map((opt) => {
               const active = filterType === opt.value;
               return (
@@ -207,7 +208,7 @@ export default function CategoriesPage() {
           )}
 
           {!loading && categories.length > 0 && (
-            <div className="space-y-4">
+            <div data-tour="categories-list" className="space-y-4">
               {visibleTypes.map((opt) => {
                 const list = grouped[opt.value];
                 if (list.length === 0 && filterType !== opt.value) return null;

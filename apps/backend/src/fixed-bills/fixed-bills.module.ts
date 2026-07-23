@@ -8,5 +8,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [DatabaseModule, AuthModule],
   controllers: [FixedBillsController],
   providers: [FixedBillsService],
+  exports: [FixedBillsService],
 })
 export class FixedBillsModule {}

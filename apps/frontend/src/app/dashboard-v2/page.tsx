@@ -566,7 +566,7 @@ export default function DashboardV2Page() {
 
   /* ── render ─────────────────────────────────── */
   const pageTitle = (
-    <>
+    <div data-tour="dashboard-greeting">
       <span className="block text-xl font-black">
         {greeting}, {dash?.user?.name || 'usuário'}! 👋
       </span>
@@ -575,7 +575,7 @@ export default function DashboardV2Page() {
           {familyGroupName} 👨‍👩‍👧‍👦
         </span>
       )}
-    </>
+    </div>
   );
   const pageSubtitle = 'Bem-vindo(a)';
 
@@ -596,7 +596,7 @@ export default function DashboardV2Page() {
 
         {/* ── Quick actions + Month selector ────────────────── */}
         <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center justify-between">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
+          <div data-tour="dashboard-quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
             {([
               { icon: ArrowUpCircle,   label: 'Nova receita',   color: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-200 dark:border-emerald-900/40', action: () => setTxModal('INCOME')  },
               { icon: ArrowDownCircle, label: 'Nova despesa',   color: 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border-red-200 dark:border-red-900/40',                     action: () => setTxModal('EXPENSE') },
@@ -624,14 +624,14 @@ export default function DashboardV2Page() {
 
         {/* ── Summary + Dreams ──────────────────────────────── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <div className="col-span-2 rounded-xl bg-gradient-to-br from-zinc-900 to-zinc-800 text-white p-4">
-            <p className="text-[8px] font-black uppercase tracking-widest text-zinc-400">Saldo do mês</p>
-            <p className={cn('text-xl font-black italic tracking-tighter mt-0.5', balance >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+          <div data-tour="dashboard-balance-card" className="col-span-2 rounded-xl bg-white dark:bg-gradient-to-br dark:from-zinc-900 dark:to-zinc-800 border border-zinc-200 dark:border-zinc-700 p-4">
+            <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Saldo do mês</p>
+            <p className={cn('text-xl font-black italic tracking-tighter mt-0.5', balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
               {balance >= 0 ? '+' : ''} R$ {fmtBRL(balance)}
             </p>
             <div className="flex gap-4 mt-2">
-              <div><p className="text-[8px] text-zinc-500 uppercase">Receitas</p><p className="text-xs font-black text-emerald-400">+ R$ {fmtBRL(income)}</p></div>
-              <div><p className="text-[8px] text-zinc-500 uppercase">Despesas</p><p className="text-xs font-black text-red-400">- R$ {fmtBRL(expense)}</p></div>
+              <div><p className="text-[8px] text-zinc-500 uppercase">Receitas</p><p className="text-xs font-black text-emerald-600 dark:text-emerald-400">+ R$ {fmtBRL(income)}</p></div>
+              <div><p className="text-[8px] text-zinc-500 uppercase">Despesas</p><p className="text-xs font-black text-red-600 dark:text-red-400">- R$ {fmtBRL(expense)}</p></div>
             </div>
           </div>
 
@@ -712,7 +712,7 @@ export default function DashboardV2Page() {
                     chartView === 'chart' ? 'bg-emerald-500 text-white' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
                   <BarChart2 size={12} /> Gráfico
                 </button>
-                <button onClick={() => setChartView('dre')}
+                <button data-tour="dashboard-dre-toggle" onClick={() => setChartView('dre')}
                   className={cn('flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase transition',
                     chartView === 'dre' ? 'bg-emerald-500 text-white' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
                   <AlignLeft size={12} /> DRE
@@ -1036,7 +1036,7 @@ export default function DashboardV2Page() {
           </div>
 
           {/* Planejamento do mês (maior) */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col">
+          <div data-tour="dashboard-planning-card" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Target size={14} className="text-blue-500" />
@@ -1151,7 +1151,7 @@ export default function DashboardV2Page() {
           </div>
 
           {/* Raio-X dos parcelamentos */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
+          <div data-tour="dashboard-installments-card" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 <Layers size={14} className="text-orange-500" />

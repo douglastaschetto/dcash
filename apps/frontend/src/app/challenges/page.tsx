@@ -138,7 +138,7 @@ export default function ChallengesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Stats card */}
-        <div className="lg:col-span-2 rounded-[1.75rem] bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 text-white shadow-lg">
+        <div data-tour="challenges-stats-card" className="lg:col-span-2 rounded-[1.75rem] bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 text-white shadow-lg">
           <div className="flex items-center justify-between mb-3">
             <div>
               <div className="flex items-center gap-2 mb-0.5">
@@ -196,6 +196,7 @@ export default function ChallengesPage() {
             </button>
           </div>
           <button
+            data-tour="challenges-new-btn"
             onClick={() => openNew(currentMonth)}
             className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-950 px-4 py-2 text-xs font-semibold text-white transition hover:bg-emerald-800"
           >
@@ -212,7 +213,7 @@ export default function ChallengesPage() {
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div data-tour="challenges-months-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {MONTHS.map((month) => {
             const c = map.get(month);
             const isCurrent = month === currentMonth && year === now.getFullYear();

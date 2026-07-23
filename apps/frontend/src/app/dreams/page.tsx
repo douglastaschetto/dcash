@@ -159,6 +159,7 @@ export default function DreamsPage() {
 
   const addButton = (
     <button
+      data-tour="dreams-add-btn"
       onClick={openCreate}
       className="group flex items-center gap-2 px-5 py-3 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-2xl font-black uppercase text-[11px] tracking-widest hover:bg-emerald-500 dark:hover:bg-emerald-500 dark:hover:text-white shadow-xl transition-all active:scale-95"
     >
@@ -180,7 +181,7 @@ export default function DreamsPage() {
           </div>
 
           {dreams.length > 0 && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div data-tour="dreams-kpi-cards" className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: 'Sonhos ativos', value: dreams.length.toString() },
                 { label: 'Total almejado', value: fmt(totalTarget) },
@@ -226,7 +227,7 @@ export default function DreamsPage() {
 
         {/* Dream cards grid */}
         {!loading && dreams.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div data-tour="dreams-grid" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {dreams.map((dream) => {
               const progress = Math.min((dream.savedValue / (dream.targetValue || 1)) * 100, 100);
               const done = progress >= 100;

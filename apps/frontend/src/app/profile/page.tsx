@@ -498,7 +498,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Dados Pessoais */}
-              <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+              <div data-tour="profile-personal-data" className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative shrink-0 group">
                     <button
@@ -588,7 +588,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Notificações & Integrações */}
-              <div>
+              <div data-tour="profile-notifications">
                 {(() => {
                   const currentPlan = (profile?.plan ?? 'free').toLowerCase();
                   const planAllows = currentPlan === 'pro';
@@ -720,7 +720,7 @@ export default function ProfilePage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Assinatura */}
-              <div>
+              <div data-tour="profile-subscription">
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Assinatura</p>
                 {(() => {
                   const currentKey = (profile?.plan ?? 'free').toLowerCase();
@@ -798,7 +798,7 @@ export default function ProfilePage() {
         {/* ── Coluna Direita ──────────────────────────────────────────────── */}
         <div className="lg:col-span-1">
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Família</p>
-          <div className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 shadow-sm text-white">
+          <div data-tour="profile-family-group" className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 shadow-sm text-white">
             <div className="flex items-center gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700/60">
                 <Users className="h-5 w-5" />

@@ -427,6 +427,7 @@ export default function AccountsPage() {
 
   const addButton = (
     <button
+      data-tour="accounts-add-btn"
       onClick={openCreate}
       className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold text-white bg-emerald-950 hover:bg-emerald-800 shadow transition"
     >
@@ -441,19 +442,19 @@ export default function AccountsPage() {
         {/* Frozen: summary + filters */}
         <div className="shrink-0 px-6 pt-4">
           <div className="grid grid-cols-2 gap-3 mb-3">
-            <div className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <div data-tour="accounts-balance-card" className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Saldo Total</p>
               <p className={`text-xl font-bold ${totals.balance >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                 {fmtCurrency(totals.balance)}
               </p>
             </div>
-            <div className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <div data-tour="accounts-limit-card" className="rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 shadow-sm">
               <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Limite Total</p>
               <p className="text-xl font-bold text-blue-600">{fmtCurrency(totals.limit)}</p>
             </div>
           </div>
 
-          <div className="flex gap-2 overflow-x-auto pb-1 mb-3">
+          <div data-tour="accounts-filter-chips" className="flex gap-2 overflow-x-auto pb-1 mb-3">
             {(['all', ...TYPE_OPTIONS.map((t) => t.value)] as (PaymentType | 'all')[]).map((t) => (
               <button
                 key={t}

@@ -14,7 +14,8 @@ export type FeatureKey =
   | 'dreams_goals'
   | 'whatsapp_alerts'
   | 'google_calendar'
-  | 'financial_challenges';
+  | 'financial_challenges'
+  | 'ofx_import';
 
 export interface FeatureValue {
   enabled: boolean;
