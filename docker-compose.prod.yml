@@ -56,8 +56,7 @@ services:
     networks:
       - proxy_network
     entrypoint: >
-      sh -c "chmod +x /usr/local/bin/backup-db.sh &&
-      while true; do /usr/local/bin/backup-db.sh; sleep 86400; done"
+      sh -c "while true; do sh /usr/local/bin/backup-db.sh; sleep 86400; done"
     restart: always
 
 networks:
