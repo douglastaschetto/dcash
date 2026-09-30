@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
 import { Loader2, CheckCircle2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDateOnly, todayISO } from '@/lib/utils';
 
 export type TransactionMode = 'EXPENSE' | 'INCOME' | 'PIGGY' | 'RESERVE';
 
@@ -38,7 +38,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
     return Number(initialData.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   });
   const [date, setDate]                       = useState(
-    initialData?.date?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+    initialData?.date?.slice(0, 10) ?? todayISO(),
   );
   const [categoryId, setCategoryId]           = useState(initialData?.category?.id ?? '');
   const [paymentMethodId, setPaymentMethodId] = useState(initialData?.paymentMethod?.id ?? '');
@@ -108,8 +108,8 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
   const calcInstallments = () => {
     if (!installEnd || !date) return 1;
-    const s = new Date(date);
-    const e = new Date(installEnd);
+    const s = parseDateOnly(date);
+    const e = parseDateOnly(installEnd);
     const m = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1;
     return Math.max(1, m);
   };
@@ -194,8 +194,8 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
   };
 
   /* ── styles ──────────────────────────────────── */
-  const input = 'w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 ring-emerald-500/30 text-zinc-900 dark:text-zinc-100 transition';
-  const label = 'block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1.5';
+  const input = 'w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:ring-2 ring-emerald-500/30 text-zinc-900 dark:text-zinc-100 transition';
+  const label = 'block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1';
 
   if (loading) {
     return (
@@ -223,11 +223,11 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
+    <form onSubmit={handleSubmit} className="space-y-3">
 
       {/* Edição — info das parcelas (somente leitura) */}
       {isEditing && initialData?.totalInstallments > 1 && (
-        <div className="flex items-center gap-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 px-4 py-2.5">
+        <div className="flex items-center gap-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 px-4 py-2">
           <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">
             Parcela {initialData.installmentNumber}/{initialData.totalInstallments}
           </span>
@@ -237,8 +237,9 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* Descrição */}
       <div>
-        <label className={label}>Descrição</label>
+        <label className={label} htmlFor="tx-description">Descrição</label>
         <input
+          id="tx-description"
           type="text"
           placeholder={
             mode === 'INCOME'  ? 'Ex: Salário, Freelance...' :
@@ -253,10 +254,11 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
       </div>
 
       {/* Valor + Data */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className={label}>Valor (R$)</label>
+          <label className={label} htmlFor="tx-amount">Valor (R$)</label>
           <input
+            id="tx-amount"
             type="text"
             inputMode="numeric"
             placeholder="0,00"
@@ -275,8 +277,9 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
           />
         </div>
         <div>
-          <label className={label}>Data</label>
+          <label className={label} htmlFor="tx-date">Data</label>
           <input
+            id="tx-date"
             type="date"
             className={input}
             value={date}
@@ -286,41 +289,45 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
         </div>
       </div>
 
-      {/* Categoria */}
-      {filteredCats.length > 0 && (
-        <div>
-          <label className={label}>Categoria</label>
-          <select className={input} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-            <option value="">Sem categoria</option>
-            {filteredCats.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-      )}
+      {/* Categoria + Forma de pagamento */}
+      {(filteredCats.length > 0 || !(mode === 'PIGGY' && investTarget === 'dream')) && (
+        <div className={cn('grid gap-3', filteredCats.length > 0 && !(mode === 'PIGGY' && investTarget === 'dream') ? 'grid-cols-2' : 'grid-cols-1')}>
+          {filteredCats.length > 0 && (
+            <div>
+              <label className={label} htmlFor="tx-category">Categoria</label>
+              <select id="tx-category" className={input} value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                <option value="">Sem categoria</option>
+                {filteredCats.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-      {/* Forma de pagamento */}
-      {!(mode === 'PIGGY' && investTarget === 'dream') && (
-        <div>
-          <label className={label}>Forma de Pagamento</label>
-          <select
-            className={input}
-            value={paymentMethodId}
-            onChange={(e) => { setPaymentMethodId(e.target.value); if (!isEditing) setInstallMode(null); }}
-          >
-            <option value="">Nenhuma</option>
-            {paymentMethods.map((p) => (
-              <option key={p.id} value={p.id}>{p.name}</option>
-            ))}
-          </select>
+          {!(mode === 'PIGGY' && investTarget === 'dream') && (
+            <div>
+              <label className={label} htmlFor="tx-payment-method">Forma de Pagamento</label>
+              <select
+                id="tx-payment-method"
+                className={input}
+                value={paymentMethodId}
+                onChange={(e) => { setPaymentMethodId(e.target.value); if (!isEditing) setInstallMode(null); }}
+              >
+                <option value="">Nenhuma</option>
+                {paymentMethods.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
       {/* Conta fixa (INCOME e EXPENSE) */}
       {(mode === 'INCOME' || mode === 'EXPENSE') && fixedBills.length > 0 && (
         <div>
-          <label className={label}>Conta Fixa vinculada</label>
-          <select className={input} value={fixedBillId} onChange={(e) => setFixedBillId(e.target.value)}>
+          <label className={label} htmlFor="tx-fixed-bill">Conta Fixa vinculada</label>
+          <select id="tx-fixed-bill" className={input} value={fixedBillId} onChange={(e) => setFixedBillId(e.target.value)}>
             <option value="">Nenhuma</option>
             {fixedBills.map((f) => (
               <option key={f.id} value={f.id}>
@@ -333,7 +340,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── INCOME: Recorrência (apenas criação) ───────────────────────── */}
       {mode === 'INCOME' && !isEditing && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
               Receita Recorrente
@@ -353,7 +360,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
             </button>
           </div>
           {recurring && (
-            <div className="grid grid-cols-2 gap-3 pt-1">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={label}>Frequência</label>
                 <select className={input} value={recurrence} onChange={(e) => setRecurrence(e.target.value as any)}>
@@ -379,7 +386,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── EXPENSE: Parcelamento (apenas criação) ─────────────────────── */}
       {mode === 'EXPENSE' && !isEditing && canInstall && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
           <span className="block text-[11px] font-black uppercase tracking-widest text-zinc-500">
             Parcelamento
           </span>
@@ -394,7 +401,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
                 type="button"
                 onClick={() => setInstallMode(v as any)}
                 className={cn(
-                  'flex-1 py-2 rounded-xl text-[10px] font-black uppercase border transition-all',
+                  'flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all',
                   installMode === v
                     ? 'bg-emerald-500 text-white border-emerald-500'
                     : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-emerald-400',
@@ -442,7 +449,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── PIGGY: Destino (apenas criação) ───────────────────────────── */}
       {mode === 'PIGGY' && !isEditing && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-4 space-y-3">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
           <span className="block text-[11px] font-black uppercase tracking-widest text-zinc-500">
             Destino
           </span>
@@ -453,7 +460,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
                 type="button"
                 onClick={() => { setInvestTarget(v as any); setPiggyBankId(''); setDreamId(''); }}
                 className={cn(
-                  'flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase border transition-all',
+                  'flex-1 py-2 rounded-xl text-[10px] font-black uppercase border transition-all',
                   investTarget === v
                     ? 'bg-emerald-500 text-white border-emerald-500'
                     : 'border-zinc-200 dark:border-zinc-700 text-zinc-500',
@@ -505,7 +512,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
         type="submit"
         disabled={submitting}
         className={cn(
-          'w-full py-4 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center',
+          'w-full py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center',
           success
             ? 'bg-emerald-500 text-white'
             : isEditing

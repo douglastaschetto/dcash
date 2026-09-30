@@ -1,15 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
+import useSWR from 'swr';
 import { Plus, Trash2, CheckCircle2, Circle, Loader2, Users, User, ChevronDown } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
-
-const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
-
-function getAuthHeaders(): HeadersInit {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('dcash:token') : null;
-  return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' };
-}
+import api from '@/services/api';
 
 type Todo = {
   id: string;
@@ -21,8 +16,7 @@ type Todo = {
 };
 
 export default function TodosPage() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: todos = [], isLoading: loading, mutate } = useSWR<Todo[]>('/todos');
   const [input, setInput] = useState('');
   const [adding, setAdding] = useState(false);
   const [toggling, setToggling] = useState<string | null>(null);
@@ -33,32 +27,15 @@ export default function TodosPage() {
   const pending   = todos.filter((t) => !t.isCompleted);
   const completed = todos.filter((t) => t.isCompleted);
 
-  async function load() {
-    try {
-      const res = await fetch(`${API}/todos`, { headers: getAuthHeaders() });
-      if (res.ok) setTodos(await res.json());
-    } catch {}
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, []);
-
   async function addTodo() {
     const title = input.trim();
     if (!title) return;
     setAdding(true);
     try {
-      const res = await fetch(`${API}/todos`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ title }),
-      });
-      if (res.ok) {
-        const todo: Todo = await res.json();
-        setTodos((prev) => [todo, ...prev]);
-        setInput('');
-        inputRef.current?.focus();
-      }
+      const { data: todo } = await api.post('/todos', { title });
+      mutate((prev) => [todo, ...(prev ?? [])], { revalidate: false });
+      setInput('');
+      inputRef.current?.focus();
     } catch {}
     setAdding(false);
   }
@@ -67,15 +44,11 @@ export default function TodosPage() {
     setToggling(todo.id);
     const endpoint = todo.isCompleted ? 'uncomplete' : 'complete';
     try {
-      const res = await fetch(`${API}/todos/${todo.id}/${endpoint}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) {
-        setTodos((prev) =>
-          prev.map((t) => t.id === todo.id ? { ...t, isCompleted: !t.isCompleted } : t)
-        );
-      }
+      await api.patch(`/todos/${todo.id}/${endpoint}`);
+      mutate(
+        (prev) => prev?.map((t) => t.id === todo.id ? { ...t, isCompleted: !t.isCompleted } : t),
+        { revalidate: false },
+      );
     } catch {}
     setToggling(null);
   }
@@ -83,11 +56,8 @@ export default function TodosPage() {
   async function deleteTodo(id: string) {
     setDeleting(id);
     try {
-      const res = await fetch(`${API}/todos/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-      if (res.ok) setTodos((prev) => prev.filter((t) => t.id !== id));
+      await api.delete(`/todos/${id}`);
+      mutate((prev) => prev?.filter((t) => t.id !== id), { revalidate: false });
     } catch {}
     setDeleting(null);
   }

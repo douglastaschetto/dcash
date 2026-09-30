@@ -357,7 +357,7 @@ export default function DreamsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal header */}
-            <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-900 shrink-0">
+            <div className="px-5 pt-5 pb-3.5 flex items-center justify-between border-b border-zinc-100 dark:border-zinc-900 shrink-0">
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.35em]">
                   {form.id ? 'Editar Sonho' : 'Novo Sonho'}
@@ -374,7 +374,7 @@ export default function DreamsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <form onSubmit={handleSave} className="p-5 space-y-3 overflow-y-auto flex-1">
 
               {/* Title */}
               <div className="space-y-1.5">
@@ -386,7 +386,7 @@ export default function DreamsPage() {
                   value={form.title}
                   onChange={(e) => f('title', e.target.value)}
                   placeholder="Ex: Apartamento Próprio, Volta ao Mundo..."
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
 
@@ -507,7 +507,7 @@ export default function DreamsPage() {
                     value={form.targetValue}
                     onChange={(v) => f('targetValue', v)}
                     placeholder="0,00"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
                   />
                 </div>
 
@@ -520,7 +520,7 @@ export default function DreamsPage() {
                       value={form.savedValue}
                       onChange={(v) => f('savedValue', v)}
                       placeholder="0,00"
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
                     />
                   </div>
                 ) : (
@@ -531,7 +531,7 @@ export default function DreamsPage() {
                     <select
                       value={form.linkedId}
                       onChange={(e) => f('linkedId', e.target.value)}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-emerald-500 transition appearance-none"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 font-bold text-sm focus:outline-none focus:border-emerald-500 transition appearance-none"
                     >
                       <option value="">Selecione...</option>
                       {(linkType === 'PIGGY' ? piggyBanks : wishlists).map((item) => (
@@ -551,7 +551,7 @@ export default function DreamsPage() {
                   type="date"
                   value={form.deadline}
                   onChange={(e) => f('deadline', e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 font-bold text-sm focus:outline-none focus:border-emerald-500 transition"
                 />
               </div>
 
@@ -578,7 +578,7 @@ export default function DreamsPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-black uppercase italic py-4 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-black font-black uppercase italic py-3 rounded-2xl shadow-xl transition-all flex items-center justify-center gap-3 active:scale-95"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Target size={18} />}
                 {form.id ? 'Salvar Alterações' : 'Sincronizar Sonho'}

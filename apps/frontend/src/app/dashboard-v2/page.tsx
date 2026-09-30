@@ -7,146 +7,26 @@ import { AppLayout } from '@/components/app-layout';
 import {
   ChevronLeft, ChevronRight, CheckCheck, CheckCircle2, Circle,
   Loader2, ArrowUpCircle, ArrowDownCircle, Layers,
-  Star, BarChart2, AlignLeft, Tag, Wallet, X, Plus, PiggyBank,
-  CreditCard, Banknote, Receipt, TrendingUp, Trophy, ShoppingBag, Target, CalendarDays,
+  Star, BarChart2, AlignLeft, Tag, Wallet, Plus, PiggyBank,
+  Trophy, ShoppingBag, Target, CalendarDays,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, parseDateOnly } from '@/lib/utils';
+import { ErrorState } from '@/components/ui';
 import TransactionForm, { TransactionMode } from '@/components/forms/TransactionForm';
-import { IconPicker, LucideIcon } from '@/lib/icon-picker';
-import { ColorPicker } from '@/lib/color-picker';
-import { CurrencyInput } from '@/lib/currency-input';
+import { Modal } from './components/Modal';
+import { CategoryBar } from './components/CategoryBar';
+import { DRERow } from './components/DRERow';
+import { CategoryModal } from './components/CategoryModal';
+import { PaymentMethodModal } from './components/PaymentMethodModal';
 
 /* ── Inline helpers ──────────────────────────────────────────────── */
 const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const fmtBRL = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtDate = (iso: string) => { const d = new Date(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; };
-const sameMonth = (iso: string, y: number, m: number) => { const d = new Date(iso); return d.getFullYear() === y && d.getMonth() === m; };
-
-/* ── Payment method types ────────────────────────────────────────── */
-type PaymentType = 'credit_card' | 'cash' | 'pix' | 'boleto' | 'financing';
-const PM_TYPES: { value: PaymentType; label: string; icon: React.ReactNode; hasLimit: boolean }[] = [
-  { value: 'cash',        label: 'Dinheiro',           icon: <Wallet size={15} />,      hasLimit: false },
-  { value: 'pix',         label: 'PIX',                icon: <Banknote size={15} />,    hasLimit: false },
-  { value: 'credit_card', label: 'Cartão de Crédito',  icon: <CreditCard size={15} />,  hasLimit: true  },
-  { value: 'boleto',      label: 'Boleto',             icon: <Receipt size={15} />,     hasLimit: false },
-  { value: 'financing',   label: 'Financiamento',      icon: <TrendingUp size={15} />,  hasLimit: true  },
-];
-
-/* ── Category types ──────────────────────────────────────────────── */
-type CatType = 'income' | 'expense' | 'reserve';
-const CAT_TYPES: { value: CatType; label: string; color: string }[] = [
-  { value: 'expense', label: 'Despesa',  color: '#e11d48' },
-  { value: 'income',  label: 'Receita',  color: '#059669' },
-  { value: 'reserve', label: 'Reserva',  color: '#2563eb' },
-];
-
-/* ── Shared field style ──────────────────────────────────────────── */
-const field = 'w-full rounded-xl px-4 py-3 text-sm outline-none transition bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-500';
-
-/* ── Modal wrapper ───────────────────────────────────────────────── */
-function Modal({ title, accent, onClose, children }: {
-  title: React.ReactNode; accent?: string; onClose: () => void; children: React.ReactNode;
-}) {
-  return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
-        <button onClick={onClose}
-          className="absolute top-7 right-7 p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition">
-          <X size={20} />
-        </button>
-        <h2 className="text-xl font-black uppercase italic mb-6 tracking-tighter">{title}</h2>
-        {children}
-      </div>
-    </div>
-  );
-}
+const fmtDate = (iso: string) => { const d = parseDateOnly(iso); return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`; };
+const sameMonth = (iso: string, y: number, m: number) => { const d = parseDateOnly(iso); return d.getFullYear() === y && d.getMonth() === m; };
 
 /* ── Family member color palette (stable per member across chart + DRE) ── */
 const MEMBER_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
-
-/* ── CategoryBar: stacked by family member (pure CSS) ─────────────── */
-function CategoryBar({
-  rank, name, amount, total, planned, overBudget, segments,
-}: {
-  rank: number; name: string; amount: number; total: number;
-  planned?: number | null; overBudget?: boolean;
-  segments: { id: string; name: string; amount: number; color: string }[];
-}) {
-  const pctDisplay = total > 0 ? ((amount / total) * 100).toFixed(0) : '0';
-  const plannedPct = planned != null && total > 0 ? Math.min(100, (planned / total) * 100) : null;
-
-  return (
-    <div className="flex items-center gap-2.5">
-      <span className={cn(
-        'w-5 text-[10px] font-black text-center shrink-0',
-        rank === 1 ? 'text-amber-500' : rank === 2 ? 'text-zinc-500' : rank === 3 ? 'text-orange-400' : 'text-zinc-400',
-      )}>
-        {rank}º
-      </span>
-      <div className="w-28 text-[10px] font-bold text-zinc-700 dark:text-zinc-300 truncate">{name}</div>
-      <div className="flex-1 relative h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-visible flex">
-        {segments.map((seg) => {
-          const segPct = total > 0 ? (seg.amount / total) * 100 : 0;
-          if (segPct <= 0) return null;
-          return (
-            <div key={seg.id}
-              className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-700"
-              style={{ width: `${Math.max(segPct, 1)}%`, backgroundColor: seg.color }}
-              title={`${seg.name}: R$ ${fmtBRL(seg.amount)}`} />
-          );
-        })}
-        {plannedPct !== null && (
-          <div className="absolute top-[-3px] h-[calc(100%+6px)] w-0.5 rounded-full bg-zinc-400 dark:bg-zinc-300 opacity-70"
-            style={{ left: `${plannedPct}%` }}
-            title={`Planejado: R$ ${fmtBRL(planned!)}`} />
-        )}
-      </div>
-      <span className="w-9 text-[10px] font-black text-zinc-500 dark:text-zinc-400 text-right shrink-0">{pctDisplay}%</span>
-      <div className="w-28 flex flex-col items-end shrink-0">
-        <span className={cn('text-[11px] font-black leading-tight', overBudget ? 'text-red-600' : 'text-zinc-800 dark:text-zinc-200')}>
-          R$ {fmtBRL(amount)}
-        </span>
-        {planned != null && (
-          overBudget
-            ? <span className="text-[8px] font-black text-red-500 leading-tight">⚠ +R$ {fmtBRL(amount - planned)}</span>
-            : <span className="text-[8px] font-black text-zinc-400 leading-tight">/ R$ {fmtBRL(planned)}</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ── DRE Row ─────────────────────────────────────────────────────── */
-function DRERow({ indent, indent2, label, value, bold, color, positive, negative, muted, separator, sub }: {
-  indent?: boolean; indent2?: boolean; label: string; value?: number | null; bold?: boolean;
-  color?: string; positive?: boolean; negative?: boolean; muted?: boolean; separator?: boolean;
-  sub?: React.ReactNode;
-}) {
-  if (separator) return <div className="border-t border-zinc-200 dark:border-zinc-700 my-1" />;
-  const textColor = positive ? 'text-emerald-600 dark:text-emerald-400'
-    : negative ? 'text-red-600 dark:text-red-400'
-    : muted ? 'text-zinc-400'
-    : 'text-zinc-800 dark:text-zinc-200';
-  return (
-    <div className={cn(indent2 ? 'pl-8' : indent ? 'pl-4' : '')}>
-      <div className="flex items-center justify-between py-1">
-        <div className="flex items-center gap-2 min-w-0">
-          {color && <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: color }} />}
-          <span className={cn('text-[11px] truncate', bold ? 'font-black' : 'font-medium', muted ? 'text-zinc-400' : 'text-zinc-700 dark:text-zinc-300')}>
-            {label}
-          </span>
-        </div>
-        {value != null && (
-          <span className={cn('text-[11px] shrink-0 ml-4', bold ? 'font-black' : 'font-medium', textColor)}>
-            {positive && value > 0 ? '+' : negative && value > 0 ? '-' : ''} R$ {fmtBRL(value)}
-          </span>
-        )}
-      </div>
-      {sub && <div className="pb-1 -mt-0.5">{sub}</div>}
-    </div>
-  );
-}
 
 /* ── Main Page ───────────────────────────────────────────────────── */
 export default function DashboardV2Page() {
@@ -173,6 +53,7 @@ export default function DashboardV2Page() {
   const [calendarEvents,  setCalendarEvents]  = useState<any[]>([]);
   const [fixedBills,      setFixedBills]      = useState<any[]>([]);
   const [loading,         setLoading]         = useState(true);
+  const [loadError,       setLoadError]       = useState(false);
 
   /* ── dreams carousel ─────────────────────── */
   const [dreamIdx, setDreamIdx] = useState(0);
@@ -210,70 +91,17 @@ export default function DashboardV2Page() {
     } catch {} finally { setCompletingTodo(null); }
   };
 
-  /* ── Category modal ───────────────────────── */
-  const [catOpen,    setCatOpen]    = useState(false);
-  const [catName,    setCatName]    = useState('');
-  const [catType,    setCatType]    = useState<CatType>('expense');
-  const [catColor,   setCatColor]   = useState('#10b981');
-  const [catIcon,    setCatIcon]    = useState('Tag');
-  const [catIconPicker, setCatIconPicker] = useState(false);
-  const [catSaving,  setCatSaving]  = useState(false);
-  const [catError,   setCatError]   = useState<string | null>(null);
-
-  const openCatModal = () => {
-    setCatName(''); setCatType('expense'); setCatColor('#10b981'); setCatIcon('Tag');
-    setCatError(null); setCatOpen(true);
-  };
-  const saveCategory = async () => {
-    if (!catName.trim()) { setCatError('Informe o nome.'); return; }
-    setCatSaving(true); setCatError(null);
-    try {
-      await api.post('/categories', { name: catName.trim(), type: catType, color: catColor, icon: catIcon });
-      setCatOpen(false);
-      load();
-    } catch (e: any) {
-      setCatError(e.response?.data?.message || 'Erro ao criar categoria.');
-    } finally { setCatSaving(false); }
-  };
-
-  /* ── Payment method modal ─────────────────── */
-  const [pmOpen,    setPmOpen]    = useState(false);
-  const [pmName,    setPmName]    = useState('');
-  const [pmType,    setPmType]    = useState<PaymentType>('cash');
-  const [pmColor,   setPmColor]   = useState('#10b981');
-  const [pmLimit,   setPmLimit]   = useState(0);
-  const [pmClosing, setPmClosing] = useState('');
-  const [pmDue,     setPmDue]     = useState('');
-  const [pmSaving,  setPmSaving]  = useState(false);
-  const [pmError,   setPmError]   = useState<string | null>(null);
-  const pmHasLimit = PM_TYPES.find(t => t.value === pmType)?.hasLimit ?? false;
-
-  const openPmModal = () => {
-    setPmName(''); setPmType('cash'); setPmColor('#10b981'); setPmLimit(0);
-    setPmClosing(''); setPmDue(''); setPmError(null); setPmOpen(true);
-  };
-  const savePaymentMethod = async () => {
-    if (!pmName.trim()) { setPmError('Informe o nome.'); return; }
-    setPmSaving(true); setPmError(null);
-    try {
-      await api.post('/payment-methods', {
-        name: pmName.trim(),
-        type: pmType,
-        color: pmColor,
-        limit: pmHasLimit ? pmLimit : 0,
-        closingDay: pmHasLimit && pmClosing ? parseInt(pmClosing) : null,
-        dueDay: pmHasLimit && pmDue ? parseInt(pmDue) : null,
-      });
-      setPmOpen(false);
-      load();
-    } catch (e: any) {
-      setPmError(e.response?.data?.message || 'Erro ao criar forma de pagamento.');
-    } finally { setPmSaving(false); }
-  };
+  /* ── Category / Payment method modals ─────── */
+  /* Form state now lives inside CategoryModal / PaymentMethodModal — they're
+     only mounted while open, so a fresh mount gives them fresh state (no
+     manual reset needed on open, unlike the old inline version). */
+  const [catOpen, setCatOpen] = useState(false);
+  const [pmOpen,  setPmOpen]  = useState(false);
 
   /* ── load ─────────────────────────────────── */
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [dRes, tRes, iRes, toRes, drRes, cRes, wRes, pbRes, fmRes] = await Promise.all([
         api.get('/dashboard'),
@@ -296,7 +124,9 @@ export default function DashboardV2Page() {
       setPiggyBanks(pbRes.data || []);
       setFamilyMembers(fmRes.data?.members || []);
       setFamilyGroupName(fmRes.data?.group?.name || null);
-    } catch {}
+    } catch {
+      setLoadError(true);
+    }
     setLoading(false);
   }, []);
 
@@ -354,7 +184,7 @@ export default function DashboardV2Page() {
 
   /* ── last 5 transactions (sorted desc) ─────── */
   const last5 = useMemo(() =>
-    [...transactions].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5),
+    [...transactions].sort((a,b) => parseDateOnly(b.date).getTime() - parseDateOnly(a.date).getTime()).slice(0, 5),
   [transactions]);
 
   /* ── current month challenge ───────────────── */
@@ -396,7 +226,7 @@ export default function DashboardV2Page() {
       if (b.dayOfMonth) ensure(b.dayOfMonth).bills.push(b);
     });
     monthTx.forEach((t: any) => {
-      const d = ensure(new Date(t.date).getDate());
+      const d = ensure(parseDateOnly(t.date).getDate());
       if (t.piggyBankId) d.hasInvest = true;
       else if (t.type === 'INCOME') d.hasIncome = true;
       else if (t.type === 'EXPENSE') d.hasExpense = true;
@@ -484,6 +314,39 @@ export default function DashboardV2Page() {
       return { ...cat, planned, overBudget };
     });
   }, [catBreakdown, categoryLimits]);
+
+  /* ── "Despesas por categoria" chart: real expenses only, excludes
+       investment/piggy-bank contributions (those are type EXPENSE too,
+       but represent money moved into savings, not spent) ── */
+  const chartBreakdown = useMemo(() => {
+    const map: Record<string, { id: string; name: string; amount: number; color: string; byMember: Record<string, number> }> = {};
+    monthTx.filter(t => t.type === 'EXPENSE' && !t.piggyBankId).forEach(t => {
+      const id       = t.category?.id || 'sem-categoria';
+      const catMatch = categories.find(c => c.id === id);
+      // Skip transactions mistakenly tagged with an income/reserve category —
+      // the tx-level `type` alone isn't enough to keep those out of "Despesas".
+      if (catMatch && catMatch.type !== 'expense') return;
+      const name  = t.category?.name || 'Sem categoria';
+      const color = catMatch?.color || '#94a3b8';
+      if (!map[id]) map[id] = { id, name, amount: 0, color, byMember: {} };
+      map[id].amount += Number(t.amount);
+      if (t.userId) map[id].byMember[t.userId] = (map[id].byMember[t.userId] || 0) + Number(t.amount);
+    });
+    return Object.values(map).sort((a,b) => b.amount - a.amount);
+  }, [monthTx, categories]);
+
+  const chartTotal = chartBreakdown.reduce((s,c) => s + c.amount, 0);
+
+  const chartBreakdownWithPlanning = useMemo(() => {
+    return chartBreakdown.map(cat => {
+      const limit      = categoryLimits.find(l => l.categoryId === cat.id || l.category?.id === cat.id);
+      const planned    = limit ? Number(limit.amount) : null;
+      const overBudget = planned !== null ? cat.amount > planned : false;
+      return { ...cat, planned, overBudget };
+    });
+  }, [chartBreakdown, categoryLimits]);
+
+  const hasChartPlanning = chartBreakdownWithPlanning.some(c => c.planned !== null);
 
   /* ── DRE data ───────────────────────────────── */
   const dreData = useMemo(() => {
@@ -587,6 +450,16 @@ export default function DashboardV2Page() {
     </AppLayout>
   );
 
+  if (loadError) return (
+    <AppLayout title={pageTitle} subtitle={pageSubtitle}>
+      <ErrorState
+        title="Não foi possível carregar o painel."
+        description="Verifique sua conexão e tente novamente. Se o problema persistir, tente recarregar a página."
+        onRetry={() => load()}
+      />
+    </AppLayout>
+  );
+
   return (
     <AppLayout title={pageTitle} subtitle={pageSubtitle} noPadding>
       <div className="h-full flex flex-col overflow-hidden">
@@ -600,8 +473,8 @@ export default function DashboardV2Page() {
             {([
               { icon: ArrowUpCircle,   label: 'Nova receita',   color: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-200 dark:border-emerald-900/40', action: () => setTxModal('INCOME')  },
               { icon: ArrowDownCircle, label: 'Nova despesa',   color: 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border-red-200 dark:border-red-900/40',                     action: () => setTxModal('EXPENSE') },
-              { icon: Tag,             label: 'Nova categoria', color: 'bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white border-purple-200 dark:border-purple-900/40',      action: openCatModal },
-              { icon: Wallet,          label: 'Forma de pag.',  color: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 dark:border-blue-900/40',                 action: openPmModal },
+              { icon: Tag,             label: 'Nova categoria', color: 'bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white border-purple-200 dark:border-purple-900/40',      action: () => setCatOpen(true) },
+              { icon: Wallet,          label: 'Forma de pag.',  color: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 dark:border-blue-900/40',                 action: () => setPmOpen(true) },
             ] as const).map(({ icon: Icon, label, color, action }) => (
               <button key={label} onClick={action}
                 className={cn('flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all font-black text-[10px] uppercase tracking-tight', color)}>
@@ -729,30 +602,30 @@ export default function DashboardV2Page() {
                         <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} /> {m.name}
                       </span>
                     ))}
-                    {hasPlanning && <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-zinc-400 opacity-70" />Meta</span>}
+                    {hasChartPlanning && <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-zinc-400 opacity-70" />Meta</span>}
                   </div>
-                  <span className="text-zinc-500">Total: R$ {fmtBRL(totalCat)}</span>
+                  <span className="text-zinc-500">Total: R$ {fmtBRL(chartTotal)}</span>
                 </div>
-                {catBreakdownWithPlanning.length === 0 ? (
+                {chartBreakdownWithPlanning.length === 0 ? (
                   <p className="text-center py-8 text-[11px] text-zinc-400 font-black uppercase tracking-widest">Nenhuma despesa neste mês</p>
                 ) : (
                   <div className="space-y-3">
-                    {catBreakdownWithPlanning.slice(0, 8).map((cat, i) => {
+                    {chartBreakdownWithPlanning.slice(0, 8).map((cat, i) => {
                       const segments = allMembers
                         .map((m) => ({ id: m.id, name: m.name, amount: cat.byMember?.[m.id] || 0, color: m.color }))
                         .filter((s) => s.amount > 0);
                       const finalSegments = segments.length > 0 ? segments : [{ id: 'total', name: cat.name, amount: cat.amount, color: cat.color }];
                       return (
                         <CategoryBar key={cat.id} rank={i + 1} name={cat.name} amount={cat.amount}
-                          total={totalCat} planned={cat.planned} overBudget={cat.overBudget} segments={finalSegments} />
+                          total={chartTotal} planned={cat.planned} overBudget={cat.overBudget} segments={finalSegments} />
                       );
                     })}
-                    {catBreakdownWithPlanning.length > 8 && (
-                      <p className="text-center text-[9px] font-black text-zinc-400 mt-2">+{catBreakdownWithPlanning.length - 8} categorias</p>
+                    {chartBreakdownWithPlanning.length > 8 && (
+                      <p className="text-center text-[9px] font-black text-zinc-400 mt-2">+{chartBreakdownWithPlanning.length - 8} categorias</p>
                     )}
                   </div>
                 )}
-                {!hasPlanning && catBreakdownWithPlanning.length > 0 && (
+                {!hasChartPlanning && chartBreakdownWithPlanning.length > 0 && (
                   <p className="text-center text-[9px] text-zinc-400 mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-3">
                     <button onClick={() => router.push('/planning')} className="text-emerald-600 font-black hover:underline">Planejar este mês</button>
                     {' '}para ver metas por categoria
@@ -1217,129 +1090,18 @@ export default function DashboardV2Page() {
 
       {/* ── Category modal ───────────────────────── */}
       {catOpen && (
-        <Modal onClose={() => setCatOpen(false)} title={<>Nova <span className="text-purple-500">Categoria</span></>}>
-          <div className="space-y-4">
-            {catError && <p className="text-red-500 text-xs font-bold">{catError}</p>}
-
-            {/* Name */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Nome</label>
-              <input className={field} placeholder="Ex: Alimentação" value={catName} onChange={e => setCatName(e.target.value)} />
-            </div>
-
-            {/* Type */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Tipo</label>
-              <div className="grid grid-cols-3 gap-2">
-                {CAT_TYPES.map(t => (
-                  <button key={t.value} type="button" onClick={() => setCatType(t.value)}
-                    className={cn('py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-tight transition',
-                      catType === t.value ? 'text-white border-transparent' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300')}
-                    style={catType === t.value ? { backgroundColor: t.color, borderColor: t.color } : {}}>
-                    {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Cor</label>
-              <ColorPicker selected={catColor} onSelect={setCatColor} />
-            </div>
-
-            {/* Icon */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Ícone</label>
-              <button type="button" onClick={() => setCatIconPicker(v => !v)}
-                className="flex items-center gap-3 w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-zinc-50 dark:bg-zinc-800 hover:border-emerald-500 transition">
-                <LucideIcon name={catIcon} size={18} style={{ color: catColor }} />
-                <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{catIcon}</span>
-              </button>
-              {catIconPicker && (
-                <div className="mt-2">
-                  <IconPicker selected={catIcon} onSelect={v => { setCatIcon(v); setCatIconPicker(false); }} />
-                </div>
-              )}
-            </div>
-
-            {/* Save */}
-            <button onClick={saveCategory} disabled={catSaving}
-              className="w-full py-3.5 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-xs tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
-              {catSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {catSaving ? 'Salvando...' : 'Criar categoria'}
-            </button>
-          </div>
-        </Modal>
+        <CategoryModal
+          onClose={() => setCatOpen(false)}
+          onSaved={() => { setCatOpen(false); load(); }}
+        />
       )}
 
       {/* ── Payment method modal ─────────────────── */}
       {pmOpen && (
-        <Modal onClose={() => setPmOpen(false)} title={<>Nova <span className="text-blue-500">Forma de Pag.</span></>}>
-          <div className="space-y-4">
-            {pmError && <p className="text-red-500 text-xs font-bold">{pmError}</p>}
-
-            {/* Name */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Nome</label>
-              <input className={field} placeholder="Ex: Nubank, Carteira..." value={pmName} onChange={e => setPmName(e.target.value)} />
-            </div>
-
-            {/* Type */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Tipo</label>
-              <div className="grid grid-cols-2 gap-2">
-                {PM_TYPES.map(t => (
-                  <button key={t.value} type="button" onClick={() => setPmType(t.value)}
-                    className={cn('flex items-center gap-2 px-3 py-2.5 rounded-xl border text-[10px] font-black transition',
-                      pmType === t.value
-                        ? 'bg-blue-500 text-white border-blue-500'
-                        : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300')}>
-                    {t.icon} {t.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Color */}
-            <div>
-              <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Cor do cartão</label>
-              <ColorPicker selected={pmColor} onSelect={setPmColor} />
-            </div>
-
-            {/* Limit + days (credit/financing only) */}
-            {pmHasLimit && (
-              <>
-                <div>
-                  <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Limite</label>
-                  <CurrencyInput value={pmLimit} onChange={setPmLimit} placeholder="0,00"
-                    className={field} />
-                </div>
-                {pmType === 'credit_card' && (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Dia fechamento</label>
-                      <input type="number" min={1} max={31} className={field} placeholder="Ex: 20"
-                        value={pmClosing} onChange={e => setPmClosing(e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block">Dia vencimento</label>
-                      <input type="number" min={1} max={31} className={field} placeholder="Ex: 5"
-                        value={pmDue} onChange={e => setPmDue(e.target.value)} />
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Save */}
-            <button onClick={savePaymentMethod} disabled={pmSaving}
-              className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
-              {pmSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-              {pmSaving ? 'Salvando...' : 'Criar forma de pagamento'}
-            </button>
-          </div>
-        </Modal>
+        <PaymentMethodModal
+          onClose={() => setPmOpen(false)}
+          onSaved={() => { setPmOpen(false); load(); }}
+        />
       )}
 
     </AppLayout>

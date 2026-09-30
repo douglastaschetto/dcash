@@ -14,8 +14,8 @@ import { cn } from '@/lib/utils';
 /* ── Helpers ─────────────────────────────────────────────────── */
 const fmtBRL  = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtPct  = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(2)}%`;
-const field   = 'w-full rounded-xl px-4 py-3 text-sm outline-none transition bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-500';
-const label   = 'text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1.5 block';
+const field   = 'w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-500';
+const label   = 'text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1 block';
 
 type Tab = 'carteira' | 'pesquisar' | 'alertas';
 
@@ -658,12 +658,12 @@ export default function InvestmentsPage() {
       {pmOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setPmOpen(false)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-[2.5rem] p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
-            <button onClick={() => setPmOpen(false)} className="absolute top-7 right-7 p-2 text-zinc-400 hover:text-red-500 rounded-xl transition"><X size={20} /></button>
-            <h2 className="text-xl font-black uppercase italic mb-6 tracking-tighter">
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-[2.5rem] p-5 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <button onClick={() => setPmOpen(false)} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-red-500 rounded-xl transition"><X size={20} /></button>
+            <h2 className="text-xl font-black uppercase italic mb-3 tracking-tighter">
               {pmEdit ? 'Editar' : 'Adicionar'} <span className="text-emerald-500">Ação</span>
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {pmError && <p className="text-red-500 text-xs font-bold">{pmError}</p>}
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -701,7 +701,7 @@ export default function InvestmentsPage() {
                 <textarea className={cn(field, 'resize-none h-20')} placeholder="Opcional..." value={pmNotes} onChange={e => setPmNotes(e.target.value)} />
               </div>
               <button onClick={savePortfolio} disabled={pmSaving}
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {pmSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
                 {pmSaving ? 'Salvando...' : (pmEdit ? 'Atualizar' : 'Adicionar à carteira')}
               </button>
@@ -714,12 +714,12 @@ export default function InvestmentsPage() {
       {amOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => setAmOpen(false)} />
-          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-[2.5rem] p-8 shadow-2xl">
-            <button onClick={() => setAmOpen(false)} className="absolute top-7 right-7 p-2 text-zinc-400 hover:text-red-500 rounded-xl transition"><X size={20} /></button>
-            <h2 className="text-xl font-black uppercase italic mb-6 tracking-tighter">
+          <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-[2.5rem] p-5 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <button onClick={() => setAmOpen(false)} className="absolute top-4 right-4 p-2 text-zinc-400 hover:text-red-500 rounded-xl transition"><X size={20} /></button>
+            <h2 className="text-xl font-black uppercase italic mb-3 tracking-tighter">
               Novo <span className="text-amber-500">Alerta de Preço</span>
             </h2>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {amError && <p className="text-red-500 text-xs font-bold">{amError}</p>}
               <div>
                 <p className={label}>Ticker *</p>
@@ -756,7 +756,7 @@ export default function InvestmentsPage() {
                 </p>
               </div>
               <button onClick={saveAlert} disabled={amSaving}
-                className="w-full py-3.5 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
+                className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {amSaving ? <Loader2 size={15} className="animate-spin" /> : <Bell size={15} />}
                 {amSaving ? 'Salvando...' : 'Criar alerta'}
               </button>

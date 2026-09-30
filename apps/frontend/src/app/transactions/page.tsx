@@ -6,19 +6,21 @@ import api from '@/services/api';
 import {
   Plus, Search, X, ArrowLeft,
   CreditCard, Calendar as CalendarIcon, CheckCheck,
-  Pencil, Trash2, Filter, AlertCircle,
+  Pencil, Trash2, Filter,
   ArrowUpCircle, ArrowDownCircle, PiggyBank,
   Layers, Wallet, Hash, ArrowRightCircle, TrendingUp,
+  Download,
 } from 'lucide-react';
+import { EmptyState } from '@/components/ui';
 const pad = (n: number) => String(n).padStart(2, '0');
-const fmtDate = (iso: string) => { const d = new Date(iso); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)}`; };
-const parseISO  = (s: string) => new Date(s);
+const fmtDate = (iso: string) => { const d = parseDateOnly(iso); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${String(d.getFullYear()).slice(-2)}`; };
+const parseISO  = (s: string) => parseDateOnly(s);
 const startOfDay = (d: Date) => { const r = new Date(d); r.setHours(0,0,0,0); return r; };
 const endOfDay   = (d: Date) => { const r = new Date(d); r.setHours(23,59,59,999); return r; };
 import Link from 'next/link';
 import TransactionForm, { TransactionMode } from '@/components/forms/TransactionForm';
 import { AppLayout } from '@/components/app-layout';
-import { cn } from '@/lib/utils';
+import { cn, parseDateOnly } from '@/lib/utils';
 
 /* ── Types ───────────────────────────────────────────────────────── */
 interface Transaction {
@@ -123,6 +125,36 @@ function TransactionsContent() {
     else setActiveModal(t.type as TransactionMode);
   };
 
+  /* ── export CSV ─────────────── */
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const base = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
+      const token = localStorage.getItem('dcash:token');
+      const res = await fetch(`${base}/transactions/export`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.message || 'Falha ao exportar.');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `dcash-transacoes-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Falha ao exportar.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   /* ── mark paid ──────────────── */
   const markPaid = async (ids: string[]) => {
     try {
@@ -135,7 +167,7 @@ function TransactionsContent() {
   /* ── filter ─────────────────── */
   const filtered = useMemo(() => {
     return transactions.filter((t) => {
-      const d = new Date(t.date);
+      const d = parseDateOnly(t.date);
       if (search && !t.description.toLowerCase().includes(search.toLowerCase())) return false;
       if (typeFilter !== 'ALL' && t.type !== typeFilter) return false;
       if (startDate && d < startOfDay(parseISO(startDate))) return false;
@@ -187,6 +219,15 @@ function TransactionsContent() {
 
   const headerActions = (
     <div className="flex items-center gap-3">
+      <button
+        onClick={handleExport}
+        disabled={exporting}
+        title="Exportar CSV"
+        aria-label="Exportar transações em CSV"
+        className="p-3.5 rounded-2xl border transition-all bg-white dark:bg-zinc-800 border-zinc-400 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-emerald-500 hover:text-emerald-600 disabled:opacity-50"
+      >
+        <Download size={18} />
+      </button>
       <button
         onClick={() => setShowFilters((v) => !v)}
         className={cn(
@@ -342,12 +383,13 @@ function TransactionsContent() {
               <p className="text-xs font-black uppercase tracking-widest">Carregando...</p>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-32 flex flex-col items-center text-zinc-300 dark:text-zinc-700">
-              <AlertCircle size={56} strokeWidth={1} className="mb-5 opacity-30" />
-              <p className="text-xs font-black uppercase tracking-widest">Nenhum registro encontrado</p>
-            </div>
+            <EmptyState
+              title="Nenhum registro encontrado"
+              description={transactions.length > 0 ? 'Ajuste os filtros para ver outras movimentações.' : undefined}
+            />
           ) : (
-            <table className="w-full text-left border-separate border-spacing-y-1.5">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[840px] text-left border-separate border-spacing-y-1.5">
               <thead className="sticky top-0 z-10 bg-white/90 dark:bg-[#050505]/90 backdrop-blur-md">
                 <tr className="text-[9px] font-black uppercase text-zinc-400 italic tracking-widest">
                   <th className="px-3 py-2 w-10">
@@ -457,6 +499,7 @@ function TransactionsContent() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
       </main>
@@ -465,14 +508,14 @@ function TransactionsContent() {
       {activeModal && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={() => { setActiveModal(null); setEditingTransaction(null); }} />
-          <div className="relative w-full max-w-lg bg-white dark:bg-[#0f0f0f] border border-zinc-200 dark:border-white/5 rounded-[2rem] p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
+          <div className="relative w-full max-w-lg bg-white dark:bg-[#0f0f0f] border border-zinc-200 dark:border-white/5 rounded-[2rem] p-4 shadow-2xl overflow-y-auto max-h-[90vh]">
             <button
               onClick={() => { setActiveModal(null); setEditingTransaction(null); }}
-              className="absolute top-5 right-5 p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
+              className="absolute top-3.5 right-3.5 p-2 text-zinc-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition"
             >
               <X size={18} />
             </button>
-            <h2 className="text-lg font-black uppercase italic mb-5 tracking-tighter">
+            <h2 className="text-lg font-black uppercase italic mb-3 tracking-tighter">
               {editingTransaction ? 'Editar' : 'Nova'}{' '}
               <span className={cn(
                 activeModal === 'EXPENSE' ? 'text-red-500' :

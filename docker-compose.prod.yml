@@ -33,6 +33,36 @@ services:
       - proxy_network
     restart: always
 
+  # Daily pg_dump of the (externally hosted) Postgres DB — there was no
+  # backup mechanism at all before this (see audit). Backups land gzipped
+  # in the dcash_backups volume; wire that volume to an off-host location
+  # (rsync/S3/etc.) for real disaster recovery, a local volume alone only
+  # protects against accidental data loss, not host loss.
+  dcash-backup:
+    image: postgres:15-alpine
+    container_name: dcash-backup
+    env_file:
+      - .env
+    environment:
+      - PGHOST=postgres-db
+      - PGPORT=5432
+      - PGUSER=${DB_USER}
+      - PGPASSWORD=${DB_PASS}
+      - PGDATABASE=${DB_NAME}
+      - BACKUP_RETENTION_DAYS=14
+    volumes:
+      - ./scripts/backup-db.sh:/usr/local/bin/backup-db.sh:ro
+      - dcash_backups:/backups
+    networks:
+      - proxy_network
+    entrypoint: >
+      sh -c "chmod +x /usr/local/bin/backup-db.sh &&
+      while true; do /usr/local/bin/backup-db.sh; sleep 86400; done"
+    restart: always
+
 networks:
   proxy_network:
     external: true
+
+volumes:
+  dcash_backups:

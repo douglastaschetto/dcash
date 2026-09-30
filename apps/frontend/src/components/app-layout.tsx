@@ -284,6 +284,7 @@ export function AppLayout({
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
+                aria-label={sidebarOpen ? 'Recolher menu' : 'Expandir menu'}
                 className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-emerald-900/60 transition"
               >
                 <Menu className="h-5 w-5" />
@@ -306,6 +307,7 @@ export function AppLayout({
               <div ref={bellRef} className="relative">
                 <button
                   onClick={() => setBellOpen(v => !v)}
+                  aria-label="Notificações"
                   className="relative p-2 text-slate-500 dark:text-emerald-300/70 hover:text-emerald-950 dark:hover:text-white transition"
                 >
                   <Bell className="h-5 w-5" />
@@ -323,7 +325,7 @@ export function AppLayout({
                         <Bell className="h-4 w-4" />
                         <span className="text-sm font-bold">Alertas de hoje</span>
                       </div>
-                      <button onClick={() => setBellOpen(false)}>
+                      <button onClick={() => setBellOpen(false)} aria-label="Fechar notificações">
                         <X className="h-4 w-4 text-emerald-300 hover:text-white" />
                       </button>
                     </div>

@@ -1,32 +1,27 @@
 import {
   Injectable,
+  ForbiddenException,
   NotFoundException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { PlanService } from '../plan/plan.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
 import { CreatePaymentMethodDto } from './dto/create-payment-method.dto';
 
 @Injectable()
 export class PaymentMethodsService {
-  constructor(private readonly db: DatabaseService) {}
+  private readonly logger = new Logger(PaymentMethodsService.name);
 
-  private async getScope(userId: string) {
-    const res = await this.db.query(
-      'SELECT family_group_id FROM db_dtasc.users WHERE id = $1',
-      [userId],
-    );
-    const familyGroupId = res[0]?.family_group_id;
-    return {
-      familyGroupId,
-      filter: familyGroupId
-        ? 'family_group_id = $1'
-        : 'user_id = $1 AND family_group_id IS NULL',
-      param: familyGroupId || userId,
-    };
-  }
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly planService: PlanService,
+    private readonly familyScope: FamilyScopeService,
+  ) {}
 
   async findAll(userId: string) {
-    const scope = await this.getScope(userId);
+    const scope = await this.familyScope.getScope(userId);
 
     const sql = `
       SELECT pm.*,
@@ -61,7 +56,20 @@ export class PaymentMethodsService {
   }
 
   async create(userId: string, data: CreatePaymentMethodDto) {
-    const scope = await this.getScope(userId);
+    const scope = await this.familyScope.getScope(userId);
+
+    const limit = await this.planService.getNumericLimit(userId, 'max_cards');
+    if (limit !== null) {
+      const [{ count }] = await this.db.query(
+        `SELECT COUNT(*)::int AS count FROM db_dtasc.payment_method WHERE ${scope.filter}`,
+        [scope.param],
+      );
+      if (count >= limit) {
+        throw new ForbiddenException(
+          `Limite de ${limit} formas de pagamento do seu plano atingido. Faça upgrade para adicionar mais.`,
+        );
+      }
+    }
 
     const sql = `
       INSERT INTO db_dtasc.payment_method
@@ -91,16 +99,23 @@ export class PaymentMethodsService {
       ]);
       return res[0];
     } catch (error) {
-      console.error('PAYMENT_METHOD_INSERT_ERROR:', error);
-      throw new InternalServerErrorException('Erro ao salvar forma de pagamento.');
+      this.logger.error(
+        'Erro ao salvar forma de pagamento',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Erro ao salvar forma de pagamento.',
+      );
     }
   }
 
-  async update(id: string, userId: string, data: Partial<CreatePaymentMethodDto>) {
-    const scope = await this.getScope(userId);
-
-    // Replace $1 in filter (for scope.param) → $11
-    const filterWithOffset = scope.filter.replace('$1', '$11');
+  async update(
+    id: string,
+    userId: string,
+    data: Partial<CreatePaymentMethodDto>,
+  ) {
+    const scope = await this.familyScope.getScope(userId);
+    const filterWithOffset = this.familyScope.filterAt(scope, 11);
 
     const sql = `
       UPDATE db_dtasc.payment_method
@@ -137,27 +152,34 @@ export class PaymentMethodsService {
         scope.param,
       ]);
 
-      if (res.length === 0) throw new NotFoundException('Forma de pagamento não encontrada ou sem permissão.');
+      if (res.length === 0)
+        throw new NotFoundException(
+          'Forma de pagamento não encontrada ou sem permissão.',
+        );
       return res[0];
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
-      console.error('PAYMENT_METHOD_UPDATE_ERROR:', error);
-      throw new InternalServerErrorException('Erro ao atualizar forma de pagamento.');
+      this.logger.error(
+        'Erro ao atualizar forma de pagamento',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Erro ao atualizar forma de pagamento.',
+      );
     }
   }
 
   async remove(id: string, userId: string) {
-    const scope = await this.getScope(userId);
-    const filter = scope.familyGroupId
-      ? 'family_group_id = $2'
-      : 'user_id = $2 AND family_group_id IS NULL';
+    const scope = await this.familyScope.getScope(userId);
+    const filter = this.familyScope.filterAt(scope, 2);
 
     const res = await this.db.query(
       `DELETE FROM db_dtasc.payment_method WHERE id = $1 AND ${filter} RETURNING id`,
       [id, scope.param],
     );
 
-    if (res.length === 0) throw new NotFoundException('Item não encontrado ou acesso negado.');
+    if (res.length === 0)
+      throw new NotFoundException('Item não encontrado ou acesso negado.');
     return { success: true };
   }
 }

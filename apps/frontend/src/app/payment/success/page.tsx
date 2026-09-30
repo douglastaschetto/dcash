@@ -51,18 +51,18 @@ function SuccessContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-[32px] bg-white shadow-2xl p-10 text-center">
+      <div className="w-full max-w-sm rounded-[32px] bg-white dark:bg-zinc-900 shadow-2xl p-10 text-center">
         {status === 'checking' ? (
           <>
             <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-slate-800">Confirmando pagamento...</h2>
-            <p className="text-sm text-slate-400 mt-2">Aguarde enquanto verificamos sua transação.</p>
+            <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Confirmando pagamento...</h2>
+            <p className="text-sm text-slate-400 dark:text-zinc-500 mt-2">Aguarde enquanto verificamos sua transação.</p>
           </>
         ) : status === 'activated' ? (
           <>
             <CheckCircle2 className="h-14 w-14 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-900">Pagamento confirmado!</h2>
-            <p className="text-sm text-slate-500 mt-2">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100">Pagamento confirmado!</h2>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
               Seu plano <strong>{PLAN_LABELS[plan] ?? plan}</strong> foi ativado com sucesso.
             </p>
             <button
@@ -75,8 +75,8 @@ function SuccessContent() {
         ) : (
           <>
             <CheckCircle2 className="h-14 w-14 text-amber-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-900">Pagamento em análise</h2>
-            <p className="text-sm text-slate-500 mt-2">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100">Pagamento em análise</h2>
+            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
               Seu pagamento foi recebido e está sendo processado. Seu plano será ativado assim que confirmado (geralmente em minutos para PIX e cartão).
             </p>
             <button

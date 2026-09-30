@@ -11,10 +11,14 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
+
+/** Tighter than the app-wide default — these are the brute-force targets. */
+const AUTH_THROTTLE = { default: { limit: 8, ttl: 60_000 } };
 
 @Controller('auth')
 export class AuthController {
@@ -23,6 +27,7 @@ export class AuthController {
   // ── Registro ──────────────────────────────────────────────────────────────
 
   @Post('register')
+  @Throttle(AUTH_THROTTLE)
   async register(@Body() data: RegisterDto) {
     return this.authService.register(data);
     // Retorna: { user, token, firstLogin: true }
@@ -32,6 +37,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async login(@Body() data: LoginDto) {
     return this.authService.login(data);
     // Retorna: { user, token, firstLogin }
@@ -65,8 +71,17 @@ export class AuthController {
 
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
   async forgotPassword(@Body('email') email: string) {
     await this.authService.forgotPassword(email);
+    return { success: true };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  async resetPassword(@Body() data: ResetPasswordDto) {
+    await this.authService.resetPassword(data.token, data.password);
     return { success: true };
   }
 
@@ -80,10 +95,18 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Patch('profile')
-  async updateProfile(@Request() req: any, @Body() body: {
-    name?: string; phone?: string; avatar?: string; whatsappConsent?: boolean;
-    whatsappAlertHour?: number; googleCalendarSync?: boolean;
-  }) {
+  async updateProfile(
+    @Request() req: any,
+    @Body()
+    body: {
+      name?: string;
+      phone?: string;
+      avatar?: string;
+      whatsappConsent?: boolean;
+      whatsappAlertHour?: number;
+      googleCalendarSync?: boolean;
+    },
+  ) {
     return this.authService.updateProfile(req.user.id, body);
   }
 

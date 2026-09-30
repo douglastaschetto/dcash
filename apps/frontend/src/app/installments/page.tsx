@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useInstallments } from '@/hooks/useInstallments';
 import { AppLayout } from '@/components/app-layout';
-import { cn } from '@/lib/utils';
+import { cn, parseDateOnly } from '@/lib/utils';
 
 /* ── Inline date helpers (no date-fns) ─────────────────────────────── */
 const MONTHS_PT = [
@@ -59,13 +59,13 @@ export default function InstallmentsPage() {
 
     return Object.values(groups).map((group: any) => {
       const sorted = [...group.installments].sort(
-        (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+        (a: any, b: any) => parseDateOnly(a.date).getTime() - parseDateOnly(b.date).getTime(),
       );
       const remaining = sorted.filter((i: any) => !i.isPaid);
       const remainingValue = remaining.reduce((acc: number, i: any) => acc + Number(i.amount), 0);
       const totalInstallments = sorted[0]?.totalInstallments || sorted.length;
-      const lastExpiration = sorted.length > 0 ? new Date(sorted[sorted.length - 1].date) : null;
-      const firstDate = sorted.length > 0 ? new Date(sorted[0].date) : null;
+      const lastExpiration = sorted.length > 0 ? parseDateOnly(sorted[sorted.length - 1].date) : null;
+      const firstDate = sorted.length > 0 ? parseDateOnly(sorted[0].date) : null;
 
       return {
         ...group,
@@ -84,7 +84,7 @@ export default function InstallmentsPage() {
     if (!rawTransactions || rawTransactions.length === 0) return null;
 
     const monthData = (date: Date) => {
-      const rows = rawTransactions.filter(t => isSameMonth(new Date(t.date), date));
+      const rows = rawTransactions.filter(t => isSameMonth(parseDateOnly(t.date), date));
       return {
         total: rows.reduce((s, t) => s + Number(t.amount), 0),
         count: rows.length,
@@ -429,7 +429,7 @@ export default function InstallmentsPage() {
                                 {String(inst.installmentNumber || idx + 1).padStart(2, '0')}/{group.totalInstallments}
                               </td>
                               <td className="px-5 py-3 text-zinc-600 dark:text-zinc-400">
-                                {fmtDay(new Date(inst.date))}
+                                {fmtDay(parseDateOnly(inst.date))}
                               </td>
                               <td className="px-5 py-3 font-black text-zinc-900 dark:text-zinc-100">
                                 R$ {Number(inst.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}

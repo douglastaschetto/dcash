@@ -5,6 +5,7 @@ import { TransactionsService } from './transactions.service';
 import { DatabaseModule } from '../database/database.module';
 import { PlanModule } from '../plan/plan.module';
 import { CategoriesModule } from '../categories/categories.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { CategoriesModule } from '../categories/categories.module';
     MulterModule.register({ limits: { fileSize: 10 * 1024 * 1024 } }),
     PlanModule,
     CategoriesModule,
+    CommonModule,
   ],
   controllers: [TransactionsController],
   providers: [TransactionsService],

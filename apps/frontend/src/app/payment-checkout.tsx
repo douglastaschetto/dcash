@@ -3,9 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ArrowRight, ShieldCheck, Zap, Crown, Star,
-  Check, Loader2, QrCode, CreditCard, Barcode, ArrowLeft,
+  ArrowRight, ShieldCheck, Zap, Crown,
+  Check, Loader2, CreditCard, ArrowLeft,
 } from 'lucide-react';
+
+/** Same 20% discount already advertised on /plans — kept in sync with the backend's YEARLY_DISCOUNT. */
+const YEARLY_DISCOUNT = 0.8;
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -71,19 +74,20 @@ const PLANS: Record<string, {
   },
 };
 
-export function PaymentCheckout({ planKey }: { planKey: string }) {
+export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: string; billing?: 'monthly' | 'yearly' }) {
   const router = useRouter();
   const plan = PLANS[planKey?.toLowerCase()];
-  const [loading, setLoading] = useState<'mercadopago' | 'stripe' | null>(null);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>(billing);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   if (!plan) {
     return (
-      <div className="min-h-screen bg-emerald-50 flex items-center justify-center p-6">
-        <div className="rounded-[32px] border border-emerald-200 bg-white p-10 shadow-xl text-center space-y-4 max-w-sm w-full">
-          <ShieldCheck className="mx-auto h-12 w-12 text-slate-300" />
-          <h1 className="text-xl font-bold text-emerald-950">Plano não encontrado</h1>
-          <p className="text-sm text-slate-500">Acesse a página de perfil para escolher um plano.</p>
+      <div className="min-h-screen bg-emerald-50 dark:bg-zinc-950 flex items-center justify-center p-6">
+        <div className="rounded-[32px] border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-10 shadow-xl text-center space-y-4 max-w-sm w-full">
+          <ShieldCheck className="mx-auto h-12 w-12 text-slate-300 dark:text-zinc-600" />
+          <h1 className="text-xl font-bold text-emerald-950 dark:text-emerald-400">Plano não encontrado</h1>
+          <p className="text-sm text-slate-500 dark:text-zinc-400">Acesse a página de perfil para escolher um plano.</p>
           <button
             onClick={() => router.push('/profile')}
             className="inline-flex items-center gap-2 rounded-xl bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 transition"
@@ -97,49 +101,26 @@ export function PaymentCheckout({ planKey }: { planKey: string }) {
 
   const PlanIcon = plan.icon;
 
-  const handlePayMercadoPago = async () => {
-    setLoading('mercadopago');
-    setError('');
-    try {
-      const res = await fetch(`${API}/payment/create-preference`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ plan: planKey.toLowerCase() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Erro ao criar preferência de pagamento');
-
-      // Em dev usa sandbox_init_point; em prod usa init_point
-      const url = process.env.NODE_ENV === 'production'
-        ? data.checkoutUrl
-        : (data.sandboxUrl || data.checkoutUrl);
-
-      window.location.href = url;
-    } catch (err: any) {
-      setError(err.message ?? 'Erro ao processar. Tente novamente.');
-      setLoading(null);
-    }
-  };
-
   const handlePayStripe = async () => {
-    setLoading('stripe');
+    setLoading(true);
     setError('');
     try {
       const res = await fetch(`${API}/payment/stripe/create-session`, {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({ plan: planKey.toLowerCase() }),
+        body: JSON.stringify({ plan: planKey.toLowerCase(), billingCycle }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Erro ao criar sessão de pagamento Stripe');
       window.location.href = data.checkoutUrl;
     } catch (err: any) {
       setError(err.message ?? 'Erro ao processar. Tente novamente.');
-      setLoading(null);
+      setLoading(false);
     }
   };
 
-  const priceStr = plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const displayPrice = billingCycle === 'yearly' ? plan.price * YEARLY_DISCOUNT : plan.price;
+  const priceStr = displayPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 to-slate-900 flex items-center justify-center p-4">
@@ -152,31 +133,60 @@ export function PaymentCheckout({ planKey }: { planKey: string }) {
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
 
-        <div className="rounded-[32px] bg-white shadow-2xl overflow-hidden">
+        <div className="rounded-[32px] bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
 
           {/* Plan header */}
-          <div className={`${plan.bg} ${plan.border} border-b px-8 py-6`}>
+          <div className={`${plan.bg} dark:bg-zinc-800/60 ${plan.border} dark:border-zinc-700 border-b px-8 py-6`}>
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-sm shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-900 shadow-sm shrink-0">
                 <PlanIcon className={`h-5 w-5 ${plan.color}`} />
               </div>
               <div>
-                <p className="text-xs text-slate-500">Você está assinando</p>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Você está assinando</p>
                 <p className={`text-lg font-bold ${plan.color}`}>DCash {plan.label}</p>
               </div>
             </div>
             <div className="flex items-baseline gap-1 mt-4">
-              <span className="text-4xl font-black text-slate-900">{priceStr}</span>
-              <span className="text-slate-400 text-sm">/mês</span>
+              <span className="text-4xl font-black text-slate-900 dark:text-zinc-100">{priceStr}</span>
+              <span className="text-slate-400 dark:text-zinc-500 text-sm">{billingCycle === 'yearly' ? '/ano' : '/mês'}</span>
             </div>
           </div>
 
+          {/* Billing cycle toggle */}
+          <div className="px-8 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-center gap-3">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`rounded-full px-4 py-2 text-xs font-bold transition border ${
+                billingCycle === 'monthly'
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+              }`}
+            >
+              Mensal
+            </button>
+            <button
+              onClick={() => setBillingCycle('yearly')}
+              className={`rounded-full px-4 py-2 text-xs font-bold transition border flex items-center gap-2 ${
+                billingCycle === 'yearly'
+                  ? 'bg-emerald-500 text-white border-emerald-500'
+                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+              }`}
+            >
+              Anual
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
+                billingCycle === 'yearly' ? 'bg-white/25 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40'
+              }`}>
+                -20%
+              </span>
+            </button>
+          </div>
+
           {/* Perks */}
-          <div className="px-8 py-5 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Incluído no plano</p>
+          <div className="px-8 py-5 border-b border-slate-100 dark:border-zinc-800">
+            <p className="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide mb-3">Incluído no plano</p>
             <ul className="space-y-2">
               {plan.perks.map(p => (
-                <li key={p} className="flex items-start gap-2.5 text-sm text-slate-700">
+                <li key={p} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-zinc-300">
                   <Check className={`h-4 w-4 shrink-0 mt-0.5 ${plan.color}`} />
                   {p}
                 </li>
@@ -184,27 +194,22 @@ export function PaymentCheckout({ planKey }: { planKey: string }) {
             </ul>
           </div>
 
-          {/* Payment methods */}
-          <div className="px-8 py-4 bg-slate-50 border-b border-slate-100">
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Formas de pagamento aceitas</p>
-            <div className="flex items-center gap-5">
-              <span className="flex items-center gap-1.5 text-xs text-slate-600"><QrCode className="h-3.5 w-3.5 text-emerald-600" /> PIX</span>
-              <span className="flex items-center gap-1.5 text-xs text-slate-600"><CreditCard className="h-3.5 w-3.5 text-blue-500" /> Cartão de crédito</span>
-              <span className="flex items-center gap-1.5 text-xs text-slate-600"><Barcode className="h-3.5 w-3.5 text-slate-400" /> Boleto</span>
-            </div>
+          {/* Payment method */}
+          <div className="px-8 py-4 bg-slate-50 dark:bg-zinc-800/40 border-b border-slate-100 dark:border-zinc-800">
+            <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-400"><CreditCard className="h-3.5 w-3.5 text-blue-500" /> Cartão de crédito, via Stripe</span>
           </div>
 
           {/* CTA */}
           <div className="px-8 py-6 space-y-3">
             {error && (
-              <p className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">{error}</p>
+              <p className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">{error}</p>
             )}
             <button
               onClick={handlePayStripe}
-              disabled={loading !== null}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-3 rounded-xl bg-slate-900 hover:bg-slate-800 py-4 text-sm font-bold text-white disabled:opacity-60 transition shadow-lg"
             >
-              {loading === 'stripe' ? (
+              {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> Preparando checkout...</>
               ) : (
                 <>
@@ -216,26 +221,8 @@ export function PaymentCheckout({ planKey }: { planKey: string }) {
                 </>
               )}
             </button>
-            <button
-              onClick={handlePayMercadoPago}
-              disabled={loading !== null}
-              className="w-full flex items-center justify-center gap-3 rounded-xl bg-blue-500 hover:bg-blue-600 py-4 text-sm font-bold text-white disabled:opacity-60 transition shadow-lg"
-            >
-              {loading === 'mercadopago' ? (
-                <><Loader2 className="h-4 w-4 animate-spin" /> Preparando checkout...</>
-              ) : (
-                <>
-                  <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-                    <circle cx="16" cy="16" r="14" fill="#fff"/>
-                    <path d="M10.5 20.5c0-3.038 2.462-5.5 5.5-5.5s5.5 2.462 5.5 5.5" stroke="#009ee3" strokeWidth="2.5" strokeLinecap="round"/>
-                    <circle cx="16" cy="11" r="3" fill="#009ee3"/>
-                  </svg>
-                  Pagar com Mercado Pago
-                </>
-              )}
-            </button>
-            <p className="text-center text-xs text-slate-400">
-              Escolha o gateway de sua preferência. O plano é ativado automaticamente após confirmação do pagamento.
+            <p className="text-center text-xs text-slate-400 dark:text-zinc-500">
+              O plano é ativado automaticamente após confirmação do pagamento.
             </p>
           </div>
         </div>

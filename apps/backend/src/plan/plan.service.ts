@@ -37,34 +37,135 @@ const DEFAULT_FEATURE_SEEDS: Array<{
   enabled: boolean;
   label: string;
   description: string;
+  numValue?: number | null;
 }> = [
   {
     plan: 'free',
     featureKey: 'ofx_import',
     enabled: false,
     label: 'Importação de Extrato (OFX/CSV)',
-    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+    description:
+      'Importar extratos bancários com sugestão automática de categoria via IA.',
   },
   {
     plan: 'basico',
     featureKey: 'ofx_import',
     enabled: false,
     label: 'Importação de Extrato (OFX/CSV)',
-    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+    description:
+      'Importar extratos bancários com sugestão automática de categoria via IA.',
   },
   {
     plan: 'intermediario',
     featureKey: 'ofx_import',
     enabled: true,
     label: 'Importação de Extrato (OFX/CSV)',
-    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+    description:
+      'Importar extratos bancários com sugestão automática de categoria via IA.',
   },
   {
     plan: 'pro',
     featureKey: 'ofx_import',
     enabled: true,
     label: 'Importação de Extrato (OFX/CSV)',
-    description: 'Importar extratos bancários com sugestão automática de categoria via IA.',
+    description:
+      'Importar extratos bancários com sugestão automática de categoria via IA.',
+  },
+  // ── Limites numéricos por plano — declarados no FeatureKey há tempo mas
+  // nunca aplicados em nenhum lugar do código (ver auditoria). null = sem limite.
+  {
+    plan: 'free',
+    featureKey: 'max_categories',
+    enabled: true,
+    numValue: 8,
+    label: 'Limite de categorias',
+    description: 'Quantidade máxima de categorias personalizadas.',
+  },
+  {
+    plan: 'basico',
+    featureKey: 'max_categories',
+    enabled: true,
+    numValue: 20,
+    label: 'Limite de categorias',
+    description: 'Quantidade máxima de categorias personalizadas.',
+  },
+  {
+    plan: 'intermediario',
+    featureKey: 'max_categories',
+    enabled: true,
+    numValue: 50,
+    label: 'Limite de categorias',
+    description: 'Quantidade máxima de categorias personalizadas.',
+  },
+  {
+    plan: 'pro',
+    featureKey: 'max_categories',
+    enabled: true,
+    numValue: null,
+    label: 'Limite de categorias',
+    description: 'Quantidade máxima de categorias personalizadas.',
+  },
+
+  {
+    plan: 'free',
+    featureKey: 'max_cards',
+    enabled: true,
+    numValue: 2,
+    label: 'Limite de cartões/contas',
+    description: 'Quantidade máxima de formas de pagamento cadastradas.',
+  },
+  {
+    plan: 'basico',
+    featureKey: 'max_cards',
+    enabled: true,
+    numValue: 5,
+    label: 'Limite de cartões/contas',
+    description: 'Quantidade máxima de formas de pagamento cadastradas.',
+  },
+  {
+    plan: 'intermediario',
+    featureKey: 'max_cards',
+    enabled: true,
+    numValue: 10,
+    label: 'Limite de cartões/contas',
+    description: 'Quantidade máxima de formas de pagamento cadastradas.',
+  },
+  {
+    plan: 'pro',
+    featureKey: 'max_cards',
+    enabled: true,
+    numValue: null,
+    label: 'Limite de cartões/contas',
+    description: 'Quantidade máxima de formas de pagamento cadastradas.',
+  },
+
+  {
+    plan: 'free',
+    featureKey: 'export_reports',
+    enabled: false,
+    label: 'Exportação de relatórios',
+    description: 'Exportar transações em CSV.',
+  },
+  {
+    plan: 'basico',
+    featureKey: 'export_reports',
+    enabled: true,
+    label: 'Exportação de relatórios',
+    description: 'Exportar transações em CSV.',
+  },
+  {
+    plan: 'intermediario',
+    featureKey: 'export_reports',
+    enabled: true,
+    label: 'Exportação de relatórios',
+    description: 'Exportar transações em CSV.',
+  },
+  {
+    plan: 'pro',
+    featureKey: 'export_reports',
+    enabled: true,
+    label: 'Exportação de relatórios',
+    description: 'Exportar transações em CSV.',
   },
 ];
 
@@ -83,12 +184,19 @@ export class PlanService {
     if (this.featureDefaultsSeeded) return;
     for (const seed of DEFAULT_FEATURE_SEEDS) {
       await this.db.query(
-        `INSERT INTO db_dtasc.plan_features (plan, feature_key, enabled, label, description, updated_at)
-         SELECT $1::text, $2::text, $3, $4, $5, NOW()
+        `INSERT INTO db_dtasc.plan_features (plan, feature_key, enabled, num_value, label, description, updated_at)
+         SELECT $1::text, $2::text, $3, $4::integer, $5, $6, NOW()
          WHERE NOT EXISTS (
            SELECT 1 FROM db_dtasc.plan_features WHERE plan = $1::text AND feature_key = $2::text
          )`,
-        [seed.plan, seed.featureKey, seed.enabled, seed.label, seed.description],
+        [
+          seed.plan,
+          seed.featureKey,
+          seed.enabled,
+          seed.numValue ?? null,
+          seed.label,
+          seed.description,
+        ],
       );
     }
     this.featureDefaultsSeeded = true;
@@ -143,6 +251,16 @@ export class PlanService {
     const plan = await this.getEffectivePlan(userId);
     const features = await this.getFeatures(plan);
     return features[featureKey]?.enabled ?? false;
+  }
+
+  /** Returns the numeric limit for a feature (e.g. max_categories), or null = unlimited. */
+  async getNumericLimit(
+    userId: string,
+    featureKey: FeatureKey,
+  ): Promise<number | null> {
+    const plan = await this.getEffectivePlan(userId);
+    const features = await this.getFeatures(plan);
+    return features[featureKey]?.numValue ?? null;
   }
 
   /** Full user context: plan + all features. Used by frontend /plan/me endpoint. */

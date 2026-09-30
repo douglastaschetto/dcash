@@ -19,35 +19,35 @@ const steps = [
     title: 'Completar Cadastro',
     description: 'Finalize seus dados pessoais',
     icon: User,
-    color: 'bg-blue-100 text-blue-600',
+    color: 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400',
   },
   {
     id: 2,
     title: 'Criar Família',
     description: 'Invite membros da família (opcional)',
     icon: Users,
-    color: 'bg-purple-100 text-purple-600',
+    color: 'bg-purple-100 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400',
   },
   {
     id: 3,
     title: 'Categorias',
     description: 'Configure suas categorias de gastos',
     icon: Grid3x3,
-    color: 'bg-emerald-100 text-emerald-600',
+    color: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
   },
   {
     id: 4,
     title: 'Formas de Pagamento',
     description: 'Adicione seus cartões e contas',
     icon: CreditCard,
-    color: 'bg-orange-100 text-orange-600',
+    color: 'bg-orange-100 dark:bg-orange-900/40 text-orange-600 dark:text-orange-400',
   },
   {
     id: 5,
     title: 'Planejamento Mensal',
     description: 'Defina limites de gastos por categoria',
     icon: TrendingUp,
-    color: 'bg-rose-100 text-rose-600',
+    color: 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400',
   },
 ];
 
@@ -65,32 +65,32 @@ const StepContent = ({
       return (
         <div className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-emerald-950 mb-2">
+            <label className="block text-sm font-semibold text-emerald-950 dark:text-white mb-2">
               Nome Completo
             </label>
             <input
               type="text"
               placeholder="Seu nome completo"
-              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+              className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-emerald-950 mb-2">
+            <label className="block text-sm font-semibold text-emerald-950 dark:text-white mb-2">
               Telefone
             </label>
             <input
               type="tel"
               placeholder="(11) 99999-9999"
-              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+              className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-emerald-950 mb-2">
+            <label className="block text-sm font-semibold text-emerald-950 dark:text-white mb-2">
               Data de Nascimento
             </label>
             <input
               type="date"
-              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+              className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
             />
           </div>
           <button
@@ -105,16 +105,16 @@ const StepContent = ({
     case 2:
       return (
         <div className="space-y-6">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-zinc-400">
             Você pode adicionar membros da sua família para compartilhar o controle financeiro.
           </p>
           <div className="space-y-3">
             <input
               type="email"
               placeholder="E-mail do membro"
-              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+              className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
             />
-            <button className="w-full rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50">
+            <button className="w-full rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 transition hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
               + Adicionar Membro
             </button>
           </div>
@@ -138,21 +138,21 @@ const StepContent = ({
       ];
       return (
         <div className="space-y-6">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-zinc-400">
             Configure suas categorias de receitas e despesas. Você pode editá-las depois.
           </p>
           <div className="space-y-2">
             {defaultCategories.map((cat) => (
               <label
                 key={cat}
-                className="flex items-center gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 cursor-pointer hover:bg-emerald-100"
+                className="flex items-center gap-3 rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 p-3 cursor-pointer hover:bg-emerald-100 dark:hover:bg-zinc-700"
               >
                 <input
                   type="checkbox"
                   defaultChecked
                   className="h-4 w-4 rounded border-emerald-600"
                 />
-                <span className="text-sm font-medium text-emerald-950">{cat}</span>
+                <span className="text-sm font-medium text-emerald-950 dark:text-white">{cat}</span>
               </label>
             ))}
           </div>
@@ -168,21 +168,21 @@ const StepContent = ({
     case 4:
       return (
         <div className="space-y-6">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-zinc-400">
             Adicione suas contas e cartões para começar a controlar suas finanças.
           </p>
           <div className="space-y-3">
             <input
               type="text"
               placeholder="Nome do cartão/conta"
-              className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+              className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
             />
-            <select className="w-full rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600">
+            <select className="w-full rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600">
               <option>Cartão de Crédito</option>
               <option>Conta Corrente</option>
               <option>Poupança</option>
             </select>
-            <button className="w-full rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-600 transition hover:bg-emerald-50">
+            <button className="w-full rounded-lg border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-600 dark:text-emerald-400 transition hover:bg-emerald-50 dark:hover:bg-emerald-900/30">
               + Adicionar Forma de Pagamento
             </button>
           </div>
@@ -198,21 +198,21 @@ const StepContent = ({
     case 5:
       return (
         <div className="space-y-6">
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-slate-600 dark:text-zinc-400">
             Define limites de gastos mensais por categoria.
           </p>
           <div className="space-y-4">
             {['Alimentação', 'Transporte', 'Lazer'].map((cat) => (
               <div key={cat}>
-                <label className="block text-sm font-medium text-emerald-950 mb-1">
+                <label className="block text-sm font-medium text-emerald-950 dark:text-white mb-1">
                   {cat}
                 </label>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-slate-600">R$</span>
+                  <span className="text-sm text-slate-600 dark:text-zinc-400">R$</span>
                   <input
                     type="number"
                     placeholder="0,00"
-                    className="flex-1 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm outline-none focus:border-emerald-600"
+                    className="flex-1 rounded-lg border border-emerald-200 dark:border-zinc-700 bg-emerald-50 dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-4 py-2 text-sm outline-none focus:border-emerald-600"
                   />
                 </div>
               </div>
@@ -258,19 +258,19 @@ export default function OnboardingSetupPage() {
   const progress = ((currentStep + 1) / steps.length) * 100;
 
   return (
-    <div className="min-h-screen bg-emerald-50 text-slate-950">
+    <div className="min-h-screen bg-emerald-50 dark:bg-zinc-950 text-slate-950 dark:text-zinc-100">
       <main className="mx-auto flex min-h-screen max-w-5xl flex-col px-6 py-10 sm:px-10">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-emerald-950">Bem-vindo ao DCash!</h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <h1 className="text-3xl font-bold text-emerald-950 dark:text-white">Bem-vindo ao DCash!</h1>
+            <p className="mt-2 text-sm text-slate-600 dark:text-zinc-400">
               Vamos completar seu perfil e configurar a plataforma para você
             </p>
           </div>
           <button
             onClick={() => router.push('/dashboard-v2')}
-            className="p-2 text-slate-600 hover:text-slate-950 transition"
+            className="p-2 text-slate-600 dark:text-zinc-400 hover:text-slate-950 dark:hover:text-white transition"
           >
             <X className="h-6 w-6" />
           </button>
@@ -279,12 +279,12 @@ export default function OnboardingSetupPage() {
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-emerald-950">
+            <span className="text-sm font-semibold text-emerald-950 dark:text-white">
               Passo {currentStep + 1} de {steps.length}
             </span>
-            <span className="text-sm text-slate-600">{Math.round(progress)}%</span>
+            <span className="text-sm text-slate-600 dark:text-zinc-400">{Math.round(progress)}%</span>
           </div>
-          <div className="h-2 w-full rounded-full bg-emerald-200">
+          <div className="h-2 w-full rounded-full bg-emerald-200 dark:bg-zinc-800">
             <div
               className="h-2 rounded-full bg-emerald-950 transition-all duration-300"
               style={{ width: `${progress}%` }}
@@ -308,10 +308,10 @@ export default function OnboardingSetupPage() {
                     onClick={() => setCurrentStep(idx)}
                     className={`w-full rounded-lg p-4 text-left transition ${
                       isCurrent
-                        ? 'border-2 border-emerald-950 bg-emerald-50'
+                        ? 'border-2 border-emerald-950 dark:border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
                         : isCompleted
-                          ? 'border border-emerald-200 bg-white'
-                          : 'border border-slate-200 bg-white'
+                          ? 'border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900'
+                          : 'border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900'
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -320,15 +320,15 @@ export default function OnboardingSetupPage() {
                       ) : (
                         <div
                           className={`h-5 w-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0 ${
-                            isCurrent ? 'bg-emerald-950' : 'bg-slate-300'
+                            isCurrent ? 'bg-emerald-950' : 'bg-slate-300 dark:bg-zinc-700'
                           }`}
                         >
                           {s.id}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-emerald-950">{s.title}</p>
-                        <p className="text-xs text-slate-600 truncate">{s.description}</p>
+                        <p className="text-sm font-semibold text-emerald-950 dark:text-white">{s.title}</p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">{s.description}</p>
                       </div>
                     </div>
                   </button>
@@ -339,18 +339,18 @@ export default function OnboardingSetupPage() {
 
           {/* Step Content */}
           <div className="lg:col-span-2">
-            <div className="rounded-2xl border border-emerald-200 bg-white p-8 shadow-lg">
+            <div className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-8 shadow-lg">
               <div className="mb-8 flex items-center gap-4">
                 <div className={`h-16 w-16 rounded-full flex items-center justify-center ${step.color}`}>
                   <step.icon className="h-8 w-8" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-emerald-950">{step.title}</h2>
-                  <p className="text-sm text-slate-600">{step.description}</p>
+                  <h2 className="text-2xl font-bold text-emerald-950 dark:text-white">{step.title}</h2>
+                  <p className="text-sm text-slate-600 dark:text-zinc-400">{step.description}</p>
                 </div>
               </div>
 
-              <div className="mb-8 border-t border-slate-200 pt-8">
+              <div className="mb-8 border-t border-slate-200 dark:border-zinc-800 pt-8">
                 <StepContent
                   step={step}
                   onComplete={handleStepComplete}
@@ -358,10 +358,10 @@ export default function OnboardingSetupPage() {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex gap-3 border-t border-slate-200 pt-6">
+              <div className="flex gap-3 border-t border-slate-200 dark:border-zinc-800 pt-6">
                 <button
                   onClick={handleSkip}
-                  className="flex-1 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                  className="flex-1 rounded-lg border border-slate-300 dark:border-zinc-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-zinc-300 transition hover:bg-slate-50 dark:hover:bg-zinc-800"
                 >
                   Pular
                 </button>

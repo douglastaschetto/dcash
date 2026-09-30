@@ -18,14 +18,22 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #082f25;
-    --foreground: #e7f5ef;
-    --surface: #0d3d30;
-    --surface-secondary: #0a3328;
-    --border: #1a5c41;
-  }
+/*
+ * Keyed off the same [data-theme="dark"] attribute as the `dark:` Tailwind
+ * variant above (see layout.tsx's inline script and profile page's theme
+ * toggle, which are the single source of truth for the attribute).
+ * Previously this block used `@media (prefers-color-scheme: dark)`, which
+ * only reacted to the OS setting — so a user who explicitly chose "Escuro"
+ * while their OS was in light mode got `dark:` classes correctly applied
+ * elsewhere in the app, but pages styled with these CSS vars (login,
+ * plans, ajuda, onboarding, auth-success, reset-password) stayed light.
+ */
+[data-theme="dark"] {
+  --background: #082f25;
+  --foreground: #e7f5ef;
+  --surface: #0d3d30;
+  --surface-secondary: #0a3328;
+  --border: #1a5c41;
 }
 
 html {

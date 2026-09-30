@@ -2,26 +2,26 @@ import {
   Injectable,
   NotFoundException,
   InternalServerErrorException,
+  Logger,
 } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
 import { UpsertCategoryLimitDto } from './dto/upsert-category-limit.dto';
 
 const S = 'db_dtasc';
 
 @Injectable()
 export class CategoryLimitsService {
-  constructor(private readonly db: DatabaseService) {}
+  private readonly logger = new Logger(CategoryLimitsService.name);
+
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly familyScope: FamilyScopeService,
+  ) {}
 
   private async getScope(userId: string, paramIndex: number) {
-    const res = await this.db.query(
-      `SELECT family_group_id FROM ${S}.users WHERE id = $1`,
-      [userId],
-    );
-    const familyGroupId = res[0]?.family_group_id;
-    const filter = familyGroupId
-      ? `family_group_id = $${paramIndex}`
-      : `user_id = $${paramIndex} AND family_group_id IS NULL`;
-    return { familyGroupId, filter, param: familyGroupId || userId };
+    const scope = await this.familyScope.getScope(userId);
+    return { ...scope, filter: this.familyScope.filterAt(scope, paramIndex) };
   }
 
   async getDashboard(userId: string, month: number, year: number) {
@@ -74,7 +74,10 @@ export class CategoryLimitsService {
         percent: l.amount > 0 ? (Number(l.spent) / Number(l.amount)) * 100 : 0,
       }));
     } catch (error) {
-      console.error('getDashboard error:', error);
+      this.logger.error(
+        'getDashboard error',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new InternalServerErrorException('Falha ao carregar planejamento.');
     }
   }
@@ -98,10 +101,20 @@ export class CategoryLimitsService {
         ORDER BY spent DESC
       `;
 
-      const result = await this.db.query(sql, [startDate, endDate, scope.param]);
-      return result.map((row: any) => ({ categoryId: row.categoryId, spent: Number(row.spent) }));
+      const result = await this.db.query(sql, [
+        startDate,
+        endDate,
+        scope.param,
+      ]);
+      return result.map((row: any) => ({
+        categoryId: row.categoryId,
+        spent: Number(row.spent),
+      }));
     } catch (error) {
-      console.error('getHistoricalSpending error:', error);
+      this.logger.error(
+        'getHistoricalSpending error',
+        error instanceof Error ? error.stack : String(error),
+      );
       throw new InternalServerErrorException('Falha ao carregar histórico.');
     }
   }
@@ -126,7 +139,14 @@ export class CategoryLimitsService {
     const inserted = await this.db.query(
       `INSERT INTO ${S}.category_limit (amount, month, year, category_id, user_id, family_group_id)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [data.amount, Number(data.month), Number(data.year), data.categoryId, userId, scope.familyGroupId ?? null],
+      [
+        data.amount,
+        Number(data.month),
+        Number(data.year),
+        data.categoryId,
+        userId,
+        scope.familyGroupId ?? null,
+      ],
     );
     return inserted[0];
   }
@@ -137,7 +157,8 @@ export class CategoryLimitsService {
       `DELETE FROM ${S}.category_limit WHERE id = $1 AND ${scope.filter} RETURNING id`,
       [id, scope.param],
     );
-    if (result.length === 0) throw new NotFoundException('Limite não encontrado.');
+    if (result.length === 0)
+      throw new NotFoundException('Limite não encontrado.');
     return { success: true };
   }
 

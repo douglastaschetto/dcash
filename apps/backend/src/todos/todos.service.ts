@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, InternalServerErrorException, Logger } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
 
 const S = 'db_dtasc';
 
@@ -7,22 +8,14 @@ const S = 'db_dtasc';
 export class TodosService {
   private readonly logger = new Logger(TodosService.name);
 
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly familyScope: FamilyScopeService,
+  ) {}
 
   private async getScope(userId: string, paramIndex = 1) {
-    const res = await this.db.query(
-      `SELECT family_group_id FROM ${S}.users WHERE id = $1`,
-      [userId],
-    );
-    const familyGroupId = res[0]?.family_group_id;
-    const idx = `$${paramIndex}`;
-    return {
-      familyGroupId,
-      filter: familyGroupId
-        ? `family_group_id = ${idx}`
-        : `user_id = ${idx} AND family_group_id IS NULL`,
-      param: familyGroupId || userId,
-    };
+    const scope = await this.familyScope.getScope(userId);
+    return { ...scope, filter: this.familyScope.filterAt(scope, paramIndex) };
   }
 
   async create(userId: string, title: string) {

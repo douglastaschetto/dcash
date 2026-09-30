@@ -1,6 +1,7 @@
-import { Injectable, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
 import { PlanService } from '../plan/plan.service';
+import { PaymentService } from '../payment/payment.service';
 
 const VALID_PLANS = ['free', 'basico', 'intermediario', 'pro'];
 
@@ -9,15 +10,8 @@ export class AdminService {
   constructor(
     private readonly db: DatabaseService,
     private readonly planService: PlanService,
+    private readonly paymentService: PaymentService,
   ) {}
-
-  async verifyAdmin(userId: string): Promise<void> {
-    const res = await this.db.query(
-      'SELECT is_admin FROM db_dtasc.users WHERE id = $1',
-      [userId],
-    );
-    if (!res[0]?.is_admin) throw new ForbiddenException('Acesso restrito a administradores.');
-  }
 
   async getUsers() {
     return this.db.query(
@@ -29,7 +23,9 @@ export class AdminService {
          u.family_group_id AS "familyGroupId",
          fg.name AS "familyGroupName",
          fg.owner_id AS "familyOwnerId",
-         owner.plan AS "familyOwnerPlan"
+         owner.plan AS "familyOwnerPlan",
+         u.plan_expires_at AS "planExpiresAt",
+         u.plan_status AS "planStatus"
        FROM db_dtasc.users u
        LEFT JOIN db_dtasc.family_groups fg ON fg.id = u.family_group_id
        LEFT JOIN db_dtasc.users owner ON owner.id = fg.owner_id
@@ -38,12 +34,32 @@ export class AdminService {
     );
   }
 
+  /**
+   * Manual override always wins over Stripe: if the target user has a live
+   * subscription, it's cancelled immediately on Stripe's side too (not just
+   * locally) so their card doesn't keep getting charged for a plan we've
+   * already zeroed out in our own database. The override itself is left
+   * with no expiration, which makes it immune to the daily cron sweep.
+   */
   async updateUserPlan(targetUserId: string, plan: string) {
     if (!VALID_PLANS.includes(plan.toLowerCase())) {
       throw new BadRequestException('Plano inválido');
     }
+
+    const rows = await this.db.query<{ stripe_subscription_id: string | null }>(
+      `SELECT stripe_subscription_id FROM db_dtasc.users WHERE id = $1`,
+      [targetUserId],
+    );
+    const subscriptionId = rows[0]?.stripe_subscription_id;
+    if (subscriptionId) {
+      await this.paymentService.cancelStripeSubscription(subscriptionId, { immediate: true });
+    }
+
     await this.db.query(
-      'UPDATE db_dtasc.users SET plan = $1 WHERE id = $2',
+      `UPDATE db_dtasc.users
+       SET plan = $1, plan_status = 'active', plan_expires_at = NULL,
+           plan_billing_cycle = NULL, stripe_subscription_id = NULL, stripe_customer_id = NULL
+       WHERE id = $2`,
       [plan.toLowerCase(), targetUserId],
     );
     return { success: true };
@@ -71,5 +87,37 @@ export class AdminService {
       throw new BadRequestException('Plano inválido');
     }
     return this.planService.updateFeature(plan, featureKey, enabled, numValue);
+  }
+
+  // ── Stripe product/price management ────────────────────────────────
+
+  async listStripeProducts() {
+    return this.paymentService.listStripeProducts();
+  }
+
+  async syncStripePlans() {
+    return this.paymentService.syncPlanProducts();
+  }
+
+  async createStripeProduct(dto: {
+    name: string;
+    description?: string;
+    amount?: number;
+    currency?: string;
+    interval?: 'month' | 'year';
+  }) {
+    return this.paymentService.createStripeProduct(dto);
+  }
+
+  async addStripePrice(productId: string, dto: { amount: number; currency?: string; interval?: 'month' | 'year' }) {
+    return this.paymentService.addStripePrice(productId, dto);
+  }
+
+  async updateStripeProduct(id: string, dto: { name?: string; description?: string; active?: boolean }) {
+    return this.paymentService.updateStripeProduct(id, dto);
+  }
+
+  async archiveStripeProduct(id: string) {
+    return this.paymentService.archiveStripeProduct(id);
   }
 }

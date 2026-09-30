@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { DatabaseService } from '../database/database.service';
@@ -6,6 +12,8 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { createHash, randomUUID } from 'crypto';
 import { PlanService } from '../plan/plan.service';
 import { CategoriesService } from '../categories/categories.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
+import { parseCsvLine } from './csv-parser.util';
 
 export interface StagingResult {
   id: string;
@@ -28,34 +36,32 @@ export class TransactionsService {
     private readonly config: ConfigService,
     private readonly planService: PlanService,
     private readonly categoriesService: CategoriesService,
+    private readonly familyScope: FamilyScopeService,
   ) {
-    this.genAI = new GoogleGenerativeAI(this.config.get<string>('GEMINI_API_KEY') ?? '');
-    this.modelName = this.config.get<string>('GEMINI_MODEL_NAME') || 'gemini-2.5-flash';
+    this.genAI = new GoogleGenerativeAI(
+      this.config.get<string>('GEMINI_API_KEY') ?? '',
+    );
+    this.modelName =
+      this.config.get<string>('GEMINI_MODEL_NAME') || 'gemini-2.5-flash';
   }
 
   /** Importação de extrato (OFX/CSV) é recurso do plano Intermediário para cima. */
   private async assertOfxImportAllowed(userId: string) {
     const allowed = await this.planService.hasFeature(userId, 'ofx_import');
     if (!allowed) {
-      throw new ForbiddenException('Importação de extrato disponível a partir do plano Intermediário.');
+      throw new ForbiddenException(
+        'Importação de extrato disponível a partir do plano Intermediário.',
+      );
     }
   }
 
   // ─── Scope helper ───────────────────────────────────────────────────────────
+  // Delegates to the shared FamilyScopeService (common/scope) instead of a
+  // private per-service copy of the same query — kept as a thin wrapper here
+  // since this file has ~15 call sites still using .filter.replace('$1', ...).
 
-  private async getScope(userId: string) {
-    const res = await this.db.query(
-      'SELECT family_group_id FROM db_dtasc.users WHERE id = $1',
-      [userId],
-    );
-    const familyGroupId = res[0]?.family_group_id;
-    return {
-      familyGroupId,
-      filter: familyGroupId
-        ? 'family_group_id = $1'
-        : 'user_id = $1 AND family_group_id IS NULL',
-      param: familyGroupId || userId,
-    };
+  private getScope(userId: string) {
+    return this.familyScope.getScope(userId);
   }
 
   private generateHash(data: {
@@ -95,6 +101,62 @@ export class TransactionsService {
       ORDER BY t.date DESC
     `;
     return this.db.query(sql, [scope.param]);
+  }
+
+  /** Plan-gated: exporting reports (CSV) is advertised from the Básico plan up. */
+  private async assertExportAllowed(userId: string) {
+    const allowed = await this.planService.hasFeature(userId, 'export_reports');
+    if (!allowed) {
+      throw new ForbiddenException(
+        'Exportação de relatórios disponível a partir do plano Básico.',
+      );
+    }
+  }
+
+  private csvEscape(value: unknown): string {
+    const s = value === null || value === undefined ? '' : String(value);
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }
+
+  async exportCsv(userId: string): Promise<string> {
+    await this.assertExportAllowed(userId);
+    const scope = await this.getScope(userId);
+    const rows = await this.db.query(
+      `SELECT t.date, t.description, t.type, t.amount, t.is_paid AS "isPaid",
+              c.name AS category, pm.name AS "paymentMethod"
+       FROM db_dtasc.transactions t
+       LEFT JOIN db_dtasc.category c ON t.category_id = c.id
+       LEFT JOIN db_dtasc.payment_method pm ON t.payment_method_id = pm.id
+       WHERE t.${scope.filter}
+       ORDER BY t.date DESC`,
+      [scope.param],
+    );
+
+    const header = [
+      'Data',
+      'Descrição',
+      'Tipo',
+      'Valor',
+      'Pago',
+      'Categoria',
+      'Forma de pagamento',
+    ];
+    const lines = [header.join(',')];
+    for (const r of rows) {
+      const date = new Date(r.date).toISOString().slice(0, 10);
+      lines.push(
+        [
+          date,
+          this.csvEscape(r.description),
+          r.type === 'INCOME' ? 'Receita' : 'Despesa',
+          Number(r.amount).toFixed(2).replace('.', ','),
+          r.isPaid ? 'Sim' : 'Não',
+          this.csvEscape(r.category ?? ''),
+          this.csvEscape(r.paymentMethod ?? ''),
+        ].join(','),
+      );
+    }
+    return lines.join('\n');
   }
 
   async getInstallmentsReport(userId: string) {
@@ -158,7 +220,10 @@ export class TransactionsService {
       expense,
       invested,
       balance: income - expense,
-      topCategories: topCategories.map((c) => ({ category: c.category ?? 'Sem categoria', total: Number(c.total) })),
+      topCategories: topCategories.map((c) => ({
+        category: c.category ?? 'Sem categoria',
+        total: Number(c.total),
+      })),
     };
   }
 
@@ -168,8 +233,12 @@ export class TransactionsService {
   ) {
     const scope = await this.getScope(userId);
     const now = new Date();
-    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
+    const defaultFrom = new Date(now.getFullYear(), now.getMonth(), 1)
+      .toISOString()
+      .slice(0, 10);
+    const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      .toISOString()
+      .slice(0, 10);
     const from = filters.from || defaultFrom;
     const to = filters.to || defaultTo;
     const limit = Math.min(Math.max(Number(filters.limit) || 30, 1), 50);
@@ -215,8 +284,8 @@ export class TransactionsService {
     const sql = `
       INSERT INTO db_dtasc.transactions
         (description, amount, type, date, user_id, family_group_id,
-         category_id, payment_method_id, payment_method_type, fixed_bill_id)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+         category_id, payment_method_id, payment_method_type, fixed_bill_id, is_paid)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *,
         is_paid             AS "isPaid",
         installment_group   AS "installmentGroup",
@@ -237,6 +306,7 @@ export class TransactionsService {
       dto.paymentMethodId || null,
       dto.paymentMethodType || 'OTHER',
       dto.fixedBillId || null,
+      dto.type === 'INCOME',
     ]);
     return res[0];
   }
@@ -270,7 +340,7 @@ export class TransactionsService {
     const installmentGroup = isExpense ? randomUUID() : null;
 
     const dates: Date[] = [];
-    let current = new Date(start);
+    const current = new Date(start);
 
     while (current <= end && dates.length < 120) {
       dates.push(new Date(current));
@@ -290,8 +360,8 @@ export class TransactionsService {
         `INSERT INTO db_dtasc.transactions
            (description, amount, type, date, user_id, family_group_id,
             category_id, payment_method_id, payment_method_type,
-            installment_group, installment_number, total_installments)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            installment_group, installment_number, total_installments, is_paid)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
          RETURNING *`,
         [
           base.description,
@@ -306,6 +376,7 @@ export class TransactionsService {
           installmentGroup,
           isExpense ? i + 1 : null,
           isExpense ? dates.length : null,
+          !isExpense,
         ],
       );
       if (res[0]) inserted.push(res[0]);
@@ -318,7 +389,15 @@ export class TransactionsService {
 
   async update(id: string, userId: string, data: any) {
     const scope = await this.getScope(userId);
-    const { description, amount, type, date, categoryId, paymentMethodId, fixedBillId } = data;
+    const {
+      description,
+      amount,
+      type,
+      date,
+      categoryId,
+      paymentMethodId,
+      fixedBillId,
+    } = data;
 
     const filterOffset = scope.filter.replace('$1', '$9');
     const sql = `
@@ -350,7 +429,8 @@ export class TransactionsService {
       id,
       scope.param,
     ]);
-    if (res.length === 0) throw new NotFoundException('Transação não encontrada.');
+    if (res.length === 0)
+      throw new NotFoundException('Transação não encontrada.');
     return res[0];
   }
 
@@ -363,7 +443,8 @@ export class TransactionsService {
       `SELECT * FROM db_dtasc.transactions WHERE id = $1 AND ${filterFind}`,
       [id, scope.param],
     );
-    if (found.length === 0) throw new NotFoundException('Transação não encontrada.');
+    if (found.length === 0)
+      throw new NotFoundException('Transação não encontrada.');
     const t = found[0];
 
     if (deleteAll && t.installment_group) {
@@ -381,7 +462,9 @@ export class TransactionsService {
       );
     }
 
-    return this.db.query('DELETE FROM db_dtasc.transactions WHERE id = $1', [id]);
+    return this.db.query('DELETE FROM db_dtasc.transactions WHERE id = $1', [
+      id,
+    ]);
   }
 
   // ─── Mark paid ──────────────────────────────────────────────────────────────
@@ -435,7 +518,10 @@ export class TransactionsService {
           [t.id],
         );
         const upd = updRes.rows ? updRes.rows[0] : (updRes as any)[0];
-        if (upd) { updatedCount++; updatedRows.push(upd); }
+        if (upd) {
+          updatedCount++;
+          updatedRows.push(upd);
+        }
       }
 
       return { updated: updatedCount, rows: updatedRows };
@@ -443,39 +529,9 @@ export class TransactionsService {
   }
 
   // ─── OFX / CSV import staging ────────────────────────────────────────────────
-
-  private async ensureStagingTable() {
-    await this.db.query(
-      `CREATE TABLE IF NOT EXISTS db_dtasc.reconciliation_staging (
-        id                TEXT PRIMARY KEY,
-        user_id           TEXT NOT NULL,
-        family_group_id   TEXT,
-        payment_method_id TEXT,
-        transaction_date  DATE NOT NULL,
-        description       TEXT NOT NULL,
-        amount            NUMERIC NOT NULL,
-        import_hash       TEXT UNIQUE NOT NULL,
-        status            TEXT NOT NULL DEFAULT 'PENDING'
-      )`,
-      [],
-    );
-    // idempotent column additions for older tables
-    await this.db.query(
-      `ALTER TABLE db_dtasc.reconciliation_staging
-       ADD COLUMN IF NOT EXISTS family_group_id TEXT,
-       ADD COLUMN IF NOT EXISTS payment_method_id TEXT`,
-      [],
-    );
-  }
-
-  private async ensureImportHashColumn() {
-    try {
-      await this.db.query(
-        'ALTER TABLE db_dtasc.transactions ADD COLUMN IF NOT EXISTS import_hash TEXT',
-        [],
-      );
-    } catch {}
-  }
+  // Schema (reconciliation_staging, transactions.import_hash) is now owned by
+  // database/migrations/1755600000001-SecurityAndDataFixes.ts — it used to be
+  // created ad hoc here on every request via CREATE/ALTER ... IF NOT EXISTS.
 
   private parseOfxStatements(buffer: string) {
     if (!buffer.toUpperCase().includes('<OFX>')) return null;
@@ -489,7 +545,7 @@ export class TransactionsService {
 
       const posted = tag('DTPOSTED');
       const amtStr = tag('TRNAMT');
-      const name   = tag('NAME') || tag('MEMO');
+      const name = tag('NAME') || tag('MEMO');
       if (!posted || !amtStr || !name) continue;
 
       const d = posted.slice(0, 8);
@@ -508,15 +564,19 @@ export class TransactionsService {
   private parseCsvLines(buffer: string) {
     const lines = buffer.trim().split('\n');
     if (lines.length < 2) return [];
-    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    const headers = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
     const parsed: { date: string; description: string; amount: number }[] = [];
 
     for (const line of lines.slice(1)) {
       if (!line.trim()) continue;
-      const vals = line.split(',');
-      const date        = vals[headers.indexOf('date')]?.trim();
-      const description = (vals[headers.indexOf('title')] || vals[headers.indexOf('description')])?.trim();
-      const amount      = parseFloat(vals[headers.indexOf('amount')]?.replace(',', '.') || '');
+      const vals = parseCsvLine(line);
+      const date = vals[headers.indexOf('date')]?.trim();
+      const description = (
+        vals[headers.indexOf('title')] || vals[headers.indexOf('description')]
+      )?.trim();
+      const amount = parseFloat(
+        vals[headers.indexOf('amount')]?.replace(',', '.') || '',
+      );
       if (!date || !description || isNaN(amount)) continue;
       parsed.push({ date, description, amount });
     }
@@ -529,12 +589,13 @@ export class TransactionsService {
     paymentMethodId?: string,
   ): Promise<StagingResult[]> {
     await this.assertOfxImportAllowed(userId);
-    await this.ensureStagingTable();
-    await this.ensureImportHashColumn();
 
-    const entries = this.parseOfxStatements(fileBuffer) || this.parseCsvLines(fileBuffer);
+    const entries =
+      this.parseOfxStatements(fileBuffer) || this.parseCsvLines(fileBuffer);
     if (!entries || entries.length === 0) {
-      throw new BadRequestException('Formato não suportado ou nenhum registro válido.');
+      throw new BadRequestException(
+        'Formato não suportado ou nenhum registro válido.',
+      );
     }
 
     const scope = await this.getScope(userId);
@@ -562,9 +623,14 @@ export class TransactionsService {
            DO UPDATE SET status = 'PENDING', payment_method_id = EXCLUDED.payment_method_id
          RETURNING *`,
         [
-          randomUUID(), userId, scope.familyGroupId || null,
-          paymentMethodId || null, entry.date, entry.description,
-          entry.amount, hash,
+          randomUUID(),
+          userId,
+          scope.familyGroupId || null,
+          paymentMethodId || null,
+          entry.date,
+          entry.description,
+          entry.amount,
+          hash,
         ],
       );
 
@@ -585,7 +651,6 @@ export class TransactionsService {
 
   async getStaging(userId: string, paymentMethodId?: string) {
     await this.assertOfxImportAllowed(userId);
-    await this.ensureStagingTable();
     let sql = `
       SELECT s.*,
              EXISTS(
@@ -615,10 +680,13 @@ export class TransactionsService {
 
   async confirmImport(
     userId: string,
-    items: Array<{ id: string; categoryId?: string; installment?: { current: number; total: number } }>,
+    items: Array<{
+      id: string;
+      categoryId?: string;
+      installment?: { current: number; total: number };
+    }>,
   ) {
     await this.assertOfxImportAllowed(userId);
-    await this.ensureImportHashColumn();
 
     for (const it of items) {
       const staged = await this.db.query(
@@ -682,7 +750,11 @@ export class TransactionsService {
         [it.id],
       );
 
-      if (installment && installmentGroup && installment.current < installment.total) {
+      if (
+        installment &&
+        installmentGroup &&
+        installment.current < installment.total
+      ) {
         await this.createFutureInstallments(userId, scope.familyGroupId, {
           group: installmentGroup,
           baseDescription: item.description,
@@ -706,7 +778,7 @@ export class TransactionsService {
    */
   private async createFutureInstallments(
     userId: string,
-    familyGroupId: string | undefined,
+    familyGroupId: string | null | undefined,
     opts: {
       group: string;
       baseDescription: string;
@@ -722,7 +794,11 @@ export class TransactionsService {
     const anchor = new Date(opts.anchorDate);
     for (let n = opts.current + 1; n <= opts.total; n++) {
       const monthsAhead = n - opts.current;
-      const dueDate = new Date(anchor.getFullYear(), anchor.getMonth() + monthsAhead, anchor.getDate());
+      const dueDate = new Date(
+        anchor.getFullYear(),
+        anchor.getMonth() + monthsAhead,
+        anchor.getDate(),
+      );
       await this.db.query(
         `INSERT INTO db_dtasc.transactions
            (description, amount, type, date, user_id, family_group_id,
@@ -752,18 +828,25 @@ export class TransactionsService {
    * Nunca lança erro para o chamador — em qualquer falha da IA, devolve
    * sugestões vazias e deixa a categorização manual normalmente.
    */
-  async analyzeStaging(userId: string, ids?: string[]): Promise<Array<{
-    id: string;
-    categoryId: string | null;
-    isInstallment: boolean;
-    installmentCurrent?: number;
-    installmentTotal?: number;
-  }>> {
+  async analyzeStaging(
+    userId: string,
+    ids?: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      categoryId: string | null;
+      isInstallment: boolean;
+      installmentCurrent?: number;
+      installmentTotal?: number;
+    }>
+  > {
     await this.assertOfxImportAllowed(userId);
 
     const staging = await this.getStaging(userId);
     const idSet = ids && ids.length ? new Set(ids) : null;
-    const items = staging.filter((s: any) => !s.is_duplicate && (!idSet || idSet.has(s.id)));
+    const items = staging.filter(
+      (s: any) => !s.is_duplicate && (!idSet || idSet.has(s.id)),
+    );
 
     if (items.length === 0) return [];
 
@@ -789,19 +872,31 @@ export class TransactionsService {
             items: {
               type: SchemaType.OBJECT,
               properties: {
-                id: { type: SchemaType.STRING, description: 'Mesmo id da transação recebida.' },
+                id: {
+                  type: SchemaType.STRING,
+                  description: 'Mesmo id da transação recebida.',
+                },
                 categoryId: {
                   type: SchemaType.STRING,
                   format: 'enum',
                   enum: [...categoryIds, 'NONE'],
-                  description: 'ID da categoria de despesa mais PRÓXIMA/aproximada, escolhida quase sempre. Use "NONE" só quando a lista de categorias for realmente irrelevante para o gasto (deve ser raro).',
+                  description:
+                    'ID da categoria de despesa mais PRÓXIMA/aproximada, escolhida quase sempre. Use "NONE" só quando a lista de categorias for realmente irrelevante para o gasto (deve ser raro).',
                 } as any,
                 isInstallment: {
                   type: SchemaType.BOOLEAN,
-                  description: 'true se a descrição indicar claramente uma parcela de compra (ex.: "PARC 3/12").',
+                  description:
+                    'true se a descrição indicar claramente uma parcela de compra (ex.: "PARC 3/12").',
                 },
-                installmentCurrent: { type: SchemaType.INTEGER, description: 'Número da parcela atual, se isInstallment=true.' },
-                installmentTotal: { type: SchemaType.INTEGER, description: 'Total de parcelas, se isInstallment=true.' },
+                installmentCurrent: {
+                  type: SchemaType.INTEGER,
+                  description:
+                    'Número da parcela atual, se isInstallment=true.',
+                },
+                installmentTotal: {
+                  type: SchemaType.INTEGER,
+                  description: 'Total de parcelas, se isInstallment=true.',
+                },
               },
               required: ['id', 'categoryId', 'isInstallment'],
             },
@@ -838,14 +933,21 @@ Responda apenas com o array JSON pedido, um item por transação, na mesma ordem
           const total = Number(r.installmentTotal);
           const soundInstallment =
             r.isInstallment === true &&
-            Number.isInteger(current) && Number.isInteger(total) &&
-            current >= 1 && total >= current && total <= 48;
+            Number.isInteger(current) &&
+            Number.isInteger(total) &&
+            current >= 1 &&
+            total >= current &&
+            total <= 48;
 
           return {
             id: r.id,
-            categoryId: validCategoryIds.has(r.categoryId) ? r.categoryId : null,
+            categoryId: validCategoryIds.has(r.categoryId)
+              ? r.categoryId
+              : null,
             isInstallment: soundInstallment,
-            ...(soundInstallment ? { installmentCurrent: current, installmentTotal: total } : {}),
+            ...(soundInstallment
+              ? { installmentCurrent: current, installmentTotal: total }
+              : {}),
           };
         });
     } catch (error) {
@@ -868,7 +970,7 @@ Responda apenas com o array JSON pedido, um item por transação, na mesma ordem
 
   private async handleInstallments(
     userId: string,
-    familyGroupId: string | undefined,
+    familyGroupId: string | null | undefined,
     dto: CreateTransactionDto,
     total: number,
   ) {
@@ -879,7 +981,7 @@ Responda apenas com o array JSON pedido, um item por transação, na mesma ordem
         )
       : [];
     const method = pmRes[0];
-    const group  = randomUUID();
+    const group = randomUUID();
     const amount = Number((dto.amount / total).toFixed(2));
     const inserted: any[] = [];
 
@@ -891,7 +993,8 @@ Responda apenas com o array JSON pedido, um item por transação, na mesma ordem
         method.closing_day &&
         method.due_day
       ) {
-        const offset = new Date(dto.date).getDate() > method.closing_day ? i + 1 : i;
+        const offset =
+          new Date(dto.date).getDate() > method.closing_day ? i + 1 : i;
         dueDate = new Date(
           dueDate.getFullYear(),
           dueDate.getMonth() + offset,
@@ -930,14 +1033,14 @@ Responda apenas com o array JSON pedido, um item por transação, na mesma ordem
 
   private async handlePiggyBank(
     userId: string,
-    familyGroupId: string | undefined,
+    familyGroupId: string | null | undefined,
     dto: CreateTransactionDto,
   ) {
     const res = await this.db.query(
       `INSERT INTO db_dtasc.transactions
          (description, amount, type, date, user_id, family_group_id,
-          category_id, piggy_bank_id)
-       VALUES ($1, $2, 'EXPENSE', $3, $4, $5, $6, $7)
+          category_id, piggy_bank_id, is_paid)
+       VALUES ($1, $2, 'EXPENSE', $3, $4, $5, $6, $7, true)
        RETURNING *`,
       [
         `Aporte: ${dto.description}`,

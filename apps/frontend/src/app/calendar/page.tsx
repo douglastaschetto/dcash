@@ -6,7 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSearchParams } from 'next/navigation';
 import api from '@/services/api';
 import { ColorPicker } from '@/lib/color-picker';
-import { cn } from '@/lib/utils';
+import { cn, parseDateOnly } from '@/lib/utils';
 import {
   ChevronLeft, ChevronRight, Plus, X, Loader2,
   TrendingUp, TrendingDown, Repeat, Calendar,
@@ -56,7 +56,7 @@ const TYPE_META = {
 
 const fmt = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const isoDate = (d: Date) => d.toISOString().split('T')[0];
-const localDay = (iso: string) => new Date(iso.includes('T') ? iso : iso + 'T00:00:00').getDate();
+const localDay = (iso: string) => parseDateOnly(iso).getDate();
 
 /* ── Tooltip ─────────────────────────────────────────────────────── */
 function DayTooltip({ data, day }: { data: DayData; day: number }) {
@@ -562,7 +562,7 @@ function CalendarPageContent() {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setModal(false)}>
           <div className="w-full max-w-lg rounded-[2.5rem] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden max-h-[95vh] flex flex-col" onClick={e => e.stopPropagation()}>
             {/* Header */}
-            <div className="px-8 pt-8 pb-5 flex items-center justify-between border-b-2 shrink-0" style={{ borderColor: `${form.color}25` }}>
+            <div className="px-6 pt-6 pb-4 flex items-center justify-between border-b-2 shrink-0" style={{ borderColor: `${form.color}25` }}>
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-2xl" style={{ backgroundColor: `${form.color}15` }}>
                   <Calendar size={20} style={{ color: form.color }} />
@@ -577,7 +577,7 @@ function CalendarPageContent() {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-8 space-y-5">
+            <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-6 space-y-3.5">
               {/* Type selector */}
               <div className="grid grid-cols-4 gap-2">
                 {EVENT_TYPES.map(t => (
@@ -595,7 +595,7 @@ function CalendarPageContent() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Título *</label>
                 <input required value={form.title} onChange={e => f('title', e.target.value)} placeholder="Ex: Consulta médica, Reunião..."
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
               </div>
 
               {/* Date & time */}
@@ -611,13 +611,13 @@ function CalendarPageContent() {
                 </div>
                 <div className={cn('grid gap-3', form.allDay ? 'grid-cols-1' : 'grid-cols-3')}>
                   <input type="date" required value={form.startDate} onChange={e => f('startDate', e.target.value)}
-                    className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
+                    className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
                   {!form.allDay && (
                     <>
                       <input type="time" value={form.startTime} onChange={e => f('startTime', e.target.value)}
-                        className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-4 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
+                        className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
                       <input type="time" value={form.endTime} onChange={e => f('endTime', e.target.value)}
-                        className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-4 py-4 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
+                        className="bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition" />
                     </>
                   )}
                 </div>
@@ -627,7 +627,7 @@ function CalendarPageContent() {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">Descrição</label>
                 <textarea value={form.description} onChange={e => f('description', e.target.value)} placeholder="Detalhes opcionais..." rows={2}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl px-5 py-4 text-sm font-medium focus:outline-none focus:border-emerald-500 transition resize-none" />
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none focus:border-emerald-500 transition resize-none" />
               </div>
 
               {/* Color */}
@@ -657,7 +657,7 @@ function CalendarPageContent() {
               </div>
 
               <button type="submit" disabled={saving}
-                className="w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
+                className="w-full py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95"
                 style={{ backgroundColor: form.color }}
               >
                 {saving && <Loader2 size={16} className="animate-spin" />}

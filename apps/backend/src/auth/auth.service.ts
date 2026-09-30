@@ -7,16 +7,21 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { createHash, randomBytes } from 'crypto';
 import { User } from '../models/user.entity';
 import { FamilyGroup } from '../models/family-group.entity';
 import { DatabaseService } from '../database/database.service';
+import { EmailService } from '../common/email/email.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly db: DatabaseService,
+    private readonly emailService: EmailService,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(FamilyGroup)
@@ -24,7 +29,9 @@ export class AuthService {
   ) {}
 
   async register(data: RegisterDto) {
-    const existing = await this.userRepo.findOne({ where: { email: data.email } });
+    const existing = await this.userRepo.findOne({
+      where: { email: data.email },
+    });
     if (existing) throw new BadRequestException('E-mail já cadastrado');
 
     let familyGroup: FamilyGroup | null = null;
@@ -32,7 +39,8 @@ export class AuthService {
       familyGroup = await this.familyGroupRepo.findOne({
         where: { inviteCode: data.inviteCode },
       });
-      if (!familyGroup) throw new BadRequestException('Código de família inválido');
+      if (!familyGroup)
+        throw new BadRequestException('Código de família inválido');
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 12);
@@ -88,8 +96,47 @@ export class AuthService {
 
   async forgotPassword(email: string): Promise<void> {
     const user = await this.userRepo.findOne({ where: { email } });
-    if (!user) return; // silencioso por segurança
-    // TODO: gerar token de reset + enviar e-mail
+    if (!user) return; // silencioso por segurança — não revela se o e-mail existe
+
+    const rawToken = randomBytes(32).toString('hex');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+
+    await this.db.query(
+      `INSERT INTO db_dtasc.password_reset_tokens (user_id, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [user.id, tokenHash, expiresAt],
+    );
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
+    await this.emailService.sendPasswordReset(user.email, resetUrl);
+  }
+
+  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+
+    const rows = await this.db.query(
+      `SELECT id, user_id AS "userId" FROM db_dtasc.password_reset_tokens
+       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()`,
+      [tokenHash],
+    );
+    const record = rows[0];
+    if (!record) {
+      throw new BadRequestException(
+        'Link de redefinição inválido ou expirado.',
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+    await this.db.query(
+      'UPDATE db_dtasc.users SET password = $1 WHERE id = $2',
+      [hashedPassword, record.userId],
+    );
+    await this.db.query(
+      'UPDATE db_dtasc.password_reset_tokens SET used_at = NOW() WHERE id = $1',
+      [record.id],
+    );
   }
 
   async getProfile(userId: string) {
@@ -100,6 +147,9 @@ export class AuthService {
          u.whatsapp_consent AS "whatsappConsent",
          u.whatsapp_alert_hour AS "whatsappAlertHour",
          u.google_calendar_sync AS "googleCalendarSync",
+         u.plan_expires_at AS "planExpiresAt",
+         u.plan_status AS "planStatus",
+         u.plan_billing_cycle AS "planBillingCycle",
          u.family_group_id  AS "familyGroupId",
          fg.id              AS "fgId",
          fg.name            AS "fgName",
@@ -123,6 +173,9 @@ export class AuthService {
       whatsappConsent: u.whatsappConsent ?? false,
       whatsappAlertHour: u.whatsappAlertHour ?? 8,
       googleCalendarSync: u.googleCalendarSync ?? true,
+      planExpiresAt: u.planExpiresAt ?? null,
+      planStatus: u.planStatus ?? 'active',
+      planBillingCycle: u.planBillingCycle ?? null,
       familyGroupId: u.familyGroupId ?? null,
       familyGroup: u.fgId
         ? { id: u.fgId, name: u.fgName, inviteCode: u.fgInviteCode }
@@ -130,20 +183,45 @@ export class AuthService {
     };
   }
 
-  async updateProfile(userId: string, data: {
-    name?: string; phone?: string; avatar?: string; whatsappConsent?: boolean;
-    whatsappAlertHour?: number; googleCalendarSync?: boolean;
-  }) {
+  async updateProfile(
+    userId: string,
+    data: {
+      name?: string;
+      phone?: string;
+      avatar?: string;
+      whatsappConsent?: boolean;
+      whatsappAlertHour?: number;
+      googleCalendarSync?: boolean;
+    },
+  ) {
     const sets: string[] = [];
     const params: any[] = [];
     let idx = 1;
 
-    if (data.name !== undefined)               { sets.push(`name = $${idx++}`);                 params.push(data.name || null); }
-    if (data.phone !== undefined)              { sets.push(`phone = $${idx++}`);                params.push(data.phone || null); }
-    if (data.avatar !== undefined)             { sets.push(`avatar = $${idx++}`);               params.push(data.avatar || null); }
-    if (data.whatsappConsent !== undefined)    { sets.push(`whatsapp_consent = $${idx++}`);      params.push(data.whatsappConsent); }
-    if (data.whatsappAlertHour !== undefined)  { sets.push(`whatsapp_alert_hour = $${idx++}`);   params.push(data.whatsappAlertHour); }
-    if (data.googleCalendarSync !== undefined) { sets.push(`google_calendar_sync = $${idx++}`);  params.push(data.googleCalendarSync); }
+    if (data.name !== undefined) {
+      sets.push(`name = $${idx++}`);
+      params.push(data.name || null);
+    }
+    if (data.phone !== undefined) {
+      sets.push(`phone = $${idx++}`);
+      params.push(data.phone || null);
+    }
+    if (data.avatar !== undefined) {
+      sets.push(`avatar = $${idx++}`);
+      params.push(data.avatar || null);
+    }
+    if (data.whatsappConsent !== undefined) {
+      sets.push(`whatsapp_consent = $${idx++}`);
+      params.push(data.whatsappConsent);
+    }
+    if (data.whatsappAlertHour !== undefined) {
+      sets.push(`whatsapp_alert_hour = $${idx++}`);
+      params.push(data.whatsappAlertHour);
+    }
+    if (data.googleCalendarSync !== undefined) {
+      sets.push(`google_calendar_sync = $${idx++}`);
+      params.push(data.googleCalendarSync);
+    }
 
     if (sets.length > 0) {
       params.push(userId);
@@ -156,22 +234,23 @@ export class AuthService {
   }
 
   async updateTheme(userId: string, theme: string) {
-    await this.db.query(
-      'UPDATE db_dtasc.users SET theme = $1 WHERE id = $2',
-      [theme, userId],
-    );
+    await this.db.query('UPDATE db_dtasc.users SET theme = $1 WHERE id = $2', [
+      theme,
+      userId,
+    ]);
     return { success: true, theme };
   }
 
   async updatePlan(userId: string, plan: string) {
     const normalized = plan.toLowerCase();
     const valid = ['free', 'basico', 'intermediario', 'pro'];
-    if (!valid.includes(normalized)) throw new BadRequestException('Plano inválido');
+    if (!valid.includes(normalized))
+      throw new BadRequestException('Plano inválido');
     plan = normalized;
-    await this.db.query(
-      'UPDATE db_dtasc.users SET plan = $1 WHERE id = $2',
-      [plan, userId],
-    );
+    await this.db.query('UPDATE db_dtasc.users SET plan = $1 WHERE id = $2', [
+      plan,
+      userId,
+    ]);
     return { success: true, plan };
   }
 

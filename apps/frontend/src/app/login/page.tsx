@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
   Lock, Mail, Globe, User, Ticket, Eye, EyeOff, Loader2,
-  AlertCircle, ArrowLeft, Check, ChevronDown,
+  AlertCircle, ArrowLeft, ArrowRight, Check, ChevronDown, ShieldCheck,
 } from 'lucide-react';
 import logoSrc from '@/app/dcash.png';
 
@@ -22,6 +22,38 @@ const inputStyle: React.CSSProperties = {
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/* Copy shown on the brand panel — always promotes the opposite action. */
+const PANEL_COPY: Record<Step, { eyebrow: string; title: string; body: string; cta: string; ctaStep: Step }> = {
+  login: {
+    eyebrow: 'Novo por aqui?',
+    title: 'Organize as finanças da sua família.',
+    body: 'Controle gastos, metas e investimentos em um só lugar, com clareza e sem planilhas.',
+    cta: 'Criar conta',
+    ctaStep: 'register',
+  },
+  register: {
+    eyebrow: 'Já tem conta?',
+    title: 'Bem-vindo de volta!',
+    body: 'Entre para continuar acompanhando o orçamento da sua família.',
+    cta: 'Entrar',
+    ctaStep: 'login',
+  },
+  forgot: {
+    eyebrow: 'Tudo certo',
+    title: 'Vamos recuperar seu acesso.',
+    body: 'Informe seu e-mail e enviaremos um link seguro para você criar uma nova senha.',
+    cta: 'Voltar ao login',
+    ctaStep: 'login',
+  },
+  'forgot-sent': {
+    eyebrow: 'Quase lá',
+    title: 'Verifique seu e-mail.',
+    body: 'Siga as instruções que enviamos para redefinir sua senha com segurança.',
+    cta: 'Voltar ao login',
+    ctaStep: 'login',
+  },
+};
 
 // ---- Sub-components ----
 
@@ -111,6 +143,32 @@ function PrimaryBtn({
     >
       {loading ? <Loader2 size={18} className="animate-spin" /> : label}
     </button>
+  );
+}
+
+function Eyebrow({ label, subtitle, onBack }: { label: string; subtitle: string; onBack?: () => void }) {
+  const content = (
+    <div>
+      <span className="text-[11px] font-black uppercase tracking-[0.3em]" style={{ color: '#10b981' }}>
+        {label}
+      </span>
+      <div className="mt-1.5 h-[3px] w-9 rounded-full" style={{ background: '#10b981' }} />
+      <p className="mt-3 text-sm" style={{ color: muted }}>{subtitle}</p>
+    </div>
+  );
+  if (!onBack) return <div className="mb-6">{content}</div>;
+  return (
+    <div className="flex items-start gap-3 mb-6">
+      <button
+        type="button"
+        onClick={onBack}
+        className="mt-1 p-1.5 -ml-1.5 rounded-lg transition hover:opacity-70 shrink-0"
+        style={{ color: muted }}
+      >
+        <ArrowLeft size={18} />
+      </button>
+      {content}
+    </div>
   );
 }
 
@@ -238,20 +296,8 @@ export default function LoginPage() {
     </div>
   );
 
-  // ---- Logo block ----
-  const Logo = (
-    <div className="flex items-center justify-center gap-3 mb-6">
-      <Image src={logoSrc} alt="DCash" width={40} height={40} className="rounded-xl shadow-lg shrink-0" priority />
-      <div className="flex flex-col leading-none">
-        <h1 className="text-2xl font-black uppercase italic tracking-tighter">
-          DCASH<span className="text-emerald-500">.</span>
-        </h1>
-        <span className="text-[9px] font-bold uppercase tracking-[0.3em] text-emerald-500">
-          Finanças Familiares
-        </span>
-      </div>
-    </div>
-  );
+  const panel = PANEL_COPY[step];
+  const switchTo = (s: Step) => { setStep(s); clear(); };
 
   // ---- Render ----
   return (
@@ -263,42 +309,30 @@ export default function LoginPage() {
       <div className="fixed top-[-20%] left-[-10%] w-[45%] h-[45%] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
       <div className="fixed bottom-[-20%] right-[-10%] w-[45%] h-[45%] bg-emerald-500/8 blur-[100px] rounded-full pointer-events-none" />
 
-      {/* ── AUTH CARD (login / register / forgot / forgot-sent) ── */}
-        <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-8">
-          <div className="w-full max-w-sm animate-in fade-in zoom-in-95 duration-500">
-            {Logo}
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-4 py-10">
+        <div
+          className="w-full max-w-5xl grid md:grid-cols-2 rounded-[2.5rem] overflow-hidden shadow-2xl md:min-h-[620px] animate-in fade-in zoom-in-95 duration-500"
+          style={{ border: '1px solid var(--border)' }}
+        >
+          {/* ══════════════ LEFT — FORM PANEL ══════════════ */}
+          <div
+            className="flex flex-col justify-center p-8 sm:p-10 lg:p-12"
+            style={{ background: 'var(--surface)' }}
+          >
+            {/* Brand mark — only shown where the gradient panel is hidden (mobile) */}
+            <div className="md:hidden flex items-center gap-2.5 mb-8">
+              <Image src={logoSrc} alt="DCash" width={32} height={32} className="rounded-lg shadow shrink-0" priority />
+              <span className="text-lg font-black uppercase italic tracking-tighter">
+                DCASH<span className="text-emerald-500">.</span>
+              </span>
+            </div>
 
-            <div
-              className="rounded-3xl p-6 shadow-2xl"
-              style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
-            >
+            <div className="w-full max-w-sm mx-auto">
 
               {/* ── LOGIN ── */}
               {step === 'login' && (
                 <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <h2 className="text-xl font-bold mb-0.5">Entrar</h2>
-                    <p className="text-xs" style={{ color: muted }}>Acesse sua conta Dcash.</p>
-                  </div>
-
-                  <a
-                    href={`${API}/auth/google`}
-                    className="flex w-full h-11 items-center justify-center gap-3 rounded-2xl text-sm font-semibold transition hover:opacity-80"
-                    style={{
-                      border: '1px solid var(--border)',
-                      background: 'var(--surface-secondary)',
-                      color: 'var(--foreground)',
-                    }}
-                  >
-                    <Globe className="h-4 w-4" />
-                    Continuar com Google
-                  </a>
-
-                  <div className="flex items-center gap-3">
-                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                    <span className="text-xs" style={{ color: muted }}>ou</span>
-                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
-                  </div>
+                  <Eyebrow label="Entrar" subtitle="Acesse sua conta e continue de onde parou." />
 
                   {error && <ErrBox msg={error} />}
 
@@ -320,10 +354,6 @@ export default function LoginPage() {
                     }
                   />
 
-                  {InviteField}
-
-                  <PrimaryBtn loading={loading} label="Entrar" />
-
                   <div className="flex items-center justify-between text-sm">
                     <button
                       type="button"
@@ -335,28 +365,47 @@ export default function LoginPage() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setStep('register'); clear(); }}
-                      className="font-semibold transition hover:opacity-70"
+                      onClick={() => switchTo('register')}
+                      className="md:hidden font-semibold transition hover:opacity-70"
                       style={{ color: '#10b981' }}
                     >
                       Criar conta
                     </button>
                   </div>
+
+                  {InviteField}
+
+                  <PrimaryBtn loading={loading} label="Entrar" />
+
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                    <span className="text-xs" style={{ color: muted }}>ou</span>
+                    <div className="flex-1 h-px" style={{ background: 'var(--border)' }} />
+                  </div>
+
+                  <a
+                    href={`${API}/auth/google`}
+                    className="flex w-full h-11 items-center justify-center gap-3 rounded-2xl text-sm font-semibold transition hover:opacity-80"
+                    style={{
+                      border: '1px solid var(--border)',
+                      background: 'var(--surface-secondary)',
+                      color: 'var(--foreground)',
+                    }}
+                  >
+                    <Globe className="h-4 w-4" />
+                    Continuar com Google
+                  </a>
                 </form>
               )}
 
               {/* ── REGISTER ── */}
               {step === 'register' && (
                 <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => { setStep('login'); clear(); }} style={{ color: muted }}>
-                      <ArrowLeft size={18} />
-                    </button>
-                    <div>
-                      <h2 className="text-xl font-bold mb-0.5">Criar conta</h2>
-                      <p className="text-xs" style={{ color: muted }}>Junte-se ao Dcash.</p>
-                    </div>
-                  </div>
+                  <Eyebrow
+                    label="Criar Conta"
+                    subtitle="Junte-se à Dcash em poucos passos."
+                    onBack={() => switchTo('login')}
+                  />
 
                   {error && <ErrBox msg={error} />}
 
@@ -408,17 +457,11 @@ export default function LoginPage() {
               {/* ── FORGOT ── */}
               {step === 'forgot' && (
                 <form onSubmit={handleForgot} className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => { setStep('login'); clear(); }} style={{ color: muted }}>
-                      <ArrowLeft size={18} />
-                    </button>
-                    <div>
-                      <h2 className="text-xl font-bold mb-0.5">Recuperar senha</h2>
-                      <p className="text-xs" style={{ color: muted }}>
-                        Enviaremos um link para o seu e-mail.
-                      </p>
-                    </div>
-                  </div>
+                  <Eyebrow
+                    label="Recuperar Senha"
+                    subtitle="Enviaremos um link para o seu e-mail."
+                    onBack={() => switchTo('login')}
+                  />
 
                   {error && <ErrBox msg={error} />}
 
@@ -454,7 +497,7 @@ export default function LoginPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setStep('login')}
+                    onClick={() => switchTo('login')}
                     className="w-full h-11 rounded-xl text-sm font-semibold transition hover:opacity-80"
                     style={{ border: '1px solid var(--border)', color: 'var(--foreground)' }}
                   >
@@ -464,15 +507,56 @@ export default function LoginPage() {
               )}
             </div>
           </div>
-        </div>
 
-      {/* Footer label */}
-      <div
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none z-10"
-        style={{ color: muted }}
-      >
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-        DCASH · Finanças Familiares
+          {/* ══════════════ RIGHT — BRAND PANEL (desktop only) ══════════════ */}
+          <div
+            className="hidden md:flex relative flex-col justify-between overflow-hidden p-10 lg:p-12 text-white"
+            style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 45%, #064e3b 100%)' }}
+          >
+            {/* decorative shapes */}
+            <div
+              className="absolute -top-12 -right-12 w-44 h-44 rounded-full"
+              style={{ background: 'linear-gradient(135deg, #bef264, #10b981)' }}
+            />
+            <div className="absolute top-1/3 -left-16 w-56 h-56 rounded-full bg-white/10 blur-3xl" />
+            <div className="absolute bottom-[-15%] right-[-10%] w-64 h-64 rounded-full bg-black/10 blur-3xl" />
+
+            {/* logo */}
+            <div className="relative z-10 flex items-center gap-2.5">
+              <Image src={logoSrc} alt="DCash" width={34} height={34} className="rounded-xl shadow-lg shrink-0" priority />
+              <span className="text-sm font-black uppercase italic tracking-tighter">
+                DCASH<span className="text-lime-300">.</span>
+              </span>
+            </div>
+
+            {/* copy */}
+            <div className="relative z-10 max-w-[19rem]">
+              <span className="text-[11px] font-black uppercase tracking-[0.3em] text-lime-300">
+                {panel.eyebrow}
+              </span>
+              <h2 className="mt-3 text-[28px] leading-tight font-black tracking-tight">
+                {panel.title}
+              </h2>
+              <p className="mt-4 text-sm text-white/80 leading-relaxed">
+                {panel.body}
+              </p>
+
+              <button
+                type="button"
+                onClick={() => switchTo(panel.ctaStep)}
+                className="mt-7 inline-flex items-center gap-2 bg-white text-emerald-700 font-black text-xs uppercase tracking-wider px-6 py-3.5 rounded-full transition hover:bg-white/90 shadow-lg"
+              >
+                {panel.cta} <ArrowRight size={15} />
+              </button>
+            </div>
+
+            {/* trust line */}
+            <div className="relative z-10 flex items-center gap-2 text-xs text-white/70">
+              <ShieldCheck size={16} className="shrink-0" />
+              Seus dados protegidos com criptografia de ponta a ponta.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -38,6 +38,13 @@ export class PaymentController {
     return this.paymentService.getHistory(req.user.id);
   }
 
+  /** Cancel the current user's Stripe subscription (takes effect at period end) */
+  @Post('cancel-subscription')
+  @UseGuards(JwtAuthGuard)
+  async cancelSubscription(@Request() req) {
+    return this.paymentService.cancelSubscription(req.user.id);
+  }
+
   /** Mercado Pago webhook — public endpoint */
   @Post('webhook')
   @HttpCode(HttpStatus.OK)

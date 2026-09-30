@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [master, v2]
+  pull_request:
+    branches: [master, v2]
+
+jobs:
+  backend:
+    name: Backend (lint, build, test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/backend/package-lock.json
+
+      # --legacy-peer-deps: pre-existing conflict between typeorm's
+      # peerOptional redis@^5 and this app's redis@^6 (bullmq compat).
+      - run: npm ci --legacy-peer-deps
+
+      # Non-blocking: the existing codebase has ~650 pre-existing
+      # @typescript-eslint/no-unsafe-* errors (untyped `any` from raw pg
+      # query results). Surfaced here for visibility without blocking
+      # merges on debt outside this change's scope.
+      - run: npm run lint
+        continue-on-error: true
+
+      - run: npm run build
+      - run: npm test
+
+  frontend:
+    name: Frontend (lint, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: apps/frontend/package-lock.json
+
+      - run: npm ci
+
+      # Non-blocking: ~160 pre-existing lint problems (no-explicit-any,
+      # a couple of react-hooks rules) predate this change set.
+      - run: npm run lint
+        continue-on-error: true
+
+      - run: npm run build
+        env:
+          NEXT_PUBLIC_API_URL: https://dcash.dtasc.com.br/api

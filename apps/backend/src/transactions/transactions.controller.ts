@@ -6,6 +6,7 @@ import {
   Param,
   Delete,
   Req,
+  Res,
   UseGuards,
   Query,
   Patch,
@@ -14,6 +15,7 @@ import {
   UploadedFile,
   BadRequestException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { TransactionsService, StagingResult } from './transactions.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
@@ -52,11 +54,25 @@ export class TransactionsController {
     return this.transactionsService.getInstallmentsReport(this.getUserId(req));
   }
 
+  @Get('export')
+  async exportCsv(@Req() req, @Res() res: Response) {
+    const csv = await this.transactionsService.exportCsv(this.getUserId(req));
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="dcash-transacoes-${new Date().toISOString().slice(0, 10)}.csv"`,
+    );
+    res.send('﻿' + csv); // BOM para acentuação abrir corretamente no Excel
+  }
+
   // ─── Mark paid (static routes must come before :id) ─────────────────────────
 
   @Patch('mark-paid')
   markPaidBatch(@Req() req, @Body() body: { ids: string[] }) {
-    return this.transactionsService.markAsPaid(this.getUserId(req), body.ids || []);
+    return this.transactionsService.markAsPaid(
+      this.getUserId(req),
+      body.ids || [],
+    );
   }
 
   @Patch(':id/paid')
@@ -75,7 +91,11 @@ export class TransactionsController {
     @Req() req,
     @Query('deleteAll') deleteAll: string,
   ) {
-    return this.transactionsService.remove(id, this.getUserId(req), deleteAll === 'true');
+    return this.transactionsService.remove(
+      id,
+      this.getUserId(req),
+      deleteAll === 'true',
+    );
   }
 
   // ─── OFX / CSV import ────────────────────────────────────────────────────────
@@ -90,14 +110,19 @@ export class TransactionsController {
     if (!file) throw new BadRequestException('Nenhum arquivo enviado.');
     return this.transactionsService.processStaging(
       this.getUserId(req),
-      Buffer.isBuffer(file.buffer) ? file.buffer.toString('utf-8') : String(file.buffer),
+      Buffer.isBuffer(file.buffer)
+        ? file.buffer.toString('utf-8')
+        : String(file.buffer),
       paymentMethodId,
     );
   }
 
   @Get('import/staging')
   getStaging(@Req() req, @Query('paymentMethodId') paymentMethodId?: string) {
-    return this.transactionsService.getStaging(this.getUserId(req), paymentMethodId);
+    return this.transactionsService.getStaging(
+      this.getUserId(req),
+      paymentMethodId,
+    );
   }
 
   @Delete('import/staging/:id')
@@ -113,6 +138,9 @@ export class TransactionsController {
 
   @Post('import/analyze')
   analyzeStaging(@Req() req, @Body() dto: AnalyzeStagingDto) {
-    return this.transactionsService.analyzeStaging(this.getUserId(req), dto.ids);
+    return this.transactionsService.analyzeStaging(
+      this.getUserId(req),
+      dto.ids,
+    );
   }
 }

@@ -46,7 +46,7 @@ export default function PlansPage() {
     if (planKey === 'free') {
       router.push('/onboarding');
     } else {
-      router.push(`/payment?plan=${planKey}`);
+      router.push(`/payment?plan=${planKey}&billing=${billing}`);
     }
   };
 

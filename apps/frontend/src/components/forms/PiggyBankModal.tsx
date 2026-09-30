@@ -113,7 +113,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
 
         {/* Header */}
         <div
-          className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0"
+          className="px-5 pt-5 pb-3.5 flex items-center justify-between shrink-0"
           style={{ borderBottom: `3px solid ${form.color}25` }}
         >
           <div className="flex items-center gap-3">
@@ -138,7 +138,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
         </div>
 
         {/* Scrollable form */}
-        <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-6 space-y-4">
+        <form onSubmit={handleSave} className="overflow-y-auto flex-1 p-5 space-y-3">
 
           {/* Name */}
           <div className="space-y-1.5">
@@ -150,7 +150,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               placeholder="Ex: Viagem Europa, Carro Novo..."
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
             />
           </div>
 
@@ -266,7 +266,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
                 value={form.monthlyGoal}
                 onChange={(v) => set('monthlyGoal', v)}
                 placeholder="0,00"
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
               />
             </div>
             <div className="space-y-1.5">
@@ -277,7 +277,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
                 value={form.yearlyGoal}
                 onChange={(v) => set('yearlyGoal', v)}
                 placeholder="0,00"
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
               />
             </div>
           </div>
@@ -291,7 +291,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
               type="date"
               value={form.targetDate}
               onChange={(e) => set('targetDate', e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
             />
           </div>
 
@@ -324,7 +324,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-4 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ backgroundColor: form.color }}
           >
             {saving && <Loader2 size={16} className="animate-spin" />}

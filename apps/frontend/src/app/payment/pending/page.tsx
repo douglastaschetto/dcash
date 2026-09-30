@@ -11,13 +11,13 @@ function PendingContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-[32px] bg-white shadow-2xl p-10 text-center">
+      <div className="w-full max-w-sm rounded-[32px] bg-white dark:bg-zinc-900 shadow-2xl p-10 text-center">
         <Clock className="h-14 w-14 text-amber-400 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-slate-900">Pagamento pendente</h2>
-        <p className="text-sm text-slate-500 mt-2">
+        <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100">Pagamento pendente</h2>
+        <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
           Seu pagamento está sendo processado. Se escolheu boleto, pode levar até 3 dias úteis. Para PIX e cartão, a confirmação é quase imediata.
         </p>
-        <p className="text-xs text-slate-400 mt-3">
+        <p className="text-xs text-slate-400 dark:text-zinc-500 mt-3">
           Assim que o pagamento for confirmado, seu plano será ativado automaticamente e você receberá uma notificação.
         </p>
         <button

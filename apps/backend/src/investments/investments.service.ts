@@ -1,7 +1,12 @@
-import { Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { PlanService } from '../plan/plan.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
 
 const MARKET_URL = process.env.MARKET_SERVICE_URL || 'http://127.0.0.1:8000';
 
@@ -10,13 +15,16 @@ export class InvestmentsService {
   constructor(
     private readonly db: DatabaseService,
     private readonly planService: PlanService,
+    private readonly familyScope: FamilyScopeService,
   ) {}
 
   /* ── Plan gate ─────────────────────────────────────────────── */
   async assertPro(userId: string) {
     const plan = await this.planService.getEffectivePlan(userId);
     if (plan.toLowerCase() !== 'pro') {
-      throw new ForbiddenException('Módulo de investimentos disponível apenas no plano Pro.');
+      throw new ForbiddenException(
+        'Módulo de investimentos disponível apenas no plano Pro.',
+      );
     }
   }
 
@@ -32,7 +40,9 @@ export class InvestmentsService {
   }
 
   getStockHistory(ticker: string, period = '12mo') {
-    return this.market(`/stock/${ticker}/history?period=${encodeURIComponent(period)}`);
+    return this.market(
+      `/stock/${ticker}/history?period=${encodeURIComponent(period)}`,
+    );
   }
 
   getStockDividends(ticker: string) {
@@ -44,16 +54,17 @@ export class InvestmentsService {
   }
 
   /* ── Portfolio ─────────────────────────────────────────────── */
-  getPortfolio(userId: string) {
+  async getPortfolio(userId: string) {
+    const scope = await this.familyScope.getScope(userId);
     return this.db.query(
       `SELECT id, ticker, company_name AS "companyName",
               quantity, avg_price AS "avgPrice",
               target_buy AS "targetBuy", target_sell AS "targetSell",
               notes, created_at AS "createdAt", updated_at AS "updatedAt"
        FROM db_dtasc.investments
-       WHERE user_id = $1
+       WHERE ${scope.filter}
        ORDER BY ticker ASC`,
-      [userId],
+      [scope.param],
     );
   }
 
@@ -69,11 +80,12 @@ export class InvestmentsService {
       notes?: string;
     },
   ) {
+    const scope = await this.familyScope.getScope(userId);
     const ticker = data.ticker.toUpperCase().trim();
     const rows = await this.db.query(
       `INSERT INTO db_dtasc.investments
-         (id, user_id, ticker, company_name, quantity, avg_price, target_buy, target_sell, notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         (id, user_id, family_group_id, ticker, company_name, quantity, avg_price, target_buy, target_sell, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
        ON CONFLICT (user_id, ticker) DO UPDATE
          SET company_name = COALESCE(EXCLUDED.company_name, db_dtasc.investments.company_name),
              quantity     = EXCLUDED.quantity,
@@ -86,19 +98,23 @@ export class InvestmentsService {
                  quantity, avg_price AS "avgPrice",
                  target_buy AS "targetBuy", target_sell AS "targetSell", notes`,
       [
-        randomUUID(), userId, ticker,
+        randomUUID(),
+        userId,
+        scope.familyGroupId,
+        ticker,
         data.companyName ?? null,
-        data.quantity   ?? 0,
-        data.avgPrice   ?? 0,
-        data.targetBuy  ?? null,
+        data.quantity ?? 0,
+        data.avgPrice ?? 0,
+        data.targetBuy ?? null,
         data.targetSell ?? null,
-        data.notes      ?? null,
+        data.notes ?? null,
       ],
     );
     return rows[0];
   }
 
   async updatePortfolioItem(userId: string, id: string, data: any) {
+    const scope = await this.familyScope.getScope(userId);
     const rows = await this.db.query(
       `UPDATE db_dtasc.investments
        SET company_name = COALESCE($3, company_name),
@@ -108,18 +124,19 @@ export class InvestmentsService {
            target_sell  = $7,
            notes        = $8,
            updated_at   = NOW()
-       WHERE id = $1 AND user_id = $2
+       WHERE id = $1 AND ${this.familyScope.filterAt(scope, 2)}
        RETURNING id, ticker, company_name AS "companyName",
                  quantity, avg_price AS "avgPrice",
                  target_buy AS "targetBuy", target_sell AS "targetSell", notes`,
       [
-        id, userId,
+        id,
+        scope.param,
         data.companyName ?? null,
-        data.quantity    ?? null,
-        data.avgPrice    ?? null,
-        data.targetBuy   ?? null,
-        data.targetSell  ?? null,
-        data.notes       ?? null,
+        data.quantity ?? null,
+        data.avgPrice ?? null,
+        data.targetBuy ?? null,
+        data.targetSell ?? null,
+        data.notes ?? null,
       ],
     );
     if (!rows[0]) throw new NotFoundException('Item não encontrado.');
@@ -127,38 +144,48 @@ export class InvestmentsService {
   }
 
   async removePortfolioItem(userId: string, id: string) {
+    const scope = await this.familyScope.getScope(userId);
     await this.db.query(
-      `DELETE FROM db_dtasc.investments WHERE id = $1 AND user_id = $2`,
-      [id, userId],
+      `DELETE FROM db_dtasc.investments WHERE id = $1 AND ${this.familyScope.filterAt(scope, 2)}`,
+      [id, scope.param],
     );
     return { success: true };
   }
 
   /* ── Alerts ────────────────────────────────────────────────── */
-  getAlerts(userId: string) {
+  async getAlerts(userId: string) {
+    const scope = await this.familyScope.getScope(userId);
     return this.db.query(
       `SELECT id, ticker, target_price AS "targetPrice", direction,
               message, is_active AS "isActive",
               triggered_at AS "triggeredAt", created_at AS "createdAt"
        FROM db_dtasc.investment_alerts
-       WHERE user_id = $1
+       WHERE ${scope.filter}
        ORDER BY created_at DESC`,
-      [userId],
+      [scope.param],
     );
   }
 
   async createAlert(
     userId: string,
-    data: { ticker: string; targetPrice: number; direction: 'above' | 'below'; message?: string },
+    data: {
+      ticker: string;
+      targetPrice: number;
+      direction: 'above' | 'below';
+      message?: string;
+    },
   ) {
+    const scope = await this.familyScope.getScope(userId);
     const rows = await this.db.query(
       `INSERT INTO db_dtasc.investment_alerts
-         (id, user_id, ticker, target_price, direction, message)
-       VALUES ($1,$2,$3,$4,$5,$6)
+         (id, user_id, family_group_id, ticker, target_price, direction, message)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
        RETURNING id, ticker, target_price AS "targetPrice", direction,
                  message, is_active AS "isActive", created_at AS "createdAt"`,
       [
-        randomUUID(), userId,
+        randomUUID(),
+        userId,
+        scope.familyGroupId,
         data.ticker.toUpperCase(),
         data.targetPrice,
         data.direction,
@@ -169,21 +196,23 @@ export class InvestmentsService {
   }
 
   async toggleAlert(userId: string, id: string) {
+    const scope = await this.familyScope.getScope(userId);
     const rows = await this.db.query(
       `UPDATE db_dtasc.investment_alerts
        SET is_active = NOT is_active
-       WHERE id = $1 AND user_id = $2
+       WHERE id = $1 AND ${this.familyScope.filterAt(scope, 2)}
        RETURNING id, is_active AS "isActive"`,
-      [id, userId],
+      [id, scope.param],
     );
     if (!rows[0]) throw new NotFoundException('Alerta não encontrado.');
     return rows[0];
   }
 
   async deleteAlert(userId: string, id: string) {
+    const scope = await this.familyScope.getScope(userId);
     await this.db.query(
-      `DELETE FROM db_dtasc.investment_alerts WHERE id = $1 AND user_id = $2`,
-      [id, userId],
+      `DELETE FROM db_dtasc.investment_alerts WHERE id = $1 AND ${this.familyScope.filterAt(scope, 2)}`,
+      [id, scope.param],
     );
     return { success: true };
   }
@@ -214,8 +243,10 @@ export class InvestmentsService {
 
         for (const alert of group) {
           const hit =
-            (alert.direction === 'above' && price >= Number(alert.target_price)) ||
-            (alert.direction === 'below' && price <= Number(alert.target_price));
+            (alert.direction === 'above' &&
+              price >= Number(alert.target_price)) ||
+            (alert.direction === 'below' &&
+              price <= Number(alert.target_price));
 
           if (hit) {
             await this.db.query(

@@ -136,7 +136,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
         {/* Header — color adapts to type */}
         <div
           className={cn(
-            'px-6 pt-6 pb-4 flex items-center justify-between border-b-2 shrink-0 transition-colors',
+            'px-5 pt-5 pb-3.5 flex items-center justify-between border-b-2 shrink-0 transition-colors',
             isCreditCard ? 'border-purple-500/15' : 'border-orange-500/15',
           )}
         >
@@ -168,7 +168,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-5 space-y-3">
 
           {/* ── Type selector (only on create) ────────────────────── */}
           {!isEdit && (
@@ -214,7 +214,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
               onChange={(e) => f('description', e.target.value)}
               placeholder={isCreditCard ? 'Ex: Nubank, Itaú, Bradesco...' : 'Ex: Conta de Luz, Internet, IPTU...'}
               className={cn(
-                'w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none transition',
+                'w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none transition',
                 isCreditCard ? 'focus:border-purple-500' : 'focus:border-orange-500',
               )}
             />
@@ -249,7 +249,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                     f('paymentMethodId', id);
                     if (pm?.dueDay) f('dayOfMonth', Number(pm.dueDay));
                   }}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-purple-500 transition appearance-none"
+                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-purple-500 transition appearance-none"
                 >
                   <option value="">Selecione o cartão...</option>
                   {(creditCards.length > 0 ? creditCards : paymentMethods).map((p) => (
@@ -267,7 +267,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                   <input
                     readOnly
                     value={form.dayOfMonth || '—'}
-                    className="w-full bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-black text-zinc-500 dark:text-zinc-400 cursor-default select-none"
+                    className="w-full bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-black text-zinc-500 dark:text-zinc-400 cursor-default select-none"
                   />
                   {!form.paymentMethodId && (
                     <p className="text-[9px] text-zinc-400 mt-1 ml-1">
@@ -310,7 +310,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                     value={form.amount}
                     onChange={(v) => f('amount', v)}
                     placeholder="0,00"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
                   />
                 </div>
                 {!isEdit && (
@@ -325,7 +325,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                       required
                       value={form.dayOfMonth}
                       onChange={(e) => f('dayOfMonth', Number(e.target.value))}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
                     />
                   </div>
                 )}
@@ -340,7 +340,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                   <select
                     value={form.categoryId}
                     onChange={(e) => f('categoryId', e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-orange-500 transition appearance-none"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition appearance-none"
                   >
                     <option value="">Selecione...</option>
                     {categories.map((c) => (
@@ -361,7 +361,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                       type="date"
                       value={form.endDate}
                       onChange={(e) => f('endDate', e.target.value)}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
                     />
                     <p className="text-[9px] text-zinc-400 ml-1">
                       Sem data: gera lançamentos nos próximos 12 meses automaticamente

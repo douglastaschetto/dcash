@@ -145,7 +145,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
       <div className="w-full md:max-w-4xl md:rounded-[2rem] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-0 flex items-start justify-between gap-4 shrink-0">
+        <div className="px-5 pt-5 pb-0 flex items-start justify-between gap-4 shrink-0">
           <div>
             <p className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] italic flex items-center gap-1.5">
               <Tag size={11} /> Caça Preços
@@ -169,7 +169,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
         </div>
 
         {/* Tabs */}
-        <div className="px-6 pt-4 flex gap-1.5 shrink-0 border-b border-zinc-100 dark:border-zinc-900">
+        <div className="px-5 pt-3.5 flex gap-1.5 shrink-0 border-b border-zinc-100 dark:border-zinc-900">
           {TABS.map((t) => (
             <button
               key={t}
@@ -308,7 +308,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
               {/* Search bar */}
               <div className="flex gap-2 mb-4">
                 <input
-                  className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                  className="flex-1 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && search(query)}
@@ -474,7 +474,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                   </label>
                   <input
                     required
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.store}
                     onChange={(e) => setForm({ ...form, store: e.target.value })}
                     placeholder="Ex: Magazine Luiza, Americanas..."
@@ -489,7 +489,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                     type="number"
                     step="0.01"
                     min="0"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.cashPrice}
                     onChange={(e) => setForm({ ...form, cashPrice: e.target.value })}
                     placeholder="0,00"
@@ -503,7 +503,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                     type="number"
                     step="0.01"
                     min="0"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.shipping}
                     onChange={(e) => setForm({ ...form, shipping: e.target.value })}
                     placeholder="0 = grátis"
@@ -517,7 +517,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                     type="number"
                     step="0.01"
                     min="0"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.installmentPrice}
                     onChange={(e) => setForm({ ...form, installmentPrice: e.target.value })}
                     placeholder="0,00"
@@ -530,7 +530,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                   <input
                     type="number"
                     min="1"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.installments}
                     onChange={(e) => setForm({ ...form, installments: e.target.value })}
                   />
@@ -541,7 +541,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                   </label>
                   <input
                     type="url"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition"
                     value={form.link}
                     onChange={(e) => setForm({ ...form, link: e.target.value })}
                     placeholder="https://..."
@@ -553,7 +553,7 @@ export function PriceHuntingModal({ item, onClose }: Props) {
                   </label>
                   <textarea
                     rows={2}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-3 text-sm font-medium focus:border-emerald-500 outline-none transition resize-none"
+                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-medium focus:border-emerald-500 outline-none transition resize-none"
                     value={form.observations}
                     onChange={(e) => setForm({ ...form, observations: e.target.value })}
                     placeholder="Condição, validade da oferta..."

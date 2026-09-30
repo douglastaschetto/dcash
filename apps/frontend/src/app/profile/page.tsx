@@ -3,12 +3,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Loader2, Copy, Check, Users, Plus, LogIn,
-  Sun, Moon, Monitor, Save, CalendarDays,
-  Crown, Zap, Star, MessageCircle,
-  Pencil, X, Camera,
+  Loader2, Sun, Moon, Monitor, Save, CalendarDays,
+  Crown, Zap, Star, MessageCircle, Camera,
 } from 'lucide-react';
 import { AppLayout } from '@/components/app-layout';
+import { FamilyGroupCard } from './components/FamilyGroupCard';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -32,13 +31,6 @@ type FamilyGroup = {
   ownerId?: string;
 };
 
-type Member = {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-};
-
 type Plan = 'free' | 'basico' | 'intermediario' | 'pro' | string;
 
 type Profile = {
@@ -53,6 +45,9 @@ type Profile = {
   whatsappConsent?: boolean;
   whatsappAlertHour?: number;
   googleCalendarSync?: boolean;
+  planExpiresAt?: string | null;
+  planStatus?: 'active' | 'past_due' | 'canceling';
+  planBillingCycle?: 'monthly' | 'yearly' | null;
   familyGroupId?: string;
   familyGroup?: FamilyGroup | null;
 };
@@ -78,11 +73,11 @@ const PLANS: PlanMeta[] = [
     label: 'Gratuito',
     price: 'R$ 0/mês',
     icon: Star,
-    color: 'text-slate-500',
+    color: 'text-slate-500 dark:text-zinc-400',
     activeBg: 'bg-slate-50',
     activeBorder: 'border-slate-400',
-    badgeBg: 'bg-slate-100',
-    badgeText: 'text-slate-600',
+    badgeBg: 'bg-slate-100 dark:bg-zinc-800',
+    badgeText: 'text-slate-600 dark:text-zinc-300',
     perks: ['Transações básicas', 'Relatórios mensais', '3 categorias', '1 cartão'],
   },
   {
@@ -93,8 +88,8 @@ const PLANS: PlanMeta[] = [
     color: 'text-blue-500',
     activeBg: 'bg-blue-50',
     activeBorder: 'border-blue-400',
-    badgeBg: 'bg-blue-100',
-    badgeText: 'text-blue-700',
+    badgeBg: 'bg-blue-100 dark:bg-blue-900/40',
+    badgeText: 'text-blue-700 dark:text-blue-400',
     perks: ['Tudo do Gratuito', 'Categorias ilimitadas', 'Contas fixas', 'Exportar relatórios'],
   },
   {
@@ -105,8 +100,8 @@ const PLANS: PlanMeta[] = [
     color: 'text-emerald-600',
     activeBg: 'bg-emerald-50',
     activeBorder: 'border-emerald-500',
-    badgeBg: 'bg-emerald-100',
-    badgeText: 'text-emerald-700',
+    badgeBg: 'bg-emerald-100 dark:bg-emerald-900/40',
+    badgeText: 'text-emerald-700 dark:text-emerald-400',
     perks: ['Tudo do Básico', 'Grupo familiar', 'Metas e sonhos', 'Cartões ilimitados'],
   },
   {
@@ -117,8 +112,8 @@ const PLANS: PlanMeta[] = [
     color: 'text-amber-500',
     activeBg: 'bg-amber-50',
     activeBorder: 'border-amber-400',
-    badgeBg: 'bg-amber-100',
-    badgeText: 'text-amber-700',
+    badgeBg: 'bg-amber-100 dark:bg-amber-900/40',
+    badgeText: 'text-amber-700 dark:text-amber-400',
     perks: ['Tudo do Intermediário', 'Google Agenda', 'Alertas WhatsApp', 'Suporte prioritário'],
   },
 ];
@@ -153,16 +148,7 @@ export default function ProfilePage() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [theme, setTheme] = useState<ThemeOption>('system');
-  const [members, setMembers] = useState<Member[]>([]);
-  const [familyGroup, setFamilyGroup] = useState<FamilyGroup | null>(null);
-  const [loadingFamily, setLoadingFamily] = useState(false);
-  const [inviteInput, setInviteInput] = useState('');
-  const [creatingGroup, setCreatingGroup] = useState(false);
-  const [joiningGroup, setJoiningGroup] = useState(false);
-  const [copied, setCopied] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
-  const [familyMsg, setFamilyMsg] = useState('');
-  const [joinMode, setJoinMode] = useState(false);
   const [googleConnected, setGoogleConnected] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [whatsappConsent, setWhatsappConsent] = useState(false);
@@ -171,13 +157,11 @@ export default function ProfilePage() {
   const [savingAlertHour, setSavingAlertHour] = useState(false);
   const [googleCalendarSync, setGoogleCalendarSync] = useState(true);
   const [savingGoogleSync, setSavingGoogleSync] = useState(false);
-  const [groupNameInput, setGroupNameInput] = useState('');
-  const [editingGroupName, setEditingGroupName] = useState(false);
-  const [savingGroupName, setSavingGroupName] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
 
   const loadProfile = useCallback(async () => {
     try {
@@ -194,28 +178,10 @@ export default function ProfilePage() {
       setGoogleCalendarSync(data.googleCalendarSync ?? true);
       const savedTheme = (localStorage.getItem('dcash:theme') as ThemeOption) || data.theme || 'system';
       setTheme(savedTheme);
-      if (data.familyGroup) {
-        setFamilyGroup(data.familyGroup);
-      }
     } catch {
       setLoadError(true);
     } finally {
       setLoading(false);
-    }
-  }, []);
-
-  const loadMembers = useCallback(async () => {
-    setLoadingFamily(true);
-    try {
-      const res = await fetch(`${API}/family/members`, { headers: getAuthHeaders() });
-      if (!res.ok) return;
-      const data = await res.json();
-      if (data.members) setMembers(data.members);
-      if (data.group) setFamilyGroup((prev) => prev
-        ? { ...prev, isOwner: data.group.isOwner, ownerId: data.group.ownerId }
-        : data.group);
-    } finally {
-      setLoadingFamily(false);
     }
   }, []);
 
@@ -224,10 +190,6 @@ export default function ProfilePage() {
     fetch(`${API}/notifications/google/status`, { headers: getAuthHeaders() })
       .then(r => r.json()).then(d => setGoogleConnected(d.connected)).catch(() => {});
   }, [loadProfile]);
-
-  useEffect(() => {
-    if (familyGroup?.id) loadMembers();
-  }, [familyGroup?.id, loadMembers]);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -252,6 +214,27 @@ export default function ProfilePage() {
     } finally {
       setSaving(false);
       setTimeout(() => setProfileMsg(''), 3000);
+    }
+  };
+
+  const handleCancelSubscription = async () => {
+    if (!window.confirm('Cancelar sua assinatura? Você mantém acesso ao plano até o fim do período já pago.')) return;
+    setCancelingSubscription(true);
+    try {
+      const res = await fetch(`${API}/payment/cancel-subscription`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        await loadProfile();
+      } else {
+        const data = await res.json().catch(() => null);
+        alert(data?.message || 'Erro ao cancelar assinatura.');
+      }
+    } catch {
+      alert('Erro de conexão.');
+    } finally {
+      setCancelingSubscription(false);
     }
   };
 
@@ -364,83 +347,6 @@ export default function ProfilePage() {
     }
   };
 
-  const createGroup = async () => {
-    setCreatingGroup(true);
-    setFamilyMsg('');
-    try {
-      const res = await fetch(`${API}/family/create`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFamilyGroup({ ...data, isOwner: true });
-        setFamilyMsg('Grupo criado com sucesso!');
-      } else {
-        setFamilyMsg(data?.message || 'Erro ao criar grupo.');
-      }
-    } catch {
-      setFamilyMsg('Erro de conexão.');
-    } finally {
-      setCreatingGroup(false);
-      setTimeout(() => setFamilyMsg(''), 4000);
-    }
-  };
-
-  const joinGroup = async () => {
-    if (!inviteInput.trim()) return;
-    setJoiningGroup(true);
-    setFamilyMsg('');
-    try {
-      const res = await fetch(`${API}/family/join`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ inviteCode: inviteInput.trim().toUpperCase() }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFamilyGroup(data);
-        setInviteInput('');
-        setJoinMode(false);
-        setFamilyMsg('Entrou no grupo com sucesso!');
-      } else {
-        setFamilyMsg(data?.message || 'Código inválido.');
-      }
-    } catch {
-      setFamilyMsg('Erro de conexão.');
-    } finally {
-      setJoiningGroup(false);
-      setTimeout(() => setFamilyMsg(''), 4000);
-    }
-  };
-
-  const saveGroupName = async () => {
-    const name = groupNameInput.trim();
-    if (!name || !familyGroup) return;
-    setSavingGroupName(true);
-    setFamilyMsg('');
-    try {
-      const res = await fetch(`${API}/family/rename`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ name }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setFamilyGroup((prev) => prev ? { ...prev, name: data.name } : prev);
-        setEditingGroupName(false);
-        setFamilyMsg('Nome do grupo atualizado!');
-      } else {
-        setFamilyMsg(data?.message || 'Erro ao renomear grupo.');
-      }
-    } catch {
-      setFamilyMsg('Erro de conexão.');
-    } finally {
-      setSavingGroupName(false);
-      setTimeout(() => setFamilyMsg(''), 4000);
-    }
-  };
-
   const connectGoogle = async () => {
     setGoogleLoading(true);
     try {
@@ -451,13 +357,6 @@ export default function ProfilePage() {
       alert('Erro ao conectar Google Agenda.');
       setGoogleLoading(false);
     }
-  };
-
-  const copyCode = () => {
-    if (!familyGroup?.inviteCode) return;
-    navigator.clipboard.writeText(familyGroup.inviteCode);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
   };
 
   const initial = (name || profile?.name || 'U').charAt(0).toUpperCase();
@@ -475,8 +374,8 @@ export default function ProfilePage() {
   return (
     <AppLayout title="Perfil" subtitle="Gerencie seus dados e preferências">
       {loadError && (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-red-700">
+        <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-red-700 dark:text-red-400">
             Não foi possível carregar seus dados de perfil. Tente novamente em instantes.
           </p>
           <button
@@ -494,11 +393,11 @@ export default function ProfilePage() {
 
           {/* SEÇÃO: Conta */}
           <section>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Conta</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Conta</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Dados Pessoais */}
-              <div data-tour="profile-personal-data" className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm">
+              <div data-tour="profile-personal-data" className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative shrink-0 group">
                     <button
@@ -529,43 +428,43 @@ export default function ProfilePage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-sm font-bold text-emerald-950 truncate">{profile?.name}</h2>
+                      <h2 className="text-sm font-bold text-emerald-950 dark:text-white truncate">{profile?.name}</h2>
                       {profile?.isAdmin && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-700 border border-amber-300 shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 shrink-0">
                           <Crown className="h-3 w-3" /> ADMIN
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 truncate">{profile?.email}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-500 truncate">{profile?.email}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nome</label>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Nome</label>
                     <input
                       value={name}
                       onChange={e => setName(e.target.value)}
-                      className="w-full rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 transition"
+                      className="w-full rounded-lg bg-emerald-50 dark:bg-zinc-800 border border-emerald-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 transition"
                       placeholder="Seu nome"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">E-mail</label>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">E-mail</label>
                     <input
                       value={profile?.email ?? ''}
                       readOnly
-                      className="w-full rounded-lg bg-slate-100 border border-slate-200 px-3 py-2 text-sm text-slate-500 cursor-not-allowed"
+                      className="w-full rounded-lg bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-500 dark:text-zinc-500 cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">WhatsApp / Telefone</label>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">WhatsApp / Telefone</label>
                     <input
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500 transition"
+                      className="w-full rounded-lg bg-emerald-50 dark:bg-zinc-800 border border-emerald-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 transition"
                       placeholder="+55 11 99999-9999"
                     />
                   </div>
@@ -595,27 +494,27 @@ export default function ProfilePage() {
                   const hasPhone = !!phone.trim();
 
                   const waFlag = !planAllows
-                    ? { text: 'Só Pro', cls: 'bg-amber-100 text-amber-700' }
+                    ? { text: 'Só Pro', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' }
                     : whatsappConsent
-                      ? { text: 'Ativo', cls: 'bg-emerald-100 text-emerald-700' }
-                      : { text: 'Inativo', cls: 'bg-slate-100 text-slate-500' };
+                      ? { text: 'Ativo', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' }
+                      : { text: 'Inativo', cls: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500' };
 
                   const gFlag = googleConnected
-                    ? { text: 'Conectado', cls: 'bg-emerald-100 text-emerald-700' }
-                    : { text: 'Não conectado', cls: 'bg-slate-100 text-slate-500' };
+                    ? { text: 'Conectado', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' }
+                    : { text: 'Não conectado', cls: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500' };
 
                   return (
-                    <div className="rounded-2xl border border-emerald-200 bg-white shadow-sm divide-y divide-slate-100 h-full">
+                    <div className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm divide-y divide-slate-100 dark:divide-zinc-800 h-full">
 
                       {/* WhatsApp row */}
                       <div className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${whatsappConsent && planAllows ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                            <MessageCircle className={`h-4 w-4 ${whatsappConsent && planAllows ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${whatsappConsent && planAllows ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-slate-100 dark:bg-zinc-800'}`}>
+                            <MessageCircle className={`h-4 w-4 ${whatsappConsent && planAllows ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-emerald-950">WhatsApp</p>
-                            <p className="text-[11px] text-slate-500 truncate">Alertas de contas e resumos financeiros</p>
+                            <p className="text-sm font-bold text-emerald-950 dark:text-white">WhatsApp</p>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-500 truncate">Alertas de contas e resumos financeiros</p>
                           </div>
                           <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${waFlag.cls}`}>
                             {waFlag.text}
@@ -647,14 +546,14 @@ export default function ProfilePage() {
                                 <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
                                   ${whatsappConsent ? 'translate-x-4' : 'translate-x-0.5'}`} />
                               </button>
-                              <span className="text-xs text-slate-600">Receber alertas</span>
+                              <span className="text-xs text-slate-600 dark:text-zinc-400">Receber alertas</span>
 
                               {whatsappConsent && hasPhone && (
                                 <select
                                   value={whatsappAlertHour}
                                   onChange={e => saveAlertHour(Number(e.target.value))}
                                   disabled={savingAlertHour}
-                                  className="ml-auto rounded-lg bg-slate-50 border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500 transition disabled:opacity-60"
+                                  className="ml-auto rounded-lg bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300 focus:outline-none focus:border-emerald-500 transition disabled:opacity-60"
                                 >
                                   {ALERT_HOURS.map(h => (
                                     <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
@@ -669,12 +568,12 @@ export default function ProfilePage() {
                       {/* Google Agenda row */}
                       <div className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${googleConnected ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                            <CalendarDays className={`h-4 w-4 ${googleConnected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${googleConnected ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-slate-100 dark:bg-zinc-800'}`}>
+                            <CalendarDays className={`h-4 w-4 ${googleConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-emerald-950">Google Agenda</p>
-                            <p className="text-[11px] text-slate-500 truncate">Sincroniza vencimentos e lembretes</p>
+                            <p className="text-sm font-bold text-emerald-950 dark:text-white">Google Agenda</p>
+                            <p className="text-[11px] text-slate-500 dark:text-zinc-500 truncate">Sincroniza vencimentos e lembretes</p>
                           </div>
                           <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${gFlag.cls}`}>
                             {gFlag.text}
@@ -695,7 +594,7 @@ export default function ProfilePage() {
                               <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
                                 ${googleCalendarSync ? 'translate-x-4' : 'translate-x-0.5'}`} />
                             </button>
-                            <span className="text-xs text-slate-600">Sincronizar eventos automaticamente</span>
+                            <span className="text-xs text-slate-600 dark:text-zinc-400">Sincronizar eventos automaticamente</span>
                           </div>
                         ) : (
                           <button
@@ -721,7 +620,7 @@ export default function ProfilePage() {
 
               {/* Assinatura */}
               <div data-tour="profile-subscription">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Assinatura</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Assinatura</p>
                 {(() => {
                   const currentKey = (profile?.plan ?? 'free').toLowerCase();
                   const current = PLANS.find(p => p.key === currentKey) ?? PLANS[0];
@@ -729,31 +628,53 @@ export default function ProfilePage() {
                   const isHighest = currentKey === 'pro';
 
                   return (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm h-full flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="rounded-2xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm h-full flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-full ${current.activeBg} shrink-0`}>
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-full ${current.activeBg} dark:bg-zinc-800 shrink-0`}>
                           <CurrentIcon className={`h-5 w-5 ${current.color}`} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] text-slate-500 font-medium">Seu plano</p>
+                          <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-medium">Seu plano</p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-emerald-950">{current.label}</p>
+                            <p className="text-sm font-bold text-emerald-950 dark:text-white">{current.label}</p>
                             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${current.badgeBg} ${current.badgeText}`}>
                               {current.price}
                             </span>
                           </div>
+                          {profile?.planExpiresAt && (
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1">
+                              {profile.planStatus === 'canceling'
+                                ? `Cancela em ${new Date(profile.planExpiresAt).toLocaleDateString('pt-BR')}`
+                                : `Renova em ${new Date(profile.planExpiresAt).toLocaleDateString('pt-BR')}`}
+                              {profile.planStatus === 'past_due' && (
+                                <span className="text-amber-600 dark:text-amber-400 font-semibold"> · Pagamento pendente</span>
+                              )}
+                            </p>
+                          )}
                         </div>
                       </div>
 
-                      {!isHighest && (
-                        <button
-                          onClick={() => router.push('/plans')}
-                          className="shrink-0 flex items-center justify-center gap-1.5 rounded-xl bg-emerald-950 px-4 py-2.5 text-xs font-semibold text-white hover:bg-emerald-800 transition"
-                        >
-                          <Zap className="h-3.5 w-3.5" />
-                          Upgrade de Plano
-                        </button>
-                      )}
+                      <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+                        {!isHighest && (
+                          <button
+                            onClick={() => router.push('/plans')}
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-950 px-4 py-2.5 text-xs font-semibold text-white hover:bg-emerald-800 transition"
+                          >
+                            <Zap className="h-3.5 w-3.5" />
+                            Upgrade de Plano
+                          </button>
+                        )}
+                        {profile?.planExpiresAt && profile.planStatus !== 'canceling' && (
+                          <button
+                            onClick={handleCancelSubscription}
+                            disabled={cancelingSubscription}
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:border-red-300 hover:text-red-500 disabled:opacity-50 transition"
+                          >
+                            {cancelingSubscription ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                            Cancelar assinatura
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
@@ -761,8 +682,8 @@ export default function ProfilePage() {
 
               {/* Aparência */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Aparência</p>
-                <div className="rounded-2xl border border-emerald-200 bg-white p-4 shadow-sm h-full flex flex-col justify-center">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Aparência</p>
+                <div className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm h-full flex flex-col justify-center">
                   <div className="grid grid-cols-3 gap-2">
                     {THEMES.map(({ value, label, icon: Icon }) => {
                       const active = theme === value;
@@ -772,11 +693,11 @@ export default function ProfilePage() {
                           onClick={() => saveTheme(value)}
                           className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 text-center transition
                             ${active
-                              ? 'border-emerald-600 bg-emerald-50 shadow-sm'
-                              : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/50'}`}
+                              ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm'
+                              : 'border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-emerald-200 hover:bg-emerald-50/50 dark:hover:bg-zinc-800'}`}
                         >
-                          <Icon className={`h-5 w-5 ${active ? 'text-emerald-700' : 'text-slate-500'}`} />
-                          <p className={`text-[10px] font-bold ${active ? 'text-emerald-950' : 'text-slate-600'}`}>{label}</p>
+                          <Icon className={`h-5 w-5 ${active ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-500'}`} />
+                          <p className={`text-[10px] font-bold ${active ? 'text-emerald-950 dark:text-white' : 'text-slate-600 dark:text-zinc-400'}`}>{label}</p>
                           {active && (
                             <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
                           )}
@@ -785,7 +706,7 @@ export default function ProfilePage() {
                     })}
                   </div>
                   {savingTheme && (
-                    <p className="text-[10px] text-slate-400 mt-2 flex items-center gap-1">
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-2 flex items-center gap-1">
                       <Loader2 className="h-3 w-3 animate-spin" /> Salvando...
                     </p>
                   )}
@@ -797,182 +718,8 @@ export default function ProfilePage() {
 
         {/* ── Coluna Direita ──────────────────────────────────────────────── */}
         <div className="lg:col-span-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 px-1">Família</p>
-          <div data-tour="profile-family-group" className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 shadow-sm text-white">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700/60">
-                <Users className="h-5 w-5" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">Grupo Familiar</h3>
-                <p className="text-xs text-emerald-200">Compartilhe finanças</p>
-              </div>
-            </div>
-
-            {familyMsg && (
-              <div className={`mb-4 rounded-xl px-4 py-3 text-sm font-medium
-                ${familyMsg.includes('sucesso') ? 'bg-emerald-700/60 text-emerald-100' : 'bg-red-500/20 text-red-200'}`}>
-                {familyMsg}
-              </div>
-            )}
-
-            {/* Sem Grupo */}
-            {!familyGroup && (
-              <div className="space-y-4">
-                <p className="text-sm text-emerald-100">
-                  Você ainda não faz parte de um grupo familiar. Crie um ou entre com um código de convite.
-                </p>
-
-                {!joinMode ? (
-                  <div className="space-y-3">
-                    <button
-                      onClick={createGroup}
-                      disabled={creatingGroup}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
-                    >
-                      {creatingGroup ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                      Criar grupo familiar
-                    </button>
-
-                    <button
-                      onClick={() => setJoinMode(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-700/40 transition"
-                    >
-                      <LogIn className="h-4 w-4" />
-                      Entrar com código
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <input
-                      value={inviteInput}
-                      onChange={e => setInviteInput(e.target.value.toUpperCase())}
-                      placeholder="DCASH-XXXXXX"
-                      className="w-full rounded-xl bg-emerald-800/60 border border-emerald-600 px-4 py-3 text-white placeholder:text-emerald-400 focus:outline-none focus:border-emerald-300 transition font-mono"
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={joinGroup}
-                        disabled={joiningGroup || !inviteInput.trim()}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
-                      >
-                        {joiningGroup ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
-                        Entrar
-                      </button>
-                      <button
-                        onClick={() => { setJoinMode(false); setInviteInput(''); }}
-                        className="rounded-xl border border-emerald-600 px-4 py-3 text-sm text-emerald-200 hover:bg-emerald-700/40 transition"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Com Grupo */}
-            {familyGroup && (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-1.5">
-                    Nome do grupo
-                  </p>
-                  {editingGroupName ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        autoFocus
-                        value={groupNameInput}
-                        onChange={e => setGroupNameInput(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && saveGroupName()}
-                        className="flex-1 rounded-lg bg-emerald-800/60 border border-emerald-600 px-3 py-2 text-sm text-white placeholder:text-emerald-400 focus:outline-none focus:border-emerald-300 transition"
-                      />
-                      <button
-                        onClick={saveGroupName}
-                        disabled={savingGroupName || !groupNameInput.trim()}
-                        className="p-2 rounded-lg bg-white text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
-                      >
-                        {savingGroupName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                      </button>
-                      <button
-                        onClick={() => setEditingGroupName(false)}
-                        className="p-2 rounded-lg border border-emerald-600 text-emerald-200 hover:bg-emerald-700/40 transition"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 bg-emerald-800/60 rounded-lg px-3 py-2">
-                      <span className="flex-1 font-bold text-white text-sm truncate">{familyGroup.name}</span>
-                      {familyGroup.isOwner && (
-                        <button
-                          onClick={() => { setGroupNameInput(familyGroup.name); setEditingGroupName(true); }}
-                          className="p-1 text-emerald-200 hover:text-white transition"
-                          title="Renomear grupo"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  )}
-                  {familyGroup.isOwner && !editingGroupName && (
-                    <p className="text-[10px] text-emerald-400 mt-1">Você criou este grupo e pode renomeá-lo.</p>
-                  )}
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-1.5">
-                    Código de convite
-                  </p>
-                  <div className="flex items-center gap-2 bg-emerald-800/60 rounded-lg px-3 py-2">
-                    <span className="flex-1 font-mono font-bold text-white tracking-widest text-sm">
-                      {familyGroup.inviteCode}
-                    </span>
-                    <button
-                      onClick={copyCode}
-                      className="flex items-center gap-1.5 text-emerald-200 hover:text-white transition text-xs"
-                    >
-                      {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                      {copied ? 'Copiado!' : 'Copiar'}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-emerald-400 mt-1">
-                    Compartilhe este código para outros entrarem no seu grupo.
-                  </p>
-                </div>
-
-                <div className="border-t border-emerald-700/50 pt-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-2">
-                    Membros do Grupo ({members.length})
-                  </p>
-                  {loadingFamily ? (
-                    <div className="flex justify-center py-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-emerald-300" />
-                    </div>
-                  ) : (
-                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {members.map(member => (
-                        <div key={member.id} className="flex items-center gap-2.5 bg-emerald-900/40 rounded-lg p-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 font-bold text-xs shrink-0">
-                            {member.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-semibold truncate">{member.name}</p>
-                            <p className="text-[10px] text-emerald-300 truncate">{member.email}</p>
-                          </div>
-                          {familyGroup.ownerId === member.id && (
-                            <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300">
-                              Criador
-                            </span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Família</p>
+          <FamilyGroupCard />
         </div>
 
       </div>

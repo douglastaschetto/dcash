@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { AppLayout } from '@/components/app-layout';
 import { PlanGate } from '@/components/plan-gate';
 import { useAuth } from '@/hooks/useAuth';
@@ -45,26 +46,13 @@ const FALLBACK_IMG = 'https://images.unsplash.com/photo-1579621970563-ebec7560ff
 export default function PiggyBanksPage() {
   useAuth();
 
-  const [banks, setBanks] = useState<Bank[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { data: banks = [], isLoading: loading, mutate } = useSWR<Bank[]>('/piggy-banks');
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<Bank | null>(null);
   const [opModal, setOpModal] = useState<OperationModal>(null);
   const [opAmount, setOpAmount] = useState(0);
   const [opLoading, setOpLoading] = useState(false);
   const [opSuccess, setOpSuccess] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data } = await api.get('/piggy-banks');
-      setBanks(data ?? []);
-    } catch { /* ignore */ } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
 
   const openCreate = () => { setSelected(null); setModalOpen(true); };
   const openEdit = (b: Bank) => { setSelected(b); setModalOpen(true); };
@@ -73,7 +61,7 @@ export default function PiggyBanksPage() {
     if (!confirm(`Arquivar cofrinho "${name}"?`)) return;
     try {
       await api.delete(`/piggy-banks/${id}`);
-      setBanks((prev) => prev.filter((b) => b.id !== id));
+      mutate((prev) => prev?.filter((b) => b.id !== id), { revalidate: false });
     } catch { /* ignore */ }
   };
 
@@ -98,13 +86,14 @@ export default function PiggyBanksPage() {
         ? `/piggy-banks/${opModal.bankId}/deposit`
         : `/piggy-banks/${opModal.bankId}/withdraw`;
       const { data } = await api.post(endpoint, { amount });
-      setBanks((prev) =>
-        prev.map((b) => {
+      mutate((prev) =>
+        prev?.map((b) => {
           if (b.id !== opModal.bankId) return b;
           const balance = Number(data.balance ?? 0);
           const goal = Number(data.yearlyGoal || data.monthlyGoal || 1);
           return { ...b, balance, progress: Math.min((balance / goal) * 100, 100) };
         }),
+        { revalidate: false },
       );
       setOpSuccess(true);
       setTimeout(() => setOpModal(null), 1200);
@@ -327,7 +316,7 @@ export default function PiggyBanksPage() {
         <PiggyBankModal
           bank={selected}
           onClose={() => setModalOpen(false)}
-          onRefresh={load}
+          onRefresh={() => mutate()}
         />
       )}
 
@@ -336,7 +325,7 @@ export default function PiggyBanksPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-sm rounded-[2.5rem] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden">
             <div
-              className="px-8 pt-8 pb-6 flex items-center justify-between"
+              className="px-6 pt-6 pb-4 flex items-center justify-between"
               style={{ borderBottom: `3px solid ${opModal.bankColor}20` }}
             >
               <div>
@@ -358,7 +347,7 @@ export default function PiggyBanksPage() {
               </button>
             </div>
 
-            <div className="p-8 space-y-5">
+            <div className="p-6 space-y-4">
               {opSuccess ? (
                 <div className="py-8 flex flex-col items-center gap-3">
                   <CheckCircle2 size={48} className="text-emerald-500" />

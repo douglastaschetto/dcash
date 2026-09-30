@@ -9,14 +9,17 @@ import { GoogleStrategy } from './google.strategy';
 import { User } from '../models/user.entity';
 import { FamilyGroup } from '../models/family-group.entity';
 import { DatabaseModule } from '../database/database.module';
+import { CommonModule } from '../common/common.module';
+import { requireJwtSecret } from './jwt-secret';
 
 @Module({
   imports: [
     DatabaseModule,
+    CommonModule,
     PassportModule,
     TypeOrmModule.forFeature([User, FamilyGroup]),
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'dcash-secret',
+      secret: requireJwtSecret(),
       signOptions: { expiresIn: '7d' },
     }),
   ],

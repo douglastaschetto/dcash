@@ -1,25 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { DatabaseService } from '../database/database.service';
+import { FamilyScopeService } from '../common/scope/family-scope.service';
 import { CreateDreamDto } from './dto/create-dream.dto';
 import { UpdateDreamDto } from './dto/update-dream.dto';
 
 @Injectable()
 export class DreamsService {
-  constructor(private readonly db: DatabaseService) {}
+  constructor(
+    private readonly db: DatabaseService,
+    private readonly familyScope: FamilyScopeService,
+  ) {}
 
-  private async getScope(userId: string) {
-    const res = await this.db.query(
-      'SELECT family_group_id FROM db_dtasc.users WHERE id = $1',
-      [userId],
-    );
-    const familyGroupId = res[0]?.family_group_id;
-    return {
-      familyGroupId,
-      filter: familyGroupId
-        ? 'family_group_id = $1'
-        : 'user_id = $1 AND family_group_id IS NULL',
-      param: familyGroupId || userId,
-    };
+  private getScope(userId: string) {
+    return this.familyScope.getScope(userId);
   }
 
   async create(userId: string, dto: CreateDreamDto) {
