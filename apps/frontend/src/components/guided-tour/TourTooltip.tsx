@@ -42,42 +42,42 @@ export function TourTooltip() {
   return (
     <div
       style={style}
-      className="w-80 max-w-[88vw] rounded-2xl bg-white dark:bg-emerald-950 shadow-2xl border border-emerald-100 dark:border-emerald-900 p-4"
+      className="w-80 max-w-[88vw] rounded-2xl bg-card shadow-2xl border border-primary-border p-4"
     >
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">
+        <span className="text-[11px] font-semibold text-accent">
           🎯 Passo {stepNumber} de {totalSteps}
         </span>
-        <button onClick={close} className="text-xs text-zinc-400 hover:text-red-500 font-bold" aria-label="Fechar tutorial">
+        <button onClick={close} className="text-xs text-fg-muted hover:text-danger font-semibold" aria-label="Fechar tutorial">
           ✕
         </button>
       </div>
 
-      <h3 className="text-sm font-black text-zinc-900 dark:text-white mb-1">{currentStep.title}</h3>
-      <p className="text-xs text-zinc-600 dark:text-emerald-200/80 leading-relaxed">{currentStep.description}</p>
+      <h3 className="text-sm font-semibold text-fg mb-1">{currentStep.title}</h3>
+      <p className="text-xs text-fg-2 leading-relaxed">{currentStep.description}</p>
 
       {currentStep.actionType === 'navigate' && (
-        <p className="text-[10px] font-bold text-purple-600 mt-2">🧭 Vamos te levar para outra tela automaticamente.</p>
+        <p className="text-[11px] font-semibold text-info mt-2">🧭 Vamos te levar para outra tela automaticamente.</p>
       )}
       {currentStep.actionType === 'click' && (
-        <p className="text-[10px] font-bold text-blue-600 mt-2">👆 Vamos clicar aqui sozinhos ao avançar.</p>
+        <p className="text-[11px] font-semibold text-info mt-2">👆 Vamos clicar aqui sozinhos ao avançar.</p>
       )}
 
       <div className="flex items-center justify-between mt-4">
         <button
           onClick={back}
           disabled={stepNumber <= 1}
-          className="text-xs font-bold text-zinc-500 disabled:opacity-30 hover:text-emerald-600 transition"
+          className="text-xs font-semibold text-fg-muted disabled:opacity-30 hover:text-accent transition"
         >
           ← Voltar
         </button>
         <div className="flex items-center gap-3">
-          <button onClick={close} className="text-xs font-bold text-zinc-400 hover:text-red-500 transition">
+          <button onClick={close} className="text-xs font-semibold text-fg-muted hover:text-danger transition">
             Pular tour
           </button>
           <button
             onClick={next}
-            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black uppercase transition"
+            className="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-on-primary text-xs font-semibold transition"
           >
             {isLast ? 'Concluir 🎉' : 'Próximo →'}
           </button>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { CheckCircle2, Loader2, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Loader2, ArrowRight } from '@/components/ui/icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -50,38 +50,38 @@ function SuccessContent() {
   }, [plan, preferenceId, router]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm rounded-[32px] bg-white dark:bg-zinc-900 shadow-2xl p-10 text-center">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-sm rounded-2xl border border-border bg-card shadow-xl p-10 text-center">
         {status === 'checking' ? (
           <>
-            <Loader2 className="h-12 w-12 animate-spin text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-lg font-bold text-slate-800 dark:text-zinc-100">Confirmando pagamento...</h2>
-            <p className="text-sm text-slate-400 dark:text-zinc-500 mt-2">Aguarde enquanto verificamos sua transação.</p>
+            <Loader2 className="h-12 w-12 animate-spin text-accent mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-fg">Confirmando pagamento...</h2>
+            <p className="text-sm text-fg-muted mt-2">Aguarde enquanto verificamos sua transação.</p>
           </>
         ) : status === 'activated' ? (
           <>
-            <CheckCircle2 className="h-14 w-14 text-emerald-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100">Pagamento confirmado!</h2>
-            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
+            <CheckCircle2 className="h-14 w-14 text-accent mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-fg">Pagamento confirmado!</h2>
+            <p className="text-sm text-fg-muted dark:text-fg-2 mt-2">
               Seu plano <strong>{PLAN_LABELS[plan] ?? plan}</strong> foi ativado com sucesso.
             </p>
             <button
               onClick={() => router.push('/onboarding')}
-              className="mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition"
+              className="mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-on-primary hover:bg-primary-hover transition"
             >
               Continuar <ArrowRight className="h-4 w-4" />
             </button>
           </>
         ) : (
           <>
-            <CheckCircle2 className="h-14 w-14 text-amber-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-zinc-100">Pagamento em análise</h2>
-            <p className="text-sm text-slate-500 dark:text-zinc-400 mt-2">
+            <CheckCircle2 className="h-14 w-14 text-warning mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-fg">Pagamento em análise</h2>
+            <p className="text-sm text-fg-muted dark:text-fg-2 mt-2">
               Seu pagamento foi recebido e está sendo processado. Seu plano será ativado assim que confirmado (geralmente em minutos para PIX e cartão).
             </p>
             <button
               onClick={() => router.push('/profile')}
-              className="mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 py-3 text-sm font-bold text-white hover:bg-emerald-700 transition"
+              className="mt-6 w-full flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-on-primary hover:bg-primary-hover transition"
             >
               Ver meu perfil <ArrowRight className="h-4 w-4" />
             </button>
@@ -95,8 +95,8 @@ function SuccessContent() {
 export default function PaymentSuccessPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-emerald-950">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     }>
       <SuccessContent />

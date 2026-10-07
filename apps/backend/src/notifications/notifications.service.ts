@@ -1,3 +1,6 @@
+import { BadRequestException } from '@nestjs/common';
+import { createHmac, timingSafeEqual } from 'crypto';
+import { requireJwtSecret } from '../auth/jwt-secret';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseService } from '../database/database.service';
@@ -30,17 +33,23 @@ export class NotificationsService implements OnModuleInit {
 
     setTimeout(() => {
       this.runDailyReminders(next.getHours());
-      setInterval(() => this.runDailyReminders(new Date().getHours()), 60 * 60 * 1000);
+      setInterval(
+        () => this.runDailyReminders(new Date().getHours()),
+        60 * 60 * 1000,
+      );
     }, msUntil);
 
-    this.logger.log(`Hourly reminder tick scheduled — first run in ${Math.round(msUntil / 60000)} min`);
+    this.logger.log(
+      `Hourly reminder tick scheduled — first run in ${Math.round(msUntil / 60000)} min`,
+    );
   }
 
   /* ── Google Calendar OAuth ──────────────────────────────────── */
   getGoogleAuthUrl(userId: string): string {
     const clientId = this.config.get<string>('GOOGLE_CLIENT_ID');
-    const redirectUri = this.config.get<string>('GOOGLE_CALENDAR_REDIRECT_URI')
-      || 'http://localhost:3001/api/notifications/google/callback';
+    const redirectUri =
+      this.config.get<string>('GOOGLE_CALENDAR_REDIRECT_URI') ||
+      'http://localhost:3001/api/notifications/google/callback';
 
     const params = new URLSearchParams({
       client_id: clientId ?? '',
@@ -49,14 +58,39 @@ export class NotificationsService implements OnModuleInit {
       scope: 'https://www.googleapis.com/auth/calendar',
       access_type: 'offline',
       prompt: 'consent',
-      state: userId,
+      state: this.signState(userId),
     });
     return `https://accounts.google.com/o/oauth2/auth?${params}`;
   }
 
-  async handleGoogleCallback(code: string, userId: string): Promise<void> {
-    const redirectUri = this.config.get<string>('GOOGLE_CALENDAR_REDIRECT_URI')
-      || 'http://localhost:3001/api/notifications/google/callback';
+  /** Signed, short-lived OAuth state: `userId.expires.hmac` (prevents linking someone else's account). */
+  private signState(userId: string) {
+    const exp = Date.now() + 10 * 60_000;
+    const mac = createHmac('sha256', `${requireJwtSecret()}:gcal-state`)
+      .update(`${userId}.${exp}`)
+      .digest('base64url');
+    return `${userId}.${exp}.${mac}`;
+  }
+
+  private readState(state: string): string {
+    const [userId, exp, mac] = (state ?? '').split('.');
+    if (!userId || !exp || !mac || Number(exp) < Date.now())
+      throw new Error('Estado OAuth inválido ou expirado.');
+    const expected = createHmac('sha256', `${requireJwtSecret()}:gcal-state`)
+      .update(`${userId}.${exp}`)
+      .digest('base64url');
+    const a = Buffer.from(mac);
+    const b = Buffer.from(expected);
+    if (a.length !== b.length || !timingSafeEqual(a, b))
+      throw new Error('Estado OAuth inválido.');
+    return userId;
+  }
+
+  async handleGoogleCallback(code: string, state: string): Promise<void> {
+    const userId = this.readState(state);
+    const redirectUri =
+      this.config.get<string>('GOOGLE_CALENDAR_REDIRECT_URI') ||
+      'http://localhost:3001/api/notifications/google/callback';
 
     const { data } = await axios.post('https://oauth2.googleapis.com/token', {
       code,
@@ -79,7 +113,7 @@ export class NotificationsService implements OnModuleInit {
       'SELECT google_calendar_token FROM db_dtasc.users WHERE id = $1',
       [userId],
     );
-    return !!(res[0]?.google_calendar_token);
+    return !!res[0]?.google_calendar_token;
   }
 
   private async getGoogleAccessToken(refreshToken: string): Promise<string> {
@@ -92,13 +126,16 @@ export class NotificationsService implements OnModuleInit {
     return data.access_token;
   }
 
-  async syncEventToGoogle(userId: string, event: {
-    title: string;
-    description?: string;
-    startDate: string;
-    endDate?: string;
-    allDay?: boolean;
-  }): Promise<string | null> {
+  async syncEventToGoogle(
+    userId: string,
+    event: {
+      title: string;
+      description?: string;
+      startDate: string;
+      endDate?: string;
+      allDay?: boolean;
+    },
+  ): Promise<string | null> {
     const res = await this.db.query(
       'SELECT google_calendar_token FROM db_dtasc.users WHERE id = $1',
       [userId],
@@ -110,7 +147,9 @@ export class NotificationsService implements OnModuleInit {
       const accessToken = await this.getGoogleAccessToken(refreshToken);
 
       const startDate = new Date(event.startDate);
-      const endDate = event.endDate ? new Date(event.endDate) : new Date(startDate.getTime() + 60 * 60 * 1000);
+      const endDate = event.endDate
+        ? new Date(event.endDate)
+        : new Date(startDate.getTime() + 60 * 60 * 1000);
 
       const gcEvent = event.allDay
         ? {
@@ -122,8 +161,14 @@ export class NotificationsService implements OnModuleInit {
         : {
             summary: event.title,
             description: event.description,
-            start: { dateTime: startDate.toISOString(), timeZone: 'America/Sao_Paulo' },
-            end: { dateTime: endDate.toISOString(), timeZone: 'America/Sao_Paulo' },
+            start: {
+              dateTime: startDate.toISOString(),
+              timeZone: 'America/Sao_Paulo',
+            },
+            end: {
+              dateTime: endDate.toISOString(),
+              timeZone: 'America/Sao_Paulo',
+            },
             reminders: {
               useDefault: false,
               overrides: [{ method: 'popup', minutes: 30 }],
@@ -145,21 +190,50 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /* ── WhatsApp (Z-API) ───────────────────────────────────────── */
-  async sendWhatsapp(phone: string, message: string): Promise<{ ok: boolean; error?: string }> {
-    const instanceId   = this.config.get<string>('ZAPI_INSTANCE_ID');
-    const token        = this.config.get<string>('ZAPI_TOKEN');
-    const clientToken  = this.config.get<string>('ZAPI_CLIENT_TOKEN');
+  async sendWhatsappTest(userId: string) {
+    const [user] = await this.db.query<{ phone: string | null }>(
+      'SELECT phone FROM db_dtasc.users WHERE id = $1',
+      [userId],
+    );
+    if (!user?.phone)
+      throw new BadRequestException(
+        'Cadastre seu telefone no Perfil antes de testar.',
+      );
+    const result = await this.sendWhatsapp(
+      user.phone,
+      'Teste de notificação do DCash! 👋',
+    );
+    return { success: result.ok };
+  }
+
+  async sendWhatsapp(
+    phone: string,
+    message: string,
+  ): Promise<{ ok: boolean; error?: string }> {
+    const instanceId = this.config.get<string>('ZAPI_INSTANCE_ID');
+    const token = this.config.get<string>('ZAPI_TOKEN');
+    const clientToken = this.config.get<string>('ZAPI_CLIENT_TOKEN');
 
     if (!instanceId || !token) {
-      this.logger.warn('WhatsApp not configured — set ZAPI_INSTANCE_ID and ZAPI_TOKEN in .env');
-      return { ok: false, error: 'Z-API não configurada (verifique ZAPI_INSTANCE_ID e ZAPI_TOKEN)' };
+      this.logger.warn(
+        'WhatsApp not configured — set ZAPI_INSTANCE_ID and ZAPI_TOKEN in .env',
+      );
+      return {
+        ok: false,
+        error:
+          'Z-API não configurada (verifique ZAPI_INSTANCE_ID e ZAPI_TOKEN)',
+      };
     }
 
     const normalizedPhone = phone.replace(/\D/g, '');
-    const phoneWithCode = normalizedPhone.startsWith('55') ? normalizedPhone : `55${normalizedPhone}`;
+    const phoneWithCode = normalizedPhone.startsWith('55')
+      ? normalizedPhone
+      : `55${normalizedPhone}`;
 
     try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
       if (clientToken) headers['Client-Token'] = clientToken;
 
       const { data } = await axios.post(
@@ -167,7 +241,9 @@ export class NotificationsService implements OnModuleInit {
         { phone: phoneWithCode, message },
         { headers },
       );
-      this.logger.log(`WhatsApp sent to ${phoneWithCode} — response: ${JSON.stringify(data)}`);
+      this.logger.log(
+        `WhatsApp sent to ${phoneWithCode} — response: ${JSON.stringify(data)}`,
+      );
       return { ok: true };
     } catch (err: any) {
       const detail = err.response?.data
@@ -232,7 +308,9 @@ export class NotificationsService implements OnModuleInit {
   }
 
   /* ── Send today's summary via WhatsApp on demand ─────────────── */
-  async sendTodaySummaryToUser(userId: string): Promise<{ sent: boolean; info: string }> {
+  async sendTodaySummaryToUser(
+    userId: string,
+  ): Promise<{ sent: boolean; info: string }> {
     const userRes = await this.db.query(
       `SELECT name, plan, whatsapp_consent AS "whatsappConsent",
               COALESCE(whatsapp_number, phone) AS phone
@@ -242,13 +320,22 @@ export class NotificationsService implements OnModuleInit {
     const user = userRes[0];
 
     if (!(await this.canWhatsapp(userId))) {
-      return { sent: false, info: 'Alertas WhatsApp não disponíveis no seu plano atual.' };
+      return {
+        sent: false,
+        info: 'Alertas WhatsApp não disponíveis no seu plano atual.',
+      };
     }
     if (!user?.whatsappConsent) {
-      return { sent: false, info: 'Ative as notificações WhatsApp no seu perfil para receber alertas.' };
+      return {
+        sent: false,
+        info: 'Ative as notificações WhatsApp no seu perfil para receber alertas.',
+      };
     }
     if (!user?.phone) {
-      return { sent: false, info: 'Nenhum número de WhatsApp/telefone cadastrado no perfil.' };
+      return {
+        sent: false,
+        info: 'Nenhum número de WhatsApp/telefone cadastrado no perfil.',
+      };
     }
 
     const summary = await this.getTodaySummary(userId);
@@ -256,10 +343,15 @@ export class NotificationsService implements OnModuleInit {
       return { sent: false, info: 'Nenhuma conta fixa vence hoje.' };
     }
 
-    const brl = (v: number) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const brl = (v: number) =>
+      Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
     const firstName = user.name?.split(' ')[0] ?? 'você';
     const today = new Date();
-    const dateStr = today.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+    const dateStr = today.toLocaleDateString('pt-BR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
 
     let msg = `Olá, ${firstName}! 👋\n\n`;
     msg += `🔴 *Resumo de contas — ${dateStr}*\n\n`;
@@ -280,8 +372,19 @@ export class NotificationsService implements OnModuleInit {
   /* ── Auto-create calendar events for today's fixed bills ─────── */
   private async createBillEvents(userId: string, bills: any[]): Promise<void> {
     const today = new Date();
-    const dayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const dayEnd   = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+    const dayStart = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+    );
+    const dayEnd = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate(),
+      23,
+      59,
+      59,
+    );
 
     for (const bill of bills) {
       const exists = await this.db.query(
@@ -309,7 +412,9 @@ export class NotificationsService implements OnModuleInit {
 
   /* ── Daily reminder logic ───────────────────────────────────── */
   async runDailyReminders(hour?: number): Promise<void> {
-    this.logger.log(`Running daily reminders${hour !== undefined ? ` (hour=${hour})` : ''}...`);
+    this.logger.log(
+      `Running daily reminders${hour !== undefined ? ` (hour=${hour})` : ''}...`,
+    );
 
     const today = new Date();
     const todayDay = today.getDate();
@@ -372,12 +477,25 @@ export class NotificationsService implements OnModuleInit {
           await this.createBillEvents(user.id, fixedBills).catch(() => {});
         }
 
-        if (transactions.length === 0 && events.length === 0 && fixedBills.length === 0) continue;
+        if (
+          transactions.length === 0 &&
+          events.length === 0 &&
+          fixedBills.length === 0
+        )
+          continue;
 
-        const message = this.buildMessage(user.name, tomorrow, transactions, events, fixedBills);
+        const message = this.buildMessage(
+          user.name,
+          tomorrow,
+          transactions,
+          events,
+          fixedBills,
+        );
         await this.sendWhatsapp(user.whatsappNumber, message);
       } catch (err: any) {
-        this.logger.error(`Reminder failed for user ${user.id}: ${err.message}`);
+        this.logger.error(
+          `Reminder failed for user ${user.id}: ${err.message}`,
+        );
       }
     }
   }
@@ -391,14 +509,19 @@ export class NotificationsService implements OnModuleInit {
   ): string {
     const firstName = name?.split(' ')[0] ?? 'você';
     const today = new Date();
-    const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
-    const brl = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+    const fmt = (d: Date) =>
+      d.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long' });
+    const brl = (v: number) =>
+      v.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 
     let msg = `Olá, ${firstName}! 👋\n\n`;
 
     // ── Fixed bills due TODAY ──────────────────────────────────
     if (fixedBills.length > 0) {
-      const total = fixedBills.reduce((s: number, b: any) => s + Number(b.amount), 0);
+      const total = fixedBills.reduce(
+        (s: number, b: any) => s + Number(b.amount),
+        0,
+      );
       msg += `🔴 *Contas com vencimento HOJE (${fmt(today)}):*\n`;
       fixedBills.forEach((b: any) => {
         msg += `  • ${b.description} — *R$ ${brl(Number(b.amount))}*\n`;
@@ -407,30 +530,44 @@ export class NotificationsService implements OnModuleInit {
     }
 
     // ── Tomorrow's transactions ────────────────────────────────
-    const expenses    = transactions.filter((t) => t.type === 'EXPENSE');
-    const income      = transactions.filter((t) => t.type === 'INCOME');
+    const expenses = transactions.filter((t) => t.type === 'EXPENSE');
+    const income = transactions.filter((t) => t.type === 'INCOME');
     const investments = transactions.filter((t) => t.type === 'INVESTMENT');
 
-    if (expenses.length > 0 || income.length > 0 || investments.length > 0 || events.length > 0) {
+    if (
+      expenses.length > 0 ||
+      income.length > 0 ||
+      investments.length > 0 ||
+      events.length > 0
+    ) {
       msg += `📅 *Amanhã (${fmt(tomorrow)}):*\n`;
 
       if (expenses.length > 0) {
         msg += `\n💸 Despesas:\n`;
-        expenses.forEach((t) => { msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`; });
+        expenses.forEach((t) => {
+          msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`;
+        });
         msg += `  Total: *R$ ${brl(expenses.reduce((s, t) => s + Number(t.amount), 0))}*\n`;
       }
       if (income.length > 0) {
         msg += `\n💰 Receitas:\n`;
-        income.forEach((t) => { msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`; });
+        income.forEach((t) => {
+          msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`;
+        });
       }
       if (investments.length > 0) {
         msg += `\n📈 Investimentos:\n`;
-        investments.forEach((t) => { msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`; });
+        investments.forEach((t) => {
+          msg += `  • ${t.description} — *R$ ${brl(Number(t.amount))}*\n`;
+        });
       }
       if (events.length > 0) {
         msg += `\n🗓 Agenda:\n`;
         events.forEach((e) => {
-          const time = new Date(e.startDate).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+          const time = new Date(e.startDate).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit',
+          });
           msg += `  • ${e.title} às ${time}\n`;
         });
       }

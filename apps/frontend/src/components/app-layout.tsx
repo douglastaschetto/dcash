@@ -1,17 +1,21 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  Home, Wallet, PieChart, LogOut, Menu, Bell, UserCircle, CalendarCheck, CheckSquare, Trophy, Heart, PiggyBank, Star, Receipt, CalendarDays,
-  AlertCircle, X, ExternalLink, MessageCircle, Shield, ArrowLeftRight, ChevronDown, ChevronRight, Layers, Landmark, Target, ListChecks, HelpCircle,
-  GraduationCap,
-} from 'lucide-react';
+  Wallet, PieChart, LayoutDashboard, BarChart3, LogOut, Menu, Bell, UserCircle, CalendarCheck, CheckSquare, Trophy, Heart, PiggyBank, Star, Receipt, CalendarDays,
+  AlertCircle, X, ExternalLink, MessageCircle, Shield, ArrowLeftRight, ChevronDown, Layers, HelpCircle,
+  GraduationCap, BellRing, PanelLeftClose, PanelLeftOpen, Sun, Moon, Sparkles, House, ShoppingCart, StickyNote, ListTodo, Repeat, Cake, Wrench,
+} from '@/components/ui/icons';
 import logoSrc from '@/app/dcash.png';
 import { SupportChatWidget } from '@/components/support-chat-widget';
 import { GuidedTourProvider } from '@/components/guided-tour/GuidedTourProvider';
 import { useGuidedTour } from '@/components/guided-tour/guided-tour-context';
+import { usePlan } from '@/hooks/usePlan';
+import { applyTheme, onThemeChange } from '@/lib/theme';
+import { registerServiceWorker, syncPushSubscription } from '@/lib/push';
+import { cn } from '@/lib/utils';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -26,17 +30,19 @@ type TodaySummary = {
   whatsappEnabled: boolean;
 };
 
-const NAV_GROUPS: { label: string | null; icon?: React.ElementType; items: { href: string; icon: React.ElementType; label: string }[] }[] = [
+type NavItem = { href: string; icon: React.ElementType; label: string };
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
-    label: null,
+    label: 'Principal',
     items: [
-      { href: '/dashboard-v2', icon: Home, label: 'Início' },
+      { href: '/painel', icon: LayoutDashboard, label: 'Painel gerencial' },
     ],
   },
   {
     label: 'Finanças',
-    icon: Landmark,
     items: [
+      { href: '/dashboard-v2',  icon: BarChart3,      label: 'Dashboard financeiro' },
       { href: '/accounts',      icon: Wallet,         label: 'Contas' },
       { href: '/transactions',  icon: ArrowLeftRight, label: 'Transações' },
       { href: '/fixed-bills',   icon: Receipt,        label: 'Contas Fixas' },
@@ -47,7 +53,6 @@ const NAV_GROUPS: { label: string | null; icon?: React.ElementType; items: { hre
   },
   {
     label: 'Metas',
-    icon: Target,
     items: [
       { href: '/piggy-banks', icon: PiggyBank, label: 'Cofrinhos' },
       { href: '/dreams',      icon: Star,      label: 'Sonhos' },
@@ -56,16 +61,71 @@ const NAV_GROUPS: { label: string | null; icon?: React.ElementType; items: { hre
     ],
   },
   {
-    label: 'Organização',
-    icon: ListChecks,
+    label: 'DCaos',
     items: [
-      { href: '/calendar', icon: CalendarDays, label: 'Agenda' },
+      { href: '/dcaos',         icon: House,        label: 'Casa' },
+      { href: '/dcaos/tarefas', icon: ListTodo,     label: 'Quem Vai Fazer?' },
+      { href: '/dcaos/mercado', icon: ShoppingCart, label: 'Abastece Aí' },
+      { href: '/dcaos/recados', icon: StickyNote,   label: 'Recados' },
+      { href: '/dcaos/habitos',    icon: Repeat,        label: 'Faz Todo Dia' },
+      { href: '/dcaos/datas',      icon: Cake,          label: 'Não Esquece' },
+      { href: '/dcaos/manutencao', icon: Wrench,        label: 'Deu Ruim' },
+    ],
+  },
+  {
+    label: 'Organização',
+    items: [
+      { href: '/calendar', icon: CalendarDays, label: 'Agenda (tudo)' },
       { href: '/todos',    icon: CheckSquare,  label: 'Tarefas' },
     ],
   },
 ];
 
+/** Sidebar is collapsed by default; hovering expands it over the content, the pin keeps it open. */
+const PIN_KEY = 'dcash:sidebar-pinned';
+const UPGRADE_KEY = 'dcash:upgrade-dismissed';
+const PREFS_EVENT = 'dcash:layout-prefs';
+
+/** Reads a boolean UI preference from web storage without a hydration mismatch. */
+function useStoredFlag(storage: 'local' | 'session', key: string, serverValue: boolean) {
+  return useSyncExternalStore(
+    (cb) => {
+      window.addEventListener(PREFS_EVENT, cb);
+      return () => window.removeEventListener(PREFS_EVENT, cb);
+    },
+    () => {
+      try { return (storage === 'local' ? localStorage : sessionStorage).getItem(key) === 'true'; } catch { return serverValue; }
+    },
+    () => serverValue,
+  );
+}
+
+function setStoredFlag(storage: 'local' | 'session', key: string, value: boolean) {
+  try { (storage === 'local' ? localStorage : sessionStorage).setItem(key, String(value)); } catch {}
+  window.dispatchEvent(new Event(PREFS_EVENT));
+}
+
+const fmtBRL = (n: number) => Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+
 type ActiveTour = { key: string; title: string };
+
+const menuItem = 'flex w-full items-center gap-2.5 px-3 py-2 rounded-md text-[13px] text-fg-2 hover:bg-hover hover:text-fg transition-colors text-left';
+
+/** Starts a guided tour from a link like `/painel?tour=painel-intro` (used by the help center). */
+function TourFromQuery() {
+  const { startTour } = useGuidedTour();
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('tour');
+    if (!key) return;
+    params.delete('tour');
+    const qs = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+    const t = setTimeout(() => startTour(key), 400);
+    return () => clearTimeout(t);
+  }, [startTour]);
+  return null;
+}
 
 function TourMenuButton({ onNavigate }: { onNavigate: () => void }) {
   const { startTour } = useGuidedTour();
@@ -84,32 +144,45 @@ function TourMenuButton({ onNavigate }: { onNavigate: () => void }) {
 
   if (tours.length === 1) {
     return (
-      <button
-        onClick={() => { onNavigate(); startTour(tours[0].key); }}
-        className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium text-left"
-      >
-        <GraduationCap className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
-        🎓 Tutorial guiado
+      <button onClick={() => { onNavigate(); startTour(tours[0].key); }} className={menuItem}>
+        <GraduationCap className="h-4 w-4 text-fg-muted" strokeWidth={1.75} />
+        Tutorial guiado
       </button>
     );
   }
 
   return (
     <div>
-      <p className="px-4 pt-2 pb-1 text-[10px] font-black uppercase tracking-wide text-slate-400 dark:text-emerald-400/60">
-        🎓 Tutoriais guiados
-      </p>
+      <p className="px-3 pt-2 pb-1 text-[11px] font-medium text-fg-muted">Tutoriais guiados</p>
       {tours.map((tour) => (
-        <button
-          key={tour.key}
-          onClick={() => { onNavigate(); startTour(tour.key); }}
-          className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium text-left"
-        >
-          <GraduationCap className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+        <button key={tour.key} onClick={() => { onNavigate(); startTour(tour.key); }} className={menuItem}>
+          <GraduationCap className="h-4 w-4 text-fg-muted" strokeWidth={1.75} />
           {tour.title}
         </button>
       ))}
     </div>
+  );
+}
+
+/** Light/dark quick switch; the profile page still offers the "Sistema" option. */
+function ThemeToggle() {
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    const sync = () => setIsDark(document.documentElement.getAttribute('data-theme') === 'dark');
+    sync();
+    return onThemeChange(sync);
+  }, []);
+
+  return (
+    <button
+      onClick={() => applyTheme(isDark ? 'light' : 'dark')}
+      aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
+      title={isDark ? 'Tema claro' : 'Tema escuro'}
+      className="icon-btn"
+    >
+      {isDark ? <Sun className="h-4 w-4" strokeWidth={1.75} /> : <Moon className="h-4 w-4" strokeWidth={1.75} />}
+    </button>
   );
 }
 
@@ -128,11 +201,15 @@ export function AppLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    const active = NAV_GROUPS.find(g => g.label && g.items.some(i => i.href === pathname));
-    return active?.label ? { [active.label]: true } : {};
-  });
+  const { isPro, loading: planLoading } = usePlan();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pinned = useStoredFlag('local', PIN_KEY, false);
+  const [hovered, setHovered] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const expanded = pinned || hovered;
+  const collapsed = !expanded;
+  const [closedGroups, setClosedGroups] = useState<Record<string, boolean>>({});
+  const upgradeDismissed = useStoredFlag('session', UPGRADE_KEY, true);
   const [userName, setUserName] = useState('U');
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -141,7 +218,7 @@ export function AppLayout({
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<string | null>(null);
-  
+
   const bellRef = useRef<HTMLDivElement>(null);
   const avatarRef = useRef<HTMLDivElement>(null);
 
@@ -161,6 +238,12 @@ export function AppLayout({
         })
         .catch(() => {});
     }
+  }, []);
+
+  // PWA: keep the service worker registered and this device's push subscription in sync
+  useEffect(() => {
+    if (!localStorage.getItem('dcash:token')) return;
+    registerServiceWorker().then(() => syncPushSubscription()).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -193,112 +276,213 @@ export function AppLayout({
     router.push('/login');
   };
 
-  const toggleGroup = (label: string) => {
-    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  const togglePinned = () => { setStoredFlag('local', PIN_KEY, !pinned); setHovered(false); };
+  // Small delays so the menu doesn't flicker when the mouse just crosses it
+  const onSidebarEnter = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHovered(true), 120);
   };
+  const onSidebarLeave = () => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    hoverTimer.current = setTimeout(() => setHovered(false), 180);
+  };
+
+  const toggleGroup = (label: string) => {
+    setClosedGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const dismissUpgrade = () => setStoredFlag('session', UPGRADE_KEY, true);
 
   const initial = userName.charAt(0).toUpperCase();
 
+  /*
+   * Responsive sidebar:
+   *   < md   → off-canvas drawer (full labels)
+   *   md–lg  → compact icon rail
+   *   ≥ lg   → compact rail by default; hover expands it over the content,
+   *            the pin button keeps it expanded (and pushes the content)
+   * Labels use sr-only in compact mode so screen readers still announce them.
+   */
+  const labelCls = cn('truncate md:sr-only', !collapsed && 'lg:not-sr-only');
+  const fullOnly = cn('md:hidden', !collapsed && 'lg:flex');
+  const showUpgrade = !planLoading && !isPro && !upgradeDismissed;
+
+  const avatar = (size: string) => (
+    <div className={cn('rounded-full overflow-hidden shrink-0 ring-1 ring-border', size)}>
+      {userAvatar ? (
+        <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
+      ) : (
+        <div className="h-full w-full bg-primary-soft text-accent font-semibold text-xs flex items-center justify-center">
+          {initial}
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <GuidedTourProvider>
-    <div className="flex h-screen w-screen bg-emerald-50 dark:bg-black text-slate-950 dark:text-emerald-50 overflow-hidden">
+    <TourFromQuery />
+    <div className="flex h-screen w-screen bg-background text-fg overflow-hidden">
 
-      {/* ── Sidebar com efeito Hover de Expansão ────────────────────────── */}
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      {/* Reserves the rail width (or the full width when pinned); the aside overlays when hover-expanded */}
+      <div className={cn('contents md:relative md:m-3 md:mr-0 md:block md:w-[72px] md:shrink-0 md:transition-[width] md:duration-200', pinned && 'lg:w-[248px]')}>
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-emerald-950 text-white shadow-xl transition-all duration-300 ease-in-out shrink-0 overflow-hidden group
-          ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-0'} 
-          lg:static lg:translate-x-0 ${sidebarOpen ? 'lg:w-20 lg:hover:w-64' : 'lg:w-0'}`}
+        onMouseEnter={onSidebarEnter}
+        onMouseLeave={onSidebarLeave}
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-[264px] flex-col border-r border-border bg-sidebar transition-[transform,width,box-shadow] duration-200 ease-out',
+          mobileOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:absolute md:z-40 md:translate-x-0 md:w-[72px] md:rounded-2xl md:border',
+          expanded && 'lg:w-[248px]',
+          hovered && !pinned && 'lg:shadow-2xl',
+        )}
+        aria-label="Navegação principal"
       >
-        {/* Forçamos o conteúdo interno a manter 16rem (w-64) para evitar quebras de layout durante o hover */}
-        <div className="flex flex-col h-full p-4 justify-between w-64">
-          <div>
-            {/* Brand */}
-            <div className="mb-8 flex items-center gap-3 px-2">
-              <Image
-                src={logoSrc}
-                alt="DCash"
-                width={44}
-                height={44}
-                className="rounded-xl shrink-0"
-                priority
-              />
-              <h1 className="text-xl font-bold transition-opacity duration-200 opacity-0 group-hover:opacity-100 lg:group-hover:block">
-                DCash
-              </h1>
-            </div>
-
-            {/* Nav */}
-            <nav className="space-y-3 overflow-y-auto max-h-[calc(100vh-120px)] pr-1 scrollbar-none">
-              {NAV_GROUPS.map((group, gi) => {
-                const isOpen = group.label ? !!openGroups[group.label] : true;
-                return (
-                  <div key={group.label ?? `group-${gi}`} className="space-y-0.5">
-                    {group.label && (
-                      <button
-                        type="button"
-                        onClick={() => toggleGroup(group.label!)}
-                        title={group.label} /* Tooltip nativo caso esteja colapsado */
-                        className="flex items-center gap-3 w-full rounded-xl px-3 py-2 text-emerald-100 hover:bg-emerald-800/30 transition-all"
-                      >
-                        {group.icon && (
-                          <group.icon className="h-[18px] w-[18px] shrink-0 text-emerald-400/70" />
-                        )}
-                        <span className="flex-1 text-left text-[10px] font-black uppercase tracking-widest text-emerald-400/50 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                          {group.label}
-                        </span>
-                        <ChevronRight className={`h-3 w-3 text-emerald-400/50 shrink-0 opacity-0 group-hover:opacity-100 transition-all duration-200 ${isOpen ? 'rotate-90' : ''}`} />
-                      </button>
-                    )}
-                    {isOpen && group.items.map(({ href, icon: Icon, label }) => {
-                      const active = pathname === href;
-                      return (
-                        <a
-                          key={href}
-                          href={href}
-                          title={label} /* Tooltip nativo caso esteja colapsado */
-                          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all group/item
-                            ${active
-                              ? 'bg-emerald-800/60 text-white'
-                              : 'text-emerald-100 hover:bg-emerald-800/30'}`}
-                        >
-                          <Icon className={`h-[18px] w-[18px] shrink-0 transition-transform duration-200 group-hover/item:scale-110 ${active ? 'text-white' : 'text-emerald-300 group-hover:text-white'}`} />
-                          <span className="transition-opacity duration-200 opacity-0 group-hover:opacity-100 white-space-nowrap">
-                            {label}
-                          </span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+        {/* Brand */}
+        <div className={cn('flex h-14 shrink-0 items-center gap-2.5 px-4 md:justify-center md:px-0', !collapsed && 'lg:justify-between lg:px-4')}>
+          <a href="/painel" className="flex items-center gap-2.5 min-w-0">
+            <Image src={logoSrc} alt="DCash" width={30} height={30} className="rounded-lg shrink-0" priority />
+            <span className={cn('text-[15px] font-semibold tracking-tight text-fg', labelCls)}>DCash</span>
+          </a>
+          <button
+            onClick={togglePinned}
+            aria-label={pinned ? 'Recolher menu' : 'Manter menu aberto'}
+            title={pinned ? 'Recolher menu' : 'Manter menu aberto'}
+            className={cn('hidden h-7 w-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg transition-colors', !collapsed && 'lg:flex')}
+          >
+            {pinned ? <PanelLeftClose className="h-4 w-4" strokeWidth={1.75} /> : <PanelLeftOpen className="h-4 w-4" strokeWidth={1.75} />}
+          </button>
+          <button
+            onClick={() => setMobileOpen(false)}
+            aria-label="Fechar menu"
+            className="ml-auto flex h-7 w-7 items-center justify-center rounded-md text-fg-muted hover:bg-hover md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </aside>
 
-      {/* ── Main (Painel Central) ────────────────────────────────────────── */}
+        {collapsed && (
+          <button
+            onClick={togglePinned}
+            aria-label="Expandir menu"
+            title="Manter menu aberto"
+            className="mx-auto mb-1 hidden h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg lg:flex"
+          >
+            <PanelLeftOpen className="h-4 w-4" strokeWidth={1.75} />
+          </button>
+        )}
+
+        {/* Nav */}
+        <nav className="flex-1 overflow-y-auto scrollbar-none px-3 pb-3 pt-1 space-y-4">
+          {NAV_GROUPS.map((group) => {
+            const isOpen = !closedGroups[group.label];
+            return (
+              <div key={group.label}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={isOpen}
+                  className={cn('mb-1 flex w-full items-center justify-between px-2 py-1 text-[11px] font-medium uppercase tracking-[0.06em] text-fg-muted hover:text-fg-2 transition-colors', fullOnly)}
+                >
+                  {group.label}
+                  <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', !isOpen && '-rotate-90')} />
+                </button>
+                {/* Compact rail: a hairline replaces the section label */}
+                <div className={cn('mx-auto mb-2 hidden h-px w-6 bg-border md:block', !collapsed && 'lg:hidden')} />
+
+                <ul className={cn(
+                  'space-y-0.5',
+                  // Tree guide (full sidebar only): hairline connecting the group's items
+                  'ml-[13px] border-l border-border pl-2 md:ml-0 md:border-l-0 md:pl-0',
+                  !collapsed && 'lg:ml-[13px] lg:border-l lg:pl-2',
+                  !isOpen && cn('hidden md:block', !collapsed && 'lg:hidden'),
+                )}>
+                  {group.items.map(({ href, icon: Icon, label }) => {
+                    const active = pathname === href;
+                    return (
+                      <li key={href}>
+                        <a
+                          href={href}
+                          title={label}
+                          aria-current={active ? 'page' : undefined}
+                          className={cn(
+                            'relative flex h-9 items-center gap-3 rounded-lg px-2.5 text-[13px] font-medium transition-colors',
+                            'md:justify-center md:px-0', !collapsed && 'lg:justify-start lg:px-2.5',
+                            active
+                              ? 'bg-primary-soft text-accent'
+                              : 'text-fg-2 hover:bg-hover hover:text-fg',
+                          )}
+                        >
+                          <Icon className="h-[18px] w-[18px] shrink-0" strokeWidth={active ? 2 : 1.75} />
+                          <span className={labelCls}>{label}</span>
+                        </a>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </nav>
+
+        {/* Upgrade card */}
+        {showUpgrade && (
+          <div className={cn('hero-card relative m-3 mt-0 flex flex-col overflow-hidden rounded-xl p-3.5 [@media(max-height:980px)]:!hidden', fullOnly)}>
+            <div className="pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full bg-primary/25 blur-2xl" />
+            <div className="relative flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-on-primary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                </span>
+                <p className="text-[13px] font-semibold">Seja Pro</p>
+              </div>
+              <button onClick={dismissUpgrade} aria-label="Dispensar" className="text-white/50 hover:text-white">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            <p className="relative mt-2 text-xs leading-relaxed text-white/70">
+              Alertas no WhatsApp, Google Agenda e grupo familiar completo.
+            </p>
+            <a
+              href="/plans"
+              className="relative mt-3 inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-xs font-medium text-on-primary hover:bg-primary-hover transition-colors"
+            >
+              Ver planos
+            </a>
+          </div>
+        )}
+
+      </aside>
+      </div>
+
+      {/* ── Main ─────────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Top bar */}
-        <header className="bg-white dark:bg-emerald-950 shadow-sm dark:border-b dark:border-emerald-900 shrink-0">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div className="flex items-center gap-4">
+        <header className="shrink-0 border-b border-border bg-background">
+          <div className="flex h-16 items-center justify-between gap-3 px-4 md:px-6">
+            <div className="flex min-w-0 items-center gap-3">
               <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                aria-label={sidebarOpen ? 'Recolher menu' : 'Expandir menu'}
-                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-emerald-900/60 transition"
+                onClick={() => setMobileOpen(true)}
+                aria-label="Abrir menu"
+                className="icon-btn md:hidden"
               >
-                <Menu className="h-5 w-5" />
+                <Menu className="h-4 w-4" strokeWidth={1.75} />
               </button>
               {title && (
-                <div>
-                  {subtitle && <p className="text-xs text-slate-500 dark:text-emerald-300/70">{subtitle}</p>}
-                  <h1 className="text-2xl font-bold text-emerald-950 dark:text-white">{title}</h1>
+                <div className="min-w-0">
+                  <h1 className="truncate text-lg font-semibold leading-tight tracking-tight text-fg md:text-xl [&_span]:!text-inherit">{title}</h1>
+                  {subtitle && <p className="hidden truncate text-xs text-fg-muted sm:block">{subtitle}</p>}
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3">
-              {actions}
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              {actions && <div className="flex items-center gap-2">{actions}</div>}
+
+              <div className="hidden h-6 w-px bg-border sm:block" />
+
+              <ThemeToggle />
 
               {/* Assistente de suporte */}
               <SupportChatWidget />
@@ -308,58 +492,51 @@ export function AppLayout({
                 <button
                   onClick={() => setBellOpen(v => !v)}
                   aria-label="Notificações"
-                  className="relative p-2 text-slate-500 dark:text-emerald-300/70 hover:text-emerald-950 dark:hover:text-white transition"
+                  className="icon-btn relative"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-4 w-4" strokeWidth={1.75} />
                   {todaySummary?.hasAlerts && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-semibold text-white ring-2 ring-background">
                       {todaySummary.fixedBills.length}
                     </span>
                   )}
                 </button>
 
                 {bellOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl bg-white shadow-2xl border border-slate-100 z-50 overflow-hidden text-slate-950">
-                    <div className="flex items-center justify-between px-4 py-3 bg-emerald-950 text-white">
-                      <div className="flex items-center gap-2">
-                        <Bell className="h-4 w-4" />
-                        <span className="text-sm font-bold">Alertas de hoje</span>
-                      </div>
-                      <button onClick={() => setBellOpen(false)} aria-label="Fechar notificações">
-                        <X className="h-4 w-4 text-emerald-300 hover:text-white" />
+                  <div className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card shadow-xl z-50 overflow-hidden">
+                    <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                      <span className="text-sm font-semibold text-fg">Alertas de hoje</span>
+                      <button onClick={() => setBellOpen(false)} aria-label="Fechar notificações" className="text-fg-muted hover:text-fg">
+                        <X className="h-4 w-4" />
                       </button>
                     </div>
 
                     {!todaySummary?.hasAlerts ? (
-                      <div className="flex flex-col items-center gap-2 py-8 text-slate-400">
-                        <Bell className="h-8 w-8 opacity-30" />
-                        <p className="text-sm">Nenhuma conta vence hoje</p>
+                      <div className="flex flex-col items-center gap-2 py-8 text-fg-muted">
+                        <Bell className="h-6 w-6 opacity-50" strokeWidth={1.5} />
+                        <p className="text-[13px]">Nenhuma conta vence hoje</p>
                       </div>
                     ) : (
                       <div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-red-50 border-b border-red-100">
-                          <AlertCircle className="h-4 w-4 text-red-500 shrink-0" />
-                          <p className="text-xs font-semibold text-red-700">
+                        <div className="flex items-center gap-2 px-4 py-2 bg-danger-soft border-b border-border">
+                          <AlertCircle className="h-4 w-4 text-danger shrink-0" />
+                          <p className="text-xs font-medium text-danger">
                             {todaySummary.fixedBills.length} conta{todaySummary.fixedBills.length > 1 ? 's' : ''} vence{todaySummary.fixedBills.length > 1 ? 'm' : ''} hoje
                           </p>
                         </div>
-                        <ul className="divide-y divide-slate-50 max-h-64 overflow-y-auto">
+                        <ul className="divide-y divide-border max-h-64 overflow-y-auto">
                           {todaySummary.fixedBills.map((b) => (
-                            <li key={b.id} className="flex items-center justify-between px-4 py-3">
-                              <span className="text-sm text-slate-700 truncate mr-2">{b.title}</span>
-                              <span className="text-sm font-bold text-red-600 shrink-0">
-                                R$ {Number(b.value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                              </span>
+                            <li key={b.id} className="flex items-center justify-between px-4 py-2.5">
+                              <span className="text-[13px] text-fg-2 truncate mr-2">{b.title}</span>
+                              <span className="text-[13px] font-semibold tabular-nums text-danger shrink-0">R$ {fmtBRL(b.value)}</span>
                             </li>
                           ))}
                         </ul>
-                        <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-t border-slate-100">
-                          <span className="text-xs font-semibold text-slate-500">Total</span>
-                          <span className="text-sm font-bold text-red-600">
-                            R$ {Number(todaySummary.total).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                          </span>
+                        <div className="flex items-center justify-between px-4 py-2.5 bg-surface-2 border-t border-border">
+                          <span className="text-xs font-medium text-fg-muted">Total</span>
+                          <span className="text-[13px] font-semibold tabular-nums text-danger">R$ {fmtBRL(todaySummary.total)}</span>
                         </div>
-                        <div className="border-t border-slate-100">
+                        <div className="border-t border-border">
                           {todaySummary?.whatsappEnabled ? (
                             <>
                               <button
@@ -380,20 +557,20 @@ export function AppLayout({
                                   }
                                 }}
                                 disabled={sending}
-                                className="flex w-full items-center justify-center gap-2 py-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 transition disabled:opacity-50"
+                                className="flex w-full items-center justify-center gap-2 py-2.5 text-xs font-medium text-accent hover:bg-primary-soft transition-colors disabled:opacity-50"
                               >
                                 {sending
                                   ? <span className="animate-pulse">Enviando...</span>
                                   : <><MessageCircle className="h-3.5 w-3.5" /> Enviar resumo por WhatsApp</>}
                               </button>
                               {sendResult && (
-                                <p className="text-center text-xs pb-2 text-slate-500">{sendResult}</p>
+                                <p className="text-center text-xs pb-2 text-fg-muted">{sendResult}</p>
                               )}
                             </>
                           ) : (
                             <a
                               href="/profile"
-                              className="flex w-full items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-400 hover:bg-slate-50 transition"
+                              className="flex w-full items-center justify-center gap-2 py-2.5 text-xs font-medium text-fg-muted hover:bg-hover transition-colors"
                             >
                               <MessageCircle className="h-3.5 w-3.5" />
                               {!todaySummary?.plan || todaySummary.plan !== 'pro'
@@ -404,7 +581,7 @@ export function AppLayout({
                         </div>
                         <a
                           href="/fixed-bills"
-                          className="flex items-center justify-center gap-2 py-3 text-xs font-semibold text-slate-500 hover:bg-slate-50 transition border-t border-slate-100"
+                          className="flex items-center justify-center gap-2 py-2.5 text-xs font-medium text-fg-2 hover:bg-hover transition-colors border-t border-border"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
                           Ver contas fixas
@@ -415,93 +592,81 @@ export function AppLayout({
                 )}
               </div>
 
-              {/* Menu Dropdown do Avatar */}
+              {/* Menu do avatar */}
               <div ref={avatarRef} className="relative">
                 <button
                   onClick={() => setAvatarOpen(v => !v)}
-                  className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-emerald-900/60 transition focus:outline-none"
+                  aria-label="Menu do usuário"
+                  className="flex items-center gap-1 rounded-full p-0.5 hover:bg-hover transition-colors"
                 >
-                  <div className="h-9 w-9 rounded-full overflow-hidden shadow-sm shrink-0">
-                    {userAvatar ? (
-                      <img src={userAvatar} alt={userName} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="h-full w-full bg-gradient-to-br from-emerald-400 to-emerald-700 text-white font-bold text-sm flex items-center justify-center">
-                        {initial}
-                      </div>
-                    )}
-                  </div>
-                  <ChevronDown className={`h-4 w-4 text-slate-400 dark:text-emerald-300/70 transition-transform ${avatarOpen ? 'rotate-180' : ''}`} />
+                  {avatar('h-8 w-8')}
+                  <ChevronDown className={cn('hidden h-3.5 w-3.5 text-fg-muted transition-transform sm:block', avatarOpen && 'rotate-180')} />
                 </button>
 
                 {avatarOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white dark:bg-emerald-950 shadow-2xl border border-slate-100 dark:border-emerald-900 z-50 py-2 text-slate-700 dark:text-emerald-100">
-                    <div className="px-4 py-2 border-b border-slate-100 dark:border-emerald-900 mb-1">
-                      <p className="text-xs text-slate-400 dark:text-emerald-400/60">Logado como</p>
-                      <p className="text-sm font-bold text-emerald-950 dark:text-white truncate">{userName}</p>
+                  <div className="absolute right-0 top-full mt-2 w-60 rounded-xl border border-border bg-card shadow-xl z-50 p-1.5">
+                    <div className="flex items-center gap-2.5 px-2.5 py-2 mb-1 border-b border-border">
+                      {avatar('h-8 w-8')}
+                      <div className="min-w-0">
+                        <p className="text-[13px] font-semibold text-fg truncate">{userName}</p>
+                        <p className="text-[11px] text-fg-muted">Logado</p>
+                      </div>
                     </div>
 
-                    <a
-                      href="/profile"
-                      onClick={() => setAvatarOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium"
-                    >
-                      <UserCircle className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+                    <a href="/profile" onClick={() => setAvatarOpen(false)} className={menuItem}>
+                      <UserCircle className="h-4 w-4 text-fg-muted" strokeWidth={1.75} />
                       Meu Perfil / Configurações
                     </a>
 
+                    <a href="/notificacoes" onClick={() => setAvatarOpen(false)} className={menuItem}>
+                      <BellRing className="h-4 w-4 text-fg-muted" strokeWidth={1.75} />
+                      Notificações
+                    </a>
+
                     {isAdmin && (
-                      <a
-                        href="/admin"
-                        onClick={() => setAvatarOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium text-amber-600 dark:text-amber-400"
-                      >
-                        <Shield className="h-4 w-4" />
+                      <a href="/admin" onClick={() => setAvatarOpen(false)} className={cn(menuItem, 'text-warning hover:text-warning')}>
+                        <Shield className="h-4 w-4" strokeWidth={1.75} />
                         Painel Admin
                       </a>
                     )}
 
-                    <a
-                      href="/ajuda"
-                      onClick={() => setAvatarOpen(false)}
-                      className="flex items-center gap-2 px-4 py-2.5 text-sm hover:bg-slate-50 dark:hover:bg-emerald-900/40 transition font-medium"
-                    >
-                      <HelpCircle className="h-4 w-4 text-slate-400 dark:text-emerald-400/70" />
+                    <a href="/ajuda" onClick={() => setAvatarOpen(false)} className={menuItem}>
+                      <HelpCircle className="h-4 w-4 text-fg-muted" strokeWidth={1.75} />
                       Ajuda / Guia do usuário
                     </a>
 
                     <TourMenuButton onNavigate={() => setAvatarOpen(false)} />
 
-                    <div className="border-t border-slate-100 dark:border-emerald-900 my-1" />
+                    <div className="border-t border-border my-1" />
 
                     <button
                       onClick={() => {
                         setAvatarOpen(false);
                         handleLogout();
                       }}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-sm hover:bg-red-50 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 font-semibold text-left transition"
+                      className={cn(menuItem, 'text-danger hover:bg-danger-soft hover:text-danger')}
                     >
-                      <LogOut className="h-4 w-4" />
+                      <LogOut className="h-4 w-4" strokeWidth={1.75} />
                       Sair da conta
                     </button>
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         </header>
 
-        {/* Área de Conteúdo */}
-        <div className={noPadding ? 'flex-1 overflow-hidden min-w-0' : 'flex-1 overflow-y-auto p-6 lg:p-8 scrollbar-thin'}>
+        {/* Conteúdo */}
+        <div className={noPadding ? 'flex-1 overflow-hidden min-w-0' : 'flex-1 overflow-y-auto p-4 md:p-6'}>
           {children}
         </div>
       </main>
 
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-overlay backdrop-blur-[2px] md:hidden"
+          onClick={() => setMobileOpen(false)}
         />
       )}
     </div>

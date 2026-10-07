@@ -6,7 +6,7 @@ import {
   Shield, Users, Zap, Check, X, Loader2,
   ToggleLeft, ToggleRight, Hash, Crown, GraduationCap,
   CreditCard, RefreshCw, Plus, Archive, ArchiveRestore,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { GuidedToursAdmin } from '@/components/admin/guided-tours-admin';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -68,10 +68,10 @@ function formatCents(cents: number | null, currency: string): string {
 const INTERVAL_LABEL: Record<string, string> = { month: '/mês', year: '/ano' };
 
 const PLAN_COLORS: Record<string, string> = {
-  free: 'bg-slate-100 text-slate-600',
-  basico: 'bg-blue-100 text-blue-700',
-  intermediario: 'bg-emerald-100 text-emerald-700',
-  pro: 'bg-amber-100 text-amber-700',
+  free: 'bg-surface-2 text-fg-2',
+  basico: 'bg-info-soft text-info',
+  intermediario: 'bg-primary-soft text-accent',
+  pro: 'bg-warning-soft text-warning',
 };
 
 export default function AdminPage() {
@@ -257,9 +257,9 @@ export default function AdminPage() {
     return (
       <AppLayout title="Acesso negado">
         <div className="flex flex-col items-center justify-center gap-4 py-32 text-center">
-          <Shield className="h-16 w-16 text-red-300" />
-          <p className="text-xl font-bold text-slate-700 dark:text-zinc-200">Acesso restrito</p>
-          <p className="text-sm text-slate-400 dark:text-zinc-500">Esta área é exclusiva para administradores do sistema.</p>
+          <Shield className="h-16 w-16 text-danger" />
+          <p className="text-xl font-semibold text-fg-2 dark:text-fg">Acesso restrito</p>
+          <p className="text-sm text-fg-muted">Esta área é exclusiva para administradores do sistema.</p>
         </div>
       </AppLayout>
     );
@@ -275,28 +275,28 @@ export default function AdminPage() {
         <button
           onClick={() => setTab('plans')}
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition
-            ${tab === 'plans' ? 'bg-emerald-950 text-white' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-emerald-300'}`}
+ ${tab === 'plans' ? 'bg-primary text-on-primary' : 'bg-card border border-border text-fg-2 hover:border-primary-border'}`}
         >
           <Zap className="h-4 w-4" /> Funcionalidades por Plano
         </button>
         <button
           onClick={() => setTab('users')}
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition
-            ${tab === 'users' ? 'bg-emerald-950 text-white' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-emerald-300'}`}
+ ${tab === 'users' ? 'bg-primary text-on-primary' : 'bg-card border border-border text-fg-2 hover:border-primary-border'}`}
         >
           <Users className="h-4 w-4" /> Usuários
         </button>
         <button
           onClick={() => setTab('guides')}
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition
-            ${tab === 'guides' ? 'bg-emerald-950 text-white' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-emerald-300'}`}
+ ${tab === 'guides' ? 'bg-primary text-on-primary' : 'bg-card border border-border text-fg-2 hover:border-primary-border'}`}
         >
           <GraduationCap className="h-4 w-4" /> Guias
         </button>
         <button
           onClick={() => setTab('stripe')}
           className={`flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition
-            ${tab === 'stripe' ? 'bg-emerald-950 text-white' : 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-emerald-300'}`}
+ ${tab === 'stripe' ? 'bg-primary text-on-primary' : 'bg-card border border-border text-fg-2 hover:border-primary-border'}`}
         >
           <CreditCard className="h-4 w-4" /> Produtos Stripe
         </button>
@@ -304,15 +304,15 @@ export default function AdminPage() {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
         </div>
       ) : tab === 'plans' ? (
         /* ── Plan Features Matrix ─────────────────────────────────── */
-        <div className="rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-lg overflow-hidden">
+        <div className="rounded-2xl bg-card border border-border shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-emerald-950 text-white">
+                <tr className="bg-primary text-on-primary">
                   <th className="px-6 py-4 text-left font-semibold w-56">Funcionalidade</th>
                   {PLANS.map(p => (
                     <th key={p} className="px-4 py-4 text-center font-semibold capitalize min-w-[130px]">
@@ -325,29 +325,29 @@ export default function AdminPage() {
                 {featureKeys.map((fk, i) => {
                   const anyFeature = features.find(f => f.featureKey === fk);
                   return (
-                    <tr key={fk} className={i % 2 === 0 ? 'bg-white dark:bg-zinc-900' : 'bg-slate-50 dark:bg-zinc-800/40'}>
+                    <tr key={fk} className={i % 2 === 0 ? 'bg-card' : 'bg-surface-2'}>
                       <td className="px-6 py-4">
-                        <p className="font-semibold text-slate-800 dark:text-zinc-100">{anyFeature?.label ?? fk}</p>
+                        <p className="font-semibold text-fg">{anyFeature?.label ?? fk}</p>
                         {anyFeature?.description && (
-                          <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{anyFeature.description}</p>
+                          <p className="text-xs text-fg-muted mt-0.5">{anyFeature.description}</p>
                         )}
                       </td>
                       {PLANS.map(plan => {
                         const f = features.find(x => x.plan === plan && x.featureKey === fk);
                         const key = `${plan}:${fk}`;
                         const isSaving = saving === key || saving === `${key}:num`;
-                        if (!f) return <td key={plan} className="px-4 py-4 text-center text-slate-200 dark:text-zinc-700">—</td>;
+                        if (!f) return <td key={plan} className="px-4 py-4 text-center text-fg-disabled">—</td>;
                         return (
                           <td key={plan} className="px-4 py-4 text-center">
                             <div className="flex flex-col items-center gap-2">
                               <button
                                 onClick={() => toggleFeature(plan, fk, f.enabled)}
                                 disabled={!!isSaving}
-                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition
-                                  ${f.enabled
-                                    ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'
-                                    : 'bg-red-50 text-red-500 hover:bg-red-100'}
-                                  disabled:opacity-50`}
+                                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition
+ ${f.enabled
+                                    ? 'bg-primary-soft text-accent hover:bg-primary-soft'
+                                    : 'bg-danger-soft text-danger hover:bg-danger-soft'}
+ disabled:opacity-50`}
                               >
                                 {isSaving && saving === key
                                   ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -358,7 +358,7 @@ export default function AdminPage() {
                               {/* Numeric limit input */}
                               {(fk === 'trial_days' || fk === 'max_categories' || fk === 'max_cards') && f.enabled && (
                                 <div className="flex items-center gap-1">
-                                  <Hash className="h-3 w-3 text-slate-400 dark:text-zinc-500" />
+                                  <Hash className="h-3 w-3 text-fg-muted" />
                                   <input
                                     type="number"
                                     min={1}
@@ -369,7 +369,7 @@ export default function AdminPage() {
                                         updateNumValue(plan, fk, v);
                                       }
                                     }}
-                                    className="w-14 rounded border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-2 py-1 text-xs text-center focus:outline-none focus:border-emerald-400"
+                                    className="w-14 rounded border border-border bg-white dark:bg-surface-2 text-fg px-2 py-1 text-xs text-center focus:outline-none focus:border-primary"
                                   />
                                 </div>
                               )}
@@ -383,8 +383,8 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-slate-50 dark:bg-zinc-800/60 border-t border-slate-100 dark:border-zinc-700">
-            <p className="text-xs text-slate-400 dark:text-zinc-500">Clique em Ativo/Inativo para alternar. Para limites numéricos, edite o valor e clique fora para salvar.</p>
+          <div className="px-6 py-3 bg-surface-2 border-t border-border">
+            <p className="text-xs text-fg-muted">Clique em Ativo/Inativo para alternar. Para limites numéricos, edite o valor e clique fora para salvar.</p>
           </div>
         </div>
       ) : tab === 'guides' ? (
@@ -392,21 +392,21 @@ export default function AdminPage() {
       ) : tab === 'stripe' ? (
         /* ── Stripe Products ──────────────────────────────────────── */
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-lg px-6 py-4">
-            <p className="text-sm text-slate-500 dark:text-zinc-400">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-card border border-border shadow-lg px-6 py-4">
+            <p className="text-sm text-fg-muted dark:text-fg-2">
               Sincronize os planos DCash como Produtos/Preços no Stripe, ou crie um produto avulso.
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowNewProduct(v => !v)}
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold border border-slate-200 dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-emerald-300 transition"
+                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold border border-border text-fg-2 hover:border-primary-border transition"
               >
                 <Plus className="h-4 w-4" /> Novo produto
               </button>
               <button
                 onClick={syncStripePlans}
                 disabled={syncing}
-                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold bg-emerald-950 text-white hover:bg-emerald-900 transition disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold bg-primary text-on-primary hover:bg-primary-hover transition disabled:opacity-50"
               >
                 {syncing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
                 Sincronizar planos DCash
@@ -415,22 +415,22 @@ export default function AdminPage() {
           </div>
 
           {showNewProduct && (
-            <div className="rounded-[24px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-lg px-6 py-5">
-              <p className="text-sm font-bold text-slate-700 dark:text-zinc-200 mb-3">Novo produto</p>
+            <div className="rounded-2xl bg-card border border-border shadow-lg px-6 py-5">
+              <p className="text-sm font-semibold text-fg-2 dark:text-fg mb-3">Novo produto</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <input
                   type="text"
                   placeholder="Nome"
                   value={newProduct.name}
                   onChange={e => setNewProduct(p => ({ ...p, name: e.target.value }))}
-                  className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="rounded-lg border border-border bg-card dark:bg-surface-2 text-fg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 />
                 <input
                   type="text"
                   placeholder="Descrição (opcional)"
                   value={newProduct.description}
                   onChange={e => setNewProduct(p => ({ ...p, description: e.target.value }))}
-                  className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="rounded-lg border border-border bg-card dark:bg-surface-2 text-fg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 />
                 <input
                   type="number"
@@ -439,12 +439,12 @@ export default function AdminPage() {
                   placeholder="Preço (R$, opcional)"
                   value={newProduct.amount}
                   onChange={e => setNewProduct(p => ({ ...p, amount: e.target.value }))}
-                  className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="rounded-lg border border-border bg-card dark:bg-surface-2 text-fg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 />
                 <select
                   value={newProduct.interval}
                   onChange={e => setNewProduct(p => ({ ...p, interval: e.target.value as 'month' | 'year' | '' }))}
-                  className="rounded-lg border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-zinc-100 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="rounded-lg border border-border bg-card dark:bg-surface-2 text-fg px-3 py-2 text-sm focus:outline-none focus:border-primary"
                 >
                   <option value="month">Recorrente mensal</option>
                   <option value="year">Recorrente anual</option>
@@ -455,7 +455,7 @@ export default function AdminPage() {
                 <button
                   onClick={createStripeProduct}
                   disabled={creatingProduct || !newProduct.name.trim()}
-                  className="flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold bg-emerald-950 text-white hover:bg-emerald-900 transition disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-xl px-5 py-2 text-sm font-semibold bg-primary text-on-primary hover:bg-primary-hover transition disabled:opacity-50"
                 >
                   {creatingProduct && <Loader2 className="h-4 w-4 animate-spin" />}
                   Criar produto
@@ -464,21 +464,21 @@ export default function AdminPage() {
             </div>
           )}
 
-          <div className="rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-lg overflow-hidden">
+          <div className="rounded-2xl bg-card border border-border shadow-lg overflow-hidden">
             {stripeLoading ? (
               <div className="flex items-center justify-center py-32">
-                <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
               </div>
             ) : stripeProducts.length === 0 ? (
               <div className="flex flex-col items-center justify-center gap-2 py-20 text-center">
-                <CreditCard className="h-10 w-10 text-slate-300 dark:text-zinc-600" />
-                <p className="text-sm text-slate-400 dark:text-zinc-500">Nenhum produto no Stripe ainda. Clique em "Sincronizar planos DCash" para criar.</p>
+                <CreditCard className="h-10 w-10 text-fg-disabled dark:text-fg-muted" />
+                <p className="text-sm text-fg-muted">Nenhum produto no Stripe ainda. Clique em "Sincronizar planos DCash" para criar.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-emerald-950 text-white">
+                    <tr className="bg-primary text-on-primary">
                       <th className="px-6 py-4 text-left font-semibold">Produto</th>
                       <th className="px-4 py-4 text-left font-semibold">Preços</th>
                       <th className="px-4 py-4 text-center font-semibold">Status</th>
@@ -487,28 +487,28 @@ export default function AdminPage() {
                   </thead>
                   <tbody>
                     {stripeProducts.map((p, i) => (
-                      <tr key={p.id} className={i % 2 === 0 ? 'bg-white dark:bg-zinc-900' : 'bg-slate-50 dark:bg-zinc-800/40'}>
+                      <tr key={p.id} className={i % 2 === 0 ? 'bg-card' : 'bg-surface-2'}>
                         <td className="px-6 py-4">
-                          <p className="font-semibold text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+                          <p className="font-semibold text-fg flex items-center gap-1.5">
                             {p.name}
                             {p.metadata?.plan_key && (
-                              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-100 text-emerald-700 capitalize">
+                              <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold bg-primary-soft text-accent capitalize">
                                 {p.metadata.plan_key}
                               </span>
                             )}
                           </p>
-                          {p.description && <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{p.description}</p>}
-                          <p className="text-[11px] text-slate-300 dark:text-zinc-600 mt-0.5">{p.id}</p>
+                          {p.description && <p className="text-xs text-fg-muted mt-0.5">{p.description}</p>}
+                          <p className="text-[11px] text-fg-disabled dark:text-fg-muted mt-0.5">{p.id}</p>
                         </td>
                         <td className="px-4 py-4">
                           {p.prices.length === 0 ? (
-                            <span className="text-xs text-slate-300 dark:text-zinc-600">—</span>
+                            <span className="text-xs text-fg-disabled dark:text-fg-muted">—</span>
                           ) : (
                             <div className="flex flex-wrap gap-1.5">
                               {p.prices.map(price => (
                                 <span
                                   key={price.id}
-                                  className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${price.active ? 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300' : 'bg-slate-50 dark:bg-zinc-800/50 text-slate-300 dark:text-zinc-600 line-through'}`}
+                                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${price.active ? 'bg-surface-2 text-fg-2' : 'bg-surface-2 text-fg-disabled dark:text-fg-muted line-through'}`}
                                 >
                                   {formatCents(price.unitAmount, price.currency)}
                                   {price.interval && INTERVAL_LABEL[price.interval]}
@@ -518,7 +518,7 @@ export default function AdminPage() {
                           )}
                         </td>
                         <td className="px-4 py-4 text-center">
-                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${p.active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-50 text-red-500'}`}>
+                          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${p.active ? 'bg-primary-soft text-accent' : 'bg-danger-soft text-danger'}`}>
                             {p.active ? 'Ativo' : 'Arquivado'}
                           </span>
                         </td>
@@ -526,7 +526,7 @@ export default function AdminPage() {
                           <button
                             onClick={() => toggleProductActive(p)}
                             disabled={archiving === p.id}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-emerald-300 hover:text-emerald-700 dark:hover:text-emerald-400 transition disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold border border-border text-fg-muted dark:text-fg-2 hover:border-primary-border hover:text-accent transition disabled:opacity-50"
                             title={p.active ? 'Arquivar produto' : 'Reativar produto'}
                           >
                             {archiving === p.id
@@ -544,11 +544,11 @@ export default function AdminPage() {
         </div>
       ) : (
         /* ── Users Table ──────────────────────────────────────────── */
-        <div className="rounded-[32px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 shadow-lg overflow-hidden">
+        <div className="rounded-2xl bg-card border border-border shadow-lg overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-emerald-950 text-white">
+                <tr className="bg-primary text-on-primary">
                   <th className="px-6 py-4 text-left font-semibold">Usuário</th>
                   <th className="px-4 py-4 text-left font-semibold">Plano próprio</th>
                   <th className="px-4 py-4 text-left font-semibold">Família</th>
@@ -558,36 +558,36 @@ export default function AdminPage() {
               </thead>
               <tbody>
                 {users.map((u, i) => (
-                  <tr key={u.id} className={i % 2 === 0 ? 'bg-white dark:bg-zinc-900' : 'bg-slate-50 dark:bg-zinc-800/40'}>
+                  <tr key={u.id} className={i % 2 === 0 ? 'bg-card' : 'bg-surface-2'}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-bold text-sm shrink-0">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-soft text-accent font-semibold text-sm shrink-0">
                           {u.name.charAt(0).toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-semibold text-slate-800 dark:text-zinc-100 flex items-center gap-1.5">
+                          <p className="font-semibold text-fg flex items-center gap-1.5">
                             {u.name}
-                            {u.isAdmin && <Crown className="h-3.5 w-3.5 text-amber-500" />}
+                            {u.isAdmin && <Crown className="h-3.5 w-3.5 text-warning" />}
                           </p>
-                          <p className="text-xs text-slate-400 dark:text-zinc-500">{u.email}</p>
+                          <p className="text-xs text-fg-muted">{u.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold capitalize ${PLAN_COLORS[u.plan?.toLowerCase()] ?? PLAN_COLORS.free}`}>
+                      <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${PLAN_COLORS[u.plan?.toLowerCase()] ?? PLAN_COLORS.free}`}>
                         {u.plan?.toLowerCase() ?? 'free'}
                       </span>
                       {u.familyOwnerPlan && u.familyOwnerPlan !== u.plan && (
-                        <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">
-                          Efetivo: <span className="font-bold capitalize">{u.familyOwnerPlan}</span>
+                        <p className="text-xs text-accent mt-0.5">
+                          Efetivo: <span className="font-semibold capitalize">{u.familyOwnerPlan}</span>
                         </p>
                       )}
                     </td>
                     <td className="px-4 py-4">
                       {u.familyGroupName ? (
-                        <p className="text-xs text-slate-600 dark:text-zinc-400">{u.familyGroupName}</p>
+                        <p className="text-xs text-fg-2">{u.familyGroupName}</p>
                       ) : (
-                        <span className="text-xs text-slate-300 dark:text-zinc-600">—</span>
+                        <span className="text-xs text-fg-disabled dark:text-fg-muted">—</span>
                       )}
                     </td>
                     <td className="px-4 py-4 text-center">
@@ -595,8 +595,8 @@ export default function AdminPage() {
                         onClick={() => toggleAdmin(u.id, u.isAdmin)}
                         disabled={userSaving === u.id + ':admin'}
                         className={`rounded-lg p-1.5 transition
-                          ${u.isAdmin ? 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/30' : 'text-slate-300 dark:text-zinc-600 hover:bg-slate-100 dark:hover:bg-zinc-800'}
-                          disabled:opacity-50`}
+ ${u.isAdmin ? 'text-warning hover:bg-warning-soft' : 'text-fg-disabled dark:text-fg-muted hover:bg-hover'}
+ disabled:opacity-50`}
                         title={u.isAdmin ? 'Remover admin' : 'Tornar admin'}
                       >
                         {userSaving === u.id + ':admin'
@@ -611,11 +611,11 @@ export default function AdminPage() {
                             key={p}
                             onClick={() => updateUserPlan(u.id, p)}
                             disabled={userSaving === u.id || u.plan?.toLowerCase() === p}
-                            className={`rounded-lg px-2.5 py-1 text-xs font-bold transition capitalize
-                              ${u.plan?.toLowerCase() === p
-                                ? `${PLAN_COLORS[p]} cursor-default`
-                                : 'border border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400 hover:border-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-400'}
-                              disabled:opacity-60`}
+                            className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition capitalize
+ ${u.plan?.toLowerCase() === p
+ ? `${PLAN_COLORS[p]} cursor-default`
+ : 'border border-border text-fg-muted dark:text-fg-2 hover:border-primary hover:text-accent '}
+ disabled:opacity-60`}
                           >
                             {userSaving === u.id
                               ? <Loader2 className="h-3 w-3 animate-spin" />
@@ -629,8 +629,8 @@ export default function AdminPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-slate-50 dark:bg-zinc-800/60 border-t border-slate-100 dark:border-zinc-700">
-            <p className="text-xs text-slate-400 dark:text-zinc-500">{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}.</p>
+          <div className="px-6 py-3 bg-surface-2 border-t border-border">
+            <p className="text-xs text-fg-muted">{users.length} usuário{users.length !== 1 ? 's' : ''} cadastrado{users.length !== 1 ? 's' : ''}.</p>
           </div>
         </div>
       )}

@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 
@@ -23,7 +28,8 @@ export class FamilyService {
   constructor(private readonly db: DatabaseService) {}
 
   private generateInviteCode(): string {
-    return 'DCASH-' + randomBytes(3).toString('hex').toUpperCase();
+    // 5 bytes = ~1 trillion combinations (old 6-char codes keep working)
+    return 'DCASH-' + randomBytes(5).toString('hex').toUpperCase();
   }
 
   async createGroup(userId: string) {
@@ -118,21 +124,25 @@ export class FamilyService {
 
   async renameGroup(userId: string, name: string) {
     const trimmed = name.trim();
-    if (!trimmed) throw new BadRequestException('Informe um nome para o grupo.');
+    if (!trimmed)
+      throw new BadRequestException('Informe um nome para o grupo.');
 
     const user = await this.db.query(
       `SELECT family_group_id FROM ${SCHEMA}.users WHERE id = $1`,
       [userId],
     );
     const groupId = user[0]?.family_group_id;
-    if (!groupId) throw new NotFoundException('Você não pertence a um grupo familiar.');
+    if (!groupId)
+      throw new NotFoundException('Você não pertence a um grupo familiar.');
 
     const [group] = await this.db.query(
       `SELECT owner_id AS "ownerId" FROM ${SCHEMA}.family_groups WHERE id = $1`,
       [groupId],
     );
     if (group?.ownerId !== userId) {
-      throw new ForbiddenException('Apenas quem criou o grupo pode renomeá-lo.');
+      throw new ForbiddenException(
+        'Apenas quem criou o grupo pode renomeá-lo.',
+      );
     }
 
     await this.db.query(

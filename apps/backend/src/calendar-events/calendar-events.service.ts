@@ -40,6 +40,7 @@ export class CalendarEventsService {
            ce.all_day         AS "allDay",
            ce.notify_whatsapp AS "notifyWhatsapp",
            ce.notify_days_before AS "notifyDaysBefore",
+           ce.participant_ids AS "participantIds",
            ce.google_event_id AS "googleEventId"
          FROM db_dtasc.calendar_event ce
          WHERE ce.start_date >= $1 AND ce.start_date <= $2
@@ -96,7 +97,11 @@ export class CalendarEventsService {
     return res[0];
   }
 
-  async update(id: string, userId: string, dto: Partial<CreateCalendarEventDto>) {
+  async update(
+    id: string,
+    userId: string,
+    dto: Partial<CreateCalendarEventDto>,
+  ) {
     // $1–$8 SET params, $9 = id, $10 = scope.param
     const scope = await this.getScope(userId, 10);
     const res = await this.db.query(
@@ -126,7 +131,7 @@ export class CalendarEventsService {
         dto.color ?? null,
         dto.allDay ?? null,
         dto.notifyWhatsapp ?? null,
-        id,          // $9
+        id, // $9
         scope.param, // $10
       ],
     );

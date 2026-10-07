@@ -98,7 +98,8 @@ export class WishlistService {
         scope.param,
       ],
     );
-    if (!result.length) throw new NotFoundException('Item não encontrado ou sem permissão.');
+    if (!result.length)
+      throw new NotFoundException('Item não encontrado ou sem permissão.');
     return result[0];
   }
 
@@ -115,6 +116,11 @@ export class WishlistService {
 
   async addPrice(wishlistId: string, userId: string, dto: CreatePriceDto) {
     const scope = await this.getScope(userId);
+    const own = await this.db.query(
+      `SELECT 1 FROM db_dtasc.wishlist WHERE id = $2 AND ${scope.filter}`,
+      [scope.param, wishlistId],
+    );
+    if (!own.length) throw new NotFoundException('Desejo não encontrado.');
     const result = await this.db.query(
       `INSERT INTO db_dtasc.price_hunting
          (wishlist_id, store, cash_price, installment_price, installments,
@@ -142,10 +148,11 @@ export class WishlistService {
     return result[0];
   }
 
-  async removePrice(priceId: string) {
+  async removePrice(priceId: string, userId: string) {
+    const scope = await this.getScope(userId);
     const result = await this.db.query(
-      'DELETE FROM db_dtasc.price_hunting WHERE id = $1 RETURNING id',
-      [priceId],
+      `DELETE FROM db_dtasc.price_hunting WHERE id = $2 AND ${scope.filter} RETURNING id`,
+      [scope.param, priceId],
     );
     if (!result.length) throw new NotFoundException('Cotação não encontrada.');
     return { success: true };
@@ -191,5 +198,38 @@ export class WishlistService {
     });
 
     return { results };
+  }
+
+  /** Reference pictures for a wish (Google Images via SerpAPI). */
+  async searchImages(query: string) {
+    const apiKey = this.config.get<string>('SERPAPI_KEY');
+    if (!apiKey) return { noKey: true, images: [] };
+    if (!query.trim()) return { images: [] };
+
+    const url = new URL('https://serpapi.com/search.json');
+    url.searchParams.set('engine', 'google_images');
+    url.searchParams.set('q', query.trim());
+    url.searchParams.set('hl', 'pt');
+    url.searchParams.set('gl', 'br');
+    url.searchParams.set('api_key', apiKey);
+
+    const res = await fetch(url.toString());
+    if (!res.ok) return { images: [] };
+
+    const data = await res.json();
+    const images = (data.images_results ?? [])
+      .filter((img: any) => img.thumbnail)
+      .slice(0, 18)
+      .map((img: any) => ({
+        id: String(img.position ?? Math.random()),
+        thumbnail: img.thumbnail as string,
+        original: (img.original as string) ?? img.thumbnail,
+        title: img.title ?? '',
+        source: img.source ?? '',
+        width: img.original_width ?? null,
+        height: img.original_height ?? null,
+      }));
+
+    return { images };
   }
 }

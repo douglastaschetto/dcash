@@ -1,6 +1,15 @@
 import {
-  Controller, Get, Post, Patch, Delete,
-  Body, Param, Query, Request, UseGuards, UnauthorizedException,
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  Query,
+  Request,
+  UseGuards,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { CalendarEventsService } from './calendar-events.service';
 import { CreateCalendarEventDto } from './dto/create-calendar-event.dto';

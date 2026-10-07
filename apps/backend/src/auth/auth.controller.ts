@@ -15,7 +15,15 @@ import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { RegisterDto, LoginDto, ResetPasswordDto } from './dto/auth.dto';
+import {
+  RegisterDto,
+  LoginDto,
+  ResetPasswordDto,
+  VerifyCodeDto,
+  ResendCodeDto,
+  ForgotPasswordDto,
+  OAuthExchangeDto,
+} from './dto/auth.dto';
 
 /** Tighter than the app-wide default — these are the brute-force targets. */
 const AUTH_THROTTLE = { default: { limit: 8, ttl: 60_000 } };
@@ -30,7 +38,7 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async register(@Body() data: RegisterDto) {
     return this.authService.register(data);
-    // Retorna: { user, token, firstLogin: true }
+    // Retorna: { requiresCode, purpose: 'verify_email', email, challenge }
   }
 
   // ── Login JWT ─────────────────────────────────────────────────────────────
@@ -40,7 +48,23 @@ export class AuthController {
   @Throttle(AUTH_THROTTLE)
   async login(@Body() data: LoginDto) {
     return this.authService.login(data);
-    // Retorna: { user, token, firstLogin }
+    // Retorna { user, token } (dispositivo confiável) ou { requiresCode, challenge, ... }
+  }
+
+  // ── Segundo fator (código por e-mail) ─────────────────────────────────────
+
+  @Post('verify-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  async verifyCode(@Body() data: VerifyCodeDto, @Request() req: any) {
+    return this.authService.verifyCode(data, req.headers?.['user-agent']);
+  }
+
+  @Post('resend-code')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 4, ttl: 60_000 } })
+  async resendCode(@Body() data: ResendCodeDto) {
+    return this.authService.resendCode(data.challenge);
   }
 
   // ── Login Social (Google) ─────────────────────────────────────────────────
@@ -54,17 +78,17 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Request() req: any, @Res() res: Response) {
-    const result = await this.authService.loginSocial(req.user);
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // Only a single-use code travels in the URL; the token is fetched by POST.
+    const code = await this.authService.googleRedirectCode(req.user);
+    return res.redirect(`${frontendUrl}/auth-success?code=${code}`);
+  }
 
-    const params = new URLSearchParams({
-      token: result.token,
-      firstLogin: String(result.firstLogin),
-      name: result.user.name,
-      email: result.user.email,
-    });
-
-    return res.redirect(`${frontendUrl}/auth-success?${params.toString()}`);
+  @Post('oauth-exchange')
+  @HttpCode(HttpStatus.OK)
+  @Throttle(AUTH_THROTTLE)
+  async oauthExchange(@Body() data: OAuthExchangeDto) {
+    return this.authService.exchangeOAuthCode(data.code);
   }
 
   // ── Recuperação de senha ──────────────────────────────────────────────────
@@ -72,17 +96,15 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   @Throttle(AUTH_THROTTLE)
-  async forgotPassword(@Body('email') email: string) {
-    await this.authService.forgotPassword(email);
-    return { success: true };
+  async forgotPassword(@Body() data: ForgotPasswordDto) {
+    return this.authService.forgotPassword(data.email);
   }
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   @Throttle(AUTH_THROTTLE)
   async resetPassword(@Body() data: ResetPasswordDto) {
-    await this.authService.resetPassword(data.token, data.password);
-    return { success: true };
+    return this.authService.resetPassword(data);
   }
 
   // ── Perfil autenticado ────────────────────────────────────────────────────
@@ -116,11 +138,5 @@ export class AuthController {
     return this.authService.updateTheme(req.user.id, body.theme);
   }
 
-  // ── Plano ─────────────────────────────────────────────────────────────────
-
-  @UseGuards(JwtAuthGuard)
-  @Patch('plan')
-  async updatePlan(@Request() req: any, @Body() body: { plan: string }) {
-    return this.authService.updatePlan(req.user.id, body.plan);
-  }
+  // Plano: só muda via pagamento confirmado (webhook) ou pelo admin — nunca pelo próprio usuário.
 }

@@ -29,6 +29,7 @@ import { TransactionsModule } from './transactions/transactions.module';
 import { InvestmentsModule } from './investments/investments.module';
 import { SupportAiModule } from './support-ai/support-ai.module';
 import { GuidedToursModule } from './guided-tours/guided-tours.module';
+import { DcaosModule } from './dcaos/dcaos.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { GuidedToursModule } from './guided-tours/guided-tours.module';
     InvestmentsModule,
     SupportAiModule,
     GuidedToursModule,
+    DcaosModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -1,7 +1,7 @@
 'use client';
 
 import { usePlan, FeatureKey } from '@/hooks/usePlan';
-import { Zap } from 'lucide-react';
+import { Zap } from '@/components/ui/icons';
 
 interface PlanGateProps {
   feature: FeatureKey;
@@ -32,17 +32,17 @@ export function PlanGate({ feature, children, fallback, showUpgradePrompt = true
   if (!showUpgradePrompt) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
-        <Zap className="h-6 w-6 text-amber-500" />
+    <div className="m-4 md:m-6 flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border-hover bg-card px-6 py-12 text-center">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary-border bg-primary-soft">
+        <Zap className="h-5 w-5 text-accent" strokeWidth={1.75} />
       </div>
       <div>
-        <p className="text-sm font-bold text-slate-700">Recurso disponível no plano {PLAN_LABELS[feature] ?? 'superior'}</p>
-        <p className="text-xs text-slate-400 mt-1">Faça upgrade para desbloquear este módulo.</p>
+        <p className="text-sm font-semibold text-fg">Recurso disponível no plano {PLAN_LABELS[feature] ?? 'superior'}</p>
+        <p className="text-xs text-fg-muted mt-1">Faça upgrade para desbloquear este módulo.</p>
       </div>
       <a
         href="/profile"
-        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-950 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800 transition"
+        className="mt-1 inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-medium text-on-primary hover:bg-primary-hover transition-colors"
       >
         <Zap className="h-3.5 w-3.5" /> Ver planos
       </a>

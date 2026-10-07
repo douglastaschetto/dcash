@@ -14,40 +14,35 @@ export function CategoryBar({
   const plannedPct = planned != null && total > 0 ? Math.min(100, (planned / total) * 100) : null;
 
   return (
-    <div className="flex items-center gap-2.5">
-      <span className={cn(
-        'w-5 text-[10px] font-black text-center shrink-0',
-        rank === 1 ? 'text-amber-500' : rank === 2 ? 'text-zinc-500' : rank === 3 ? 'text-orange-400' : 'text-zinc-400',
-      )}>
-        {rank}º
-      </span>
-      <div className="w-28 text-[10px] font-bold text-zinc-700 dark:text-zinc-300 truncate">{name}</div>
-      <div className="flex-1 relative h-4 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-visible flex">
+    <div className="grid grid-cols-[1.25rem_minmax(0,7rem)_1fr_auto] sm:grid-cols-[1.25rem_minmax(0,9rem)_1fr_2.5rem_7rem] items-center gap-3">
+      <span className="text-xs tabular-nums text-fg-muted text-right">{rank}</span>
+      <div className="text-[13px] font-medium text-fg-2 truncate">{name}</div>
+      <div className="relative h-2 rounded-full bg-track flex gap-[2px]">
         {segments.map((seg) => {
           const segPct = total > 0 ? (seg.amount / total) * 100 : 0;
           if (segPct <= 0) return null;
           return (
             <div key={seg.id}
               className="h-full first:rounded-l-full last:rounded-r-full transition-all duration-700"
-              style={{ width: `${Math.max(segPct, 1)}%`, backgroundColor: seg.color }}
+              style={{ width: `${Math.max(segPct, 1)}%`, backgroundColor: overBudget && segments.length === 1 ? 'var(--danger)' : seg.color }}
               title={`${seg.name}: R$ ${fmtBRL(seg.amount)}`} />
           );
         })}
         {plannedPct !== null && (
-          <div className="absolute top-[-3px] h-[calc(100%+6px)] w-0.5 rounded-full bg-zinc-400 dark:bg-zinc-300 opacity-70"
+          <div className="absolute -top-1 h-4 w-0.5 rounded-full bg-fg-muted"
             style={{ left: `${plannedPct}%` }}
             title={`Planejado: R$ ${fmtBRL(planned!)}`} />
         )}
       </div>
-      <span className="w-9 text-[10px] font-black text-zinc-500 dark:text-zinc-400 text-right shrink-0">{pctDisplay}%</span>
-      <div className="w-28 flex flex-col items-end shrink-0">
-        <span className={cn('text-[11px] font-black leading-tight', overBudget ? 'text-red-600' : 'text-zinc-800 dark:text-zinc-200')}>
+      <span className="hidden sm:block text-xs tabular-nums text-fg-muted text-right">{pctDisplay}%</span>
+      <div className="flex flex-col items-end">
+        <span className={cn('text-[13px] font-semibold tabular-nums leading-tight whitespace-nowrap', overBudget ? 'text-danger' : 'text-fg')}>
           R$ {fmtBRL(amount)}
         </span>
         {planned != null && (
           overBudget
-            ? <span className="text-[8px] font-black text-red-500 leading-tight">⚠ +R$ {fmtBRL(amount - planned)}</span>
-            : <span className="text-[8px] font-black text-zinc-400 leading-tight">/ R$ {fmtBRL(planned)}</span>
+            ? <span className="text-[11px] tabular-nums text-danger leading-tight">+R$ {fmtBRL(amount - planned)}</span>
+            : <span className="text-[11px] tabular-nums text-fg-muted leading-tight">de R$ {fmtBRL(planned)}</span>
         )}
       </div>
     </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Receipt, Loader2, CreditCard, Landmark, CalendarDays, Info } from 'lucide-react';
+import { X, Receipt, Loader2, CreditCard, Landmark, CalendarDays, Info } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { CurrencyInput } from '@/lib/currency-input';
 import api from '@/services/api';
@@ -130,39 +130,39 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[2rem] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="w-full max-w-lg rounded-2xl bg-card dark:bg-surface shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header — color adapts to type */}
         <div
           className={cn(
             'px-5 pt-5 pb-3.5 flex items-center justify-between border-b-2 shrink-0 transition-colors',
-            isCreditCard ? 'border-purple-500/15' : 'border-orange-500/15',
+            isCreditCard ? 'border-info/20' : 'border-warning/20',
           )}
         >
           <div className="flex items-center gap-3">
             <div
               className={cn(
                 'p-2.5 rounded-xl transition-colors',
-                isCreditCard ? 'bg-purple-500/10' : 'bg-orange-500/10',
+                isCreditCard ? 'bg-info-soft' : 'bg-warning-soft',
               )}
             >
               {isCreditCard
-                ? <CreditCard size={20} className="text-purple-500" />
-                : <Receipt size={20} className="text-orange-500" />}
+                ? <CreditCard size={20} className="text-info" />
+                : <Receipt size={20} className="text-warning" />}
             </div>
             <div>
-              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.35em]">
+              <p className="text-[11px] font-semibold text-fg-muted">
                 {isEdit ? 'Editar Lançamento' : isCreditCard ? 'Vincular Cartão' : 'Nova Conta Fixa'}
               </p>
-              <h2 className="text-lg font-black uppercase italic tracking-tighter text-zinc-900 dark:text-white leading-none mt-0.5">
+              <h2 className="text-lg font-semibold tracking-tight text-fg leading-none mt-0.5">
                 {isEdit ? initialData?.title : isCreditCard ? 'Fatura Recorrente' : 'Criar Regra'}
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
+            className="p-2 rounded-xl bg-surface-2 dark:bg-card hover:bg-hover transition"
           >
             <X size={18} />
           </button>
@@ -173,7 +173,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
           {/* ── Type selector (only on create) ────────────────────── */}
           {!isEdit && (
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+              <label className="text-[11px] font-semibold text-fg-muted ml-1">
                 Tipo de Conta
               </label>
               <div className="grid grid-cols-2 gap-2">
@@ -188,15 +188,15 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                     className={cn(
                       'py-2.5 px-3 rounded-xl border-2 flex flex-col items-start gap-1 transition-all text-left',
                       payType === t.id && t.color === 'orange'
-                        ? 'border-orange-500 bg-orange-500/5 text-orange-500'
+                        ? 'border-warning bg-warning-soft text-warning'
                         : payType === t.id && t.color === 'purple'
-                          ? 'border-purple-500 bg-purple-500/5 text-purple-500'
-                          : 'border-zinc-100 dark:border-zinc-900 text-zinc-500 hover:border-zinc-300 dark:hover:border-zinc-700',
+                          ? 'border-info bg-info-soft text-info'
+                          : 'border-border text-fg-muted hover:border-border-hover',
                     )}
                   >
                     <t.Icon size={16} />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none">{t.label}</span>
-                    <span className="text-[9px] font-medium opacity-60 leading-none">{t.sub}</span>
+                    <span className="text-[11px] font-semibold leading-none">{t.label}</span>
+                    <span className="text-[11px] font-medium opacity-60 leading-none">{t.sub}</span>
                   </button>
                 ))}
               </div>
@@ -205,7 +205,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
 
           {/* ── Description ─────────────────────────────────────────── */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+            <label className="text-[11px] font-semibold text-fg-muted ml-1">
               {isCreditCard ? 'Nome do Cartão *' : 'Descrição *'}
             </label>
             <input
@@ -214,8 +214,8 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
               onChange={(e) => f('description', e.target.value)}
               placeholder={isCreditCard ? 'Ex: Nubank, Itaú, Bradesco...' : 'Ex: Conta de Luz, Internet, IPTU...'}
               className={cn(
-                'w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none transition',
-                isCreditCard ? 'focus:border-purple-500' : 'focus:border-orange-500',
+                'w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none transition',
+                isCreditCard ? 'focus:border-info' : 'focus:border-primary',
               )}
             />
           </div>
@@ -224,9 +224,9 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
           {isCreditCard && (
             <>
               {/* Info banner */}
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-purple-500/5 border border-purple-500/20">
-                <Info size={14} className="text-purple-400 mt-0.5 shrink-0" />
-                <p className="text-[10px] font-medium text-zinc-500 dark:text-zinc-400 leading-relaxed">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-info-soft border border-info/20">
+                <Info size={14} className="text-info mt-0.5 shrink-0" />
+                <p className="text-[11px] font-medium text-fg-muted dark:text-fg-2 leading-relaxed">
                   O valor da fatura é calculado automaticamente com base nas
                   transações realizadas neste cartão no período selecionado.
                   Não há data de encerramento — o vínculo é permanente.
@@ -235,7 +235,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
 
               {/* Card selector */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                <label className="text-[11px] font-semibold text-fg-muted ml-1">
                   Cartão de Crédito *
                 </label>
                 <select
@@ -249,7 +249,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                     f('paymentMethodId', id);
                     if (pm?.dueDay) f('dayOfMonth', Number(pm.dueDay));
                   }}
-                  className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-purple-500 transition appearance-none"
+                  className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-info transition appearance-none"
                 >
                   <option value="">Selecione o cartão...</option>
                   {(creditCards.length > 0 ? creditCards : paymentMethods).map((p) => (
@@ -260,17 +260,17 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
 
               {/* Due day — auto-filled from the payment method, read-only */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                <label className="text-[11px] font-semibold text-fg-muted ml-1">
                   Dia de Vencimento da Fatura
                 </label>
                 <div className="relative">
                   <input
                     readOnly
                     value={form.dayOfMonth || '—'}
-                    className="w-full bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-black text-zinc-500 dark:text-zinc-400 cursor-default select-none"
+                    className="w-full bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold text-fg-muted dark:text-fg-2 cursor-default select-none"
                   />
                   {!form.paymentMethodId && (
-                    <p className="text-[9px] text-zinc-400 mt-1 ml-1">
+                    <p className="text-[11px] text-fg-muted mt-1 ml-1">
                       Selecione o cartão para preencher automaticamente
                     </p>
                   )}
@@ -279,16 +279,16 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
 
               {/* Credit card summary preview */}
               {form.paymentMethodId && (
-                <div className="p-3 rounded-xl bg-purple-500/5 border border-purple-500/20 flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-info-soft border border-info/20 flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Cobrança</p>
-                    <p className="text-sm font-black italic text-purple-500 leading-none mt-0.5">
+                    <p className="text-[11px] font-semibold text-fg-muted">Cobrança</p>
+                    <p className="text-sm font-semibold text-info leading-none mt-0.5">
                       Automática por transações
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Vencimento</p>
-                    <p className="text-xl font-black italic text-zinc-900 dark:text-white">
+                    <p className="text-[11px] font-semibold text-fg-muted">Vencimento</p>
+                    <p className="text-xl font-semibold text-fg">
                       {form.dayOfMonth ? `Dia ${form.dayOfMonth}` : '—'}
                     </p>
                   </div>
@@ -303,19 +303,19 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
               {/* Amount + Day */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                  <label className="text-[11px] font-semibold text-fg-muted ml-1">
                     Valor Base *
                   </label>
                   <CurrencyInput
                     value={form.amount}
                     onChange={(v) => f('amount', v)}
                     placeholder="0,00"
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                    className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
                   />
                 </div>
                 {!isEdit && (
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                    <label className="text-[11px] font-semibold text-fg-muted ml-1">
                       Dia do Vencimento *
                     </label>
                     <input
@@ -325,7 +325,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                       required
                       value={form.dayOfMonth}
                       onChange={(e) => f('dayOfMonth', Number(e.target.value))}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                      className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
                     />
                   </div>
                 )}
@@ -334,13 +334,13 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
               {/* Category */}
               {categories.length > 0 && (
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1">
+                  <label className="text-[11px] font-semibold text-fg-muted ml-1">
                     Categoria
                   </label>
                   <select
                     value={form.categoryId}
                     onChange={(e) => f('categoryId', e.target.value)}
-                    className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition appearance-none"
+                    className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition appearance-none"
                   >
                     <option value="">Selecione...</option>
                     {categories.map((c) => (
@@ -354,16 +354,16 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
               {!isEdit && (
                 <>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 ml-1 flex items-center gap-1.5">
+                    <label className="text-[11px] font-semibold text-fg-muted ml-1 flex items-center gap-1.5">
                       <CalendarDays size={11} /> Gerar parcelas até (opcional)
                     </label>
                     <input
                       type="date"
                       value={form.endDate}
                       onChange={(e) => f('endDate', e.target.value)}
-                      className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-orange-500 transition"
+                      className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
                     />
-                    <p className="text-[9px] text-zinc-400 ml-1">
+                    <p className="text-[11px] text-fg-muted ml-1">
                       Sem data: gera lançamentos nos próximos 12 meses automaticamente
                     </p>
                   </div>
@@ -373,7 +373,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                       onClick={() => f('generateTransactions', !form.generateTransactions)}
                       className={cn(
                         'relative w-10 h-5 rounded-full transition-colors duration-200 shrink-0',
-                        form.generateTransactions ? 'bg-orange-500' : 'bg-zinc-200 dark:bg-zinc-700',
+                        form.generateTransactions ? 'bg-primary' : 'bg-track',
                       )}
                     >
                       <div
@@ -384,10 +384,10 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
                       />
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-700 dark:text-zinc-300">
+                      <p className="text-[11px] font-semibold text-fg-2">
                         {form.generateTransactions ? 'Gerar lançamentos automáticos' : 'Apenas como regra'}
                       </p>
-                      <p className="text-[9px] text-zinc-400 mt-0.5">
+                      <p className="text-[11px] text-fg-muted mt-0.5">
                         {form.generateTransactions
                           ? 'Cria uma transação por mês no dia do vencimento'
                           : 'Nenhuma transação será criada'}
@@ -399,17 +399,17 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
 
               {/* Preview */}
               {form.amount > 0 && (
-                <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/20 flex items-center justify-between">
+                <div className="p-3 rounded-xl bg-warning-soft border border-warning/20 flex items-center justify-between">
                   <div>
-                    <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Valor mensal</p>
-                    <p className="text-lg font-black italic text-orange-500 leading-none mt-0.5">
+                    <p className="text-[11px] font-semibold text-fg-muted">Valor mensal</p>
+                    <p className="text-lg font-semibold text-warning leading-none mt-0.5">
                       {fmt(form.amount)}
                     </p>
                   </div>
                   {!isEdit && (
                     <div className="text-right">
-                      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Vence dia</p>
-                      <p className="text-xl font-black italic text-zinc-900 dark:text-white">{form.dayOfMonth}</p>
+                      <p className="text-[11px] font-semibold text-fg-muted">Vence dia</p>
+                      <p className="text-xl font-semibold text-fg">{form.dayOfMonth}</p>
                     </div>
                   )}
                 </div>
@@ -421,10 +421,7 @@ export function FixedBillModal({ isOpen, onClose, onSave, initialData, paymentMe
             type="submit"
             disabled={saving}
             className={cn(
-              'w-full py-3 rounded-xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95',
-              isCreditCard
-                ? 'bg-purple-500 hover:bg-purple-600'
-                : 'bg-orange-500 hover:bg-orange-600',
+              'btn btn-primary w-full !h-10',
             )}
           >
             {saving && <Loader2 size={16} className="animate-spin" />}

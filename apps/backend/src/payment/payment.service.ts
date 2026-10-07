@@ -6,9 +6,9 @@ import MercadoPagoConfig, { Preference, Payment } from 'mercadopago';
 import Stripe from 'stripe';
 
 export const PLAN_PRICES: Record<string, { amount: number; label: string }> = {
-  basico:        { amount: 9.90,  label: 'DCash Básico' },
-  intermediario: { amount: 19.90, label: 'DCash Intermediário' },
-  pro:           { amount: 34.90, label: 'DCash Pro' },
+  basico: { amount: 9.9, label: 'DCash Básico' },
+  intermediario: { amount: 19.9, label: 'DCash Intermediário' },
+  pro: { amount: 34.9, label: 'DCash Pro' },
 };
 
 /** Same 20% discount already advertised on the /plans pricing page. */
@@ -39,8 +39,11 @@ export class PaymentService {
     const planInfo = PLAN_PRICES[planKey];
     if (!planInfo) throw new BadRequestException('Plano inválido');
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
-    const apiUrl = this.config.get<string>('NEXT_PUBLIC_API_URL') || 'http://localhost:3001/api';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const apiUrl =
+      this.config.get<string>('NEXT_PUBLIC_API_URL') ||
+      'http://localhost:3001/api';
 
     const preference = new Preference(this.mpClient);
     const result = await preference.create({
@@ -84,9 +87,15 @@ export class PaymentService {
   }
 
   /** Create a Stripe Checkout session (subscription mode, inline price). */
-  async createStripeSession(userId: string, plan: string, billingCycle: BillingCycle = 'monthly') {
+  async createStripeSession(
+    userId: string,
+    plan: string,
+    billingCycle: BillingCycle = 'monthly',
+  ) {
     if (!this.stripeClient) {
-      throw new BadRequestException('Stripe não configurado. Defina STRIPE_SECRET_KEY.');
+      throw new BadRequestException(
+        'Stripe não configurado. Defina STRIPE_SECRET_KEY.',
+      );
     }
     if (billingCycle !== 'monthly' && billingCycle !== 'yearly') {
       throw new BadRequestException('Ciclo de cobrança inválido.');
@@ -96,11 +105,13 @@ export class PaymentService {
     const planInfo = PLAN_PRICES[planKey];
     if (!planInfo) throw new BadRequestException('Plano inválido');
 
-    const frontendUrl = this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
 
-    const unitAmount = billingCycle === 'yearly'
-      ? Math.round(planInfo.amount * YEARLY_DISCOUNT * 12 * 100)
-      : Math.round(planInfo.amount * 100);
+    const unitAmount =
+      billingCycle === 'yearly'
+        ? Math.round(planInfo.amount * YEARLY_DISCOUNT * 12 * 100)
+        : Math.round(planInfo.amount * 100);
 
     const session = await this.stripeClient.checkout.sessions.create({
       mode: 'subscription',
@@ -110,7 +121,9 @@ export class PaymentService {
             currency: 'brl',
             product_data: { name: planInfo.label },
             unit_amount: unitAmount,
-            recurring: { interval: billingCycle === 'yearly' ? 'year' : 'month' },
+            recurring: {
+              interval: billingCycle === 'yearly' ? 'year' : 'month',
+            },
           },
           quantity: 1,
         },
@@ -141,6 +154,160 @@ export class PaymentService {
     };
   }
 
+  // ── Add-ons (billed separately from the DCash plan) ─────────────────────
+
+  /**
+   * Stripe Checkout for an add-on (currently only DCaos). The reference is
+   * prefixed with `addon|` so the webhook routes it to `addon_subscriptions`
+   * and never touches `users.plan`.
+   */
+  async createAddonSession(
+    userId: string,
+    addon: {
+      key: string;
+      label: string;
+      monthly: number;
+      yearlyDiscount: number;
+    },
+    billingCycle: BillingCycle = 'monthly',
+  ) {
+    if (!this.stripeClient) {
+      throw new BadRequestException(
+        'Stripe não configurado. Defina STRIPE_SECRET_KEY.',
+      );
+    }
+    if (billingCycle !== 'monthly' && billingCycle !== 'yearly') {
+      throw new BadRequestException('Ciclo de cobrança inválido.');
+    }
+
+    const frontendUrl =
+      this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const unitAmount =
+      billingCycle === 'yearly'
+        ? Math.round(addon.monthly * addon.yearlyDiscount * 12 * 100)
+        : Math.round(addon.monthly * 100);
+
+    const session = await this.stripeClient.checkout.sessions.create({
+      mode: 'subscription',
+      line_items: [
+        {
+          price_data: {
+            currency: 'brl',
+            product_data: { name: addon.label },
+            unit_amount: unitAmount,
+            recurring: {
+              interval: billingCycle === 'yearly' ? 'year' : 'month',
+            },
+          },
+          quantity: 1,
+        },
+      ],
+      client_reference_id: `addon|${addon.key}|${userId}|${billingCycle}`,
+      subscription_data: { metadata: { addon: addon.key, user_id: userId } },
+      success_url: `${frontendUrl}/dcaos?checkout=success`,
+      cancel_url: `${frontendUrl}/dcaos?checkout=cancel`,
+    });
+
+    await this.db.query(
+      `INSERT INTO db_dtasc.payments
+         (user_id, plan, amount, provider_preference_id, status, provider)
+       VALUES ($1, $2, $3, $4, 'pending', 'stripe')`,
+      [userId, `addon:${addon.key}`, unitAmount / 100, session.id],
+    );
+
+    return {
+      checkoutUrl: session.url,
+      amount: unitAmount / 100,
+      billingCycle,
+      label: addon.label,
+    };
+  }
+
+  /** Self-service add-on cancellation — keeps access until the paid period ends. */
+  async cancelAddon(userId: string, addonKey: string) {
+    const rows = await this.db.query<{
+      id: string;
+      stripe_subscription_id: string | null;
+    }>(
+      `SELECT id, stripe_subscription_id FROM db_dtasc.addon_subscriptions
+       WHERE addon = $1 AND user_id = $2 AND status IN ('active', 'past_due')
+       ORDER BY created_at DESC LIMIT 1`,
+      [addonKey, userId],
+    );
+    const sub = rows[0];
+    if (!sub?.stripe_subscription_id) {
+      throw new BadRequestException(
+        'Nenhuma assinatura ativa deste módulo contratada por você.',
+      );
+    }
+    await this.cancelStripeSubscription(sub.stripe_subscription_id, {
+      immediate: false,
+    });
+    await this.db.query(
+      `UPDATE db_dtasc.addon_subscriptions SET status = 'canceling', updated_at = NOW() WHERE id = $1`,
+      [sub.id],
+    );
+    return { success: true, status: 'canceling' as const };
+  }
+
+  private async onAddonCheckoutCompleted(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    const [, addon, userId, cycleRaw] = (
+      session.client_reference_id ?? ''
+    ).split('|');
+    if (!addon || !userId) return;
+    const billingCycle: BillingCycle =
+      cycleRaw === 'yearly' ? 'yearly' : 'monthly';
+    const customerId =
+      typeof session.customer === 'string'
+        ? session.customer
+        : (session.customer?.id ?? null);
+    const subscriptionId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription?.id ?? null);
+
+    let expiresAt: Date | null = null;
+    if (subscriptionId && this.stripeClient) {
+      const subscription =
+        await this.stripeClient.subscriptions.retrieve(subscriptionId);
+      const periodEnd = subscription.items.data[0]?.current_period_end;
+      if (periodEnd) expiresAt = new Date(periodEnd * 1000);
+    }
+
+    const [user] = await this.db.query<{ family_group_id: string | null }>(
+      `SELECT family_group_id FROM db_dtasc.users WHERE id = $1`,
+      [userId],
+    );
+
+    await this.db.query(
+      `INSERT INTO db_dtasc.addon_subscriptions
+         (addon, user_id, family_group_id, status, billing_cycle, expires_at, stripe_customer_id, stripe_subscription_id)
+       VALUES ($1, $2, $3, 'active', $4, $5, $6, $7)
+       ON CONFLICT (stripe_subscription_id) WHERE stripe_subscription_id IS NOT NULL
+       DO UPDATE SET status = 'active', expires_at = EXCLUDED.expires_at, updated_at = NOW()`,
+      [
+        addon,
+        userId,
+        user?.family_group_id ?? null,
+        billingCycle,
+        expiresAt,
+        customerId,
+        subscriptionId,
+      ],
+    );
+    await this.db.query(
+      `UPDATE db_dtasc.payments
+       SET status = 'approved', provider_payment_id = $1, updated_at = NOW()
+       WHERE user_id = $2 AND plan = $3 AND provider_preference_id = $4`,
+      [String(subscriptionId ?? ''), userId, `addon:${addon}`, session.id],
+    );
+    this.logger.log(
+      `Add-on activated: ${addon} for user ${userId} (${billingCycle})`,
+    );
+  }
+
   /**
    * Called by the Stripe webhook. Stripe is the sole source of truth for
    * recurring billing — this handler is what keeps `users.plan_expires_at`/
@@ -158,25 +325,37 @@ export class PaymentService {
     if (!this.stripeClient) return;
     const webhookSecret = this.config.get<string>('STRIPE_WEBHOOK_SECRET');
     if (!webhookSecret) {
-      this.logger.error('Stripe webhook received but STRIPE_WEBHOOK_SECRET is not set.');
+      this.logger.error(
+        'Stripe webhook received but STRIPE_WEBHOOK_SECRET is not set.',
+      );
       return;
     }
 
     try {
-      const event = this.stripeClient.webhooks.constructEvent(rawBody, signature, webhookSecret);
+      const event = this.stripeClient.webhooks.constructEvent(
+        rawBody,
+        signature,
+        webhookSecret,
+      );
 
       switch (event.type) {
         case 'checkout.session.completed':
-          await this.onCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+          await this.onCheckoutSessionCompleted(
+            event.data.object as Stripe.Checkout.Session,
+          );
           break;
         case 'invoice.paid':
           await this.onInvoicePaid(event.data.object as Stripe.Invoice);
           break;
         case 'invoice.payment_failed':
-          await this.onInvoicePaymentFailed(event.data.object as Stripe.Invoice);
+          await this.onInvoicePaymentFailed(
+            event.data.object as Stripe.Invoice,
+          );
           break;
         case 'customer.subscription.deleted':
-          await this.onSubscriptionDeleted(event.data.object as Stripe.Subscription);
+          await this.onSubscriptionDeleted(
+            event.data.object as Stripe.Subscription,
+          );
           break;
         default:
         // ignored — includes customer.subscription.updated, see doc comment above
@@ -186,17 +365,33 @@ export class PaymentService {
     }
   }
 
-  private async onCheckoutSessionCompleted(session: Stripe.Checkout.Session): Promise<void> {
-    const [userId, plan, billingCycleRaw] = (session.client_reference_id ?? '').split(':');
-    const billingCycle: BillingCycle = billingCycleRaw === 'yearly' ? 'yearly' : 'monthly';
+  private async onCheckoutSessionCompleted(
+    session: Stripe.Checkout.Session,
+  ): Promise<void> {
+    if (session.client_reference_id?.startsWith('addon|')) {
+      await this.onAddonCheckoutCompleted(session);
+      return;
+    }
+    const [userId, plan, billingCycleRaw] = (
+      session.client_reference_id ?? ''
+    ).split(':');
+    const billingCycle: BillingCycle =
+      billingCycleRaw === 'yearly' ? 'yearly' : 'monthly';
     if (!userId || !plan) return;
 
-    const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null;
-    const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null;
+    const customerId =
+      typeof session.customer === 'string'
+        ? session.customer
+        : (session.customer?.id ?? null);
+    const subscriptionId =
+      typeof session.subscription === 'string'
+        ? session.subscription
+        : (session.subscription?.id ?? null);
 
     let expiresAt: Date | null = null;
     if (subscriptionId && this.stripeClient) {
-      const subscription = await this.stripeClient.subscriptions.retrieve(subscriptionId);
+      const subscription =
+        await this.stripeClient.subscriptions.retrieve(subscriptionId);
       const periodEnd = subscription.items.data[0]?.current_period_end;
       if (periodEnd) expiresAt = new Date(periodEnd * 1000);
     }
@@ -205,7 +400,12 @@ export class PaymentService {
       `UPDATE db_dtasc.payments
        SET status = 'approved', provider_payment_id = $1, updated_at = NOW()
        WHERE user_id = $2 AND plan = $3 AND provider_preference_id = $4`,
-      [String(session.payment_intent ?? subscriptionId ?? ''), userId, plan, session.id],
+      [
+        String(session.payment_intent ?? subscriptionId ?? ''),
+        userId,
+        plan,
+        session.id,
+      ],
     );
 
     await this.db.query(
@@ -215,7 +415,9 @@ export class PaymentService {
        WHERE id = $6`,
       [plan, billingCycle, expiresAt, customerId, subscriptionId, userId],
     );
-    this.logger.log(`Plan upgraded: user ${userId} → ${plan} (${billingCycle}, stripe session ${session.id})`);
+    this.logger.log(
+      `Plan upgraded: user ${userId} → ${plan} (${billingCycle}, stripe session ${session.id})`,
+    );
   }
 
   private async onInvoicePaid(invoice: Stripe.Invoice): Promise<void> {
@@ -223,7 +425,21 @@ export class PaymentService {
     const subscriptionId = typeof subRef === 'string' ? subRef : subRef?.id;
     if (!subscriptionId) return;
 
-    const expiresAt = invoice.period_end ? new Date(invoice.period_end * 1000) : null;
+    const expiresAt = invoice.period_end
+      ? new Date(invoice.period_end * 1000)
+      : null;
+    const addonRows = await this.db.query(
+      `UPDATE db_dtasc.addon_subscriptions
+       SET expires_at = $1, status = CASE WHEN status = 'canceling' THEN status ELSE 'active' END, updated_at = NOW()
+       WHERE stripe_subscription_id = $2 RETURNING id`,
+      [expiresAt, subscriptionId],
+    );
+    if (addonRows.length > 0) {
+      this.logger.log(
+        `Add-on renewed: ${subscriptionId} → expires ${expiresAt?.toISOString()}`,
+      );
+      return;
+    }
     const rows = await this.db.query(
       `UPDATE db_dtasc.users SET plan_expires_at = $1, plan_status = 'active'
        WHERE stripe_subscription_id = $2 RETURNING id`,
@@ -233,9 +449,13 @@ export class PaymentService {
       // Can race with checkout.session.completed on the very first invoice —
       // that handler already seeds plan_expires_at independently, so this is
       // only a real problem from the 2nd renewal onward.
-      this.logger.warn(`invoice.paid for unknown subscription ${subscriptionId} — no matching user.`);
+      this.logger.warn(
+        `invoice.paid for unknown subscription ${subscriptionId} — no matching user.`,
+      );
     } else {
-      this.logger.log(`Subscription renewed: ${subscriptionId} → expires ${expiresAt?.toISOString()}`);
+      this.logger.log(
+        `Subscription renewed: ${subscriptionId} → expires ${expiresAt?.toISOString()}`,
+      );
     }
   }
 
@@ -249,13 +469,30 @@ export class PaymentService {
     // naturally lapses (caught by the cron sweep) or Stripe gives up and
     // fires customer.subscription.deleted.
     await this.db.query(
+      `UPDATE db_dtasc.addon_subscriptions SET status = 'past_due', updated_at = NOW() WHERE stripe_subscription_id = $1`,
+      [subscriptionId],
+    );
+    await this.db.query(
       `UPDATE db_dtasc.users SET plan_status = 'past_due' WHERE stripe_subscription_id = $1`,
       [subscriptionId],
     );
-    this.logger.warn(`Payment failed for subscription ${subscriptionId} — marked past_due.`);
+    this.logger.warn(
+      `Payment failed for subscription ${subscriptionId} — marked past_due.`,
+    );
   }
 
-  private async onSubscriptionDeleted(subscription: Stripe.Subscription): Promise<void> {
+  private async onSubscriptionDeleted(
+    subscription: Stripe.Subscription,
+  ): Promise<void> {
+    const addonRows = await this.db.query(
+      `UPDATE db_dtasc.addon_subscriptions SET status = 'canceled', updated_at = NOW()
+       WHERE stripe_subscription_id = $1 RETURNING id`,
+      [subscription.id],
+    );
+    if (addonRows.length > 0) {
+      this.logger.log(`Add-on subscription cancelled: ${subscription.id}`);
+      return;
+    }
     await this.db.query(
       `UPDATE db_dtasc.users
        SET plan = 'free', plan_status = 'active', plan_expires_at = NULL,
@@ -263,7 +500,9 @@ export class PaymentService {
        WHERE stripe_subscription_id = $1`,
       [subscription.id],
     );
-    this.logger.log(`Subscription cancelled: ${subscription.id} → downgraded to free.`);
+    this.logger.log(
+      `Subscription cancelled: ${subscription.id} → downgraded to free.`,
+    );
   }
 
   /**
@@ -273,12 +512,17 @@ export class PaymentService {
    * override) cancels right away, since the admin is changing the plan now.
    * DB updates are the caller's responsibility.
    */
-  async cancelStripeSubscription(subscriptionId: string, opts: { immediate: boolean }): Promise<void> {
+  async cancelStripeSubscription(
+    subscriptionId: string,
+    opts: { immediate: boolean },
+  ): Promise<void> {
     if (!this.stripeClient) return;
     if (opts.immediate) {
       await this.stripeClient.subscriptions.cancel(subscriptionId);
     } else {
-      await this.stripeClient.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
+      await this.stripeClient.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+      });
     }
   }
 
@@ -290,7 +534,9 @@ export class PaymentService {
     );
     const subscriptionId = rows[0]?.stripe_subscription_id;
     if (!subscriptionId) {
-      throw new BadRequestException('Nenhuma assinatura Stripe ativa encontrada.');
+      throw new BadRequestException(
+        'Nenhuma assinatura Stripe ativa encontrada.',
+      );
     }
     if (!this.stripeClient) {
       throw new BadRequestException('Stripe não configurado.');
@@ -320,7 +566,19 @@ export class PaymentService {
        RETURNING id`,
     );
     if (rows.length > 0) {
-      this.logger.log(`Cron sweep: downgraded ${rows.length} expired subscription(s).`);
+      this.logger.log(
+        `Cron sweep: downgraded ${rows.length} expired subscription(s).`,
+      );
+    }
+    const addons = await this.db.query(
+      `UPDATE db_dtasc.addon_subscriptions SET status = 'expired', updated_at = NOW()
+       WHERE expires_at < NOW() AND status IN ('active', 'past_due', 'canceling')
+       RETURNING id`,
+    );
+    if (addons.length > 0) {
+      this.logger.log(
+        `Cron sweep: expired ${addons.length} add-on subscription(s).`,
+      );
     }
   }
 
@@ -339,7 +597,25 @@ export class PaymentService {
       const [userId, plan] = externalRef.split(':');
       if (!userId || !plan) return;
 
-      const status = payment.status; // approved | pending | rejected | cancelled
+      let status = payment.status; // approved | pending | rejected | cancelled
+
+      // Never upgrade on a payment smaller than the price we charged for that plan
+      if (status === 'approved') {
+        const [charged] = await this.db.query<{ amount: string }>(
+          `SELECT amount FROM db_dtasc.payments WHERE user_id = $1 AND plan = $2 ORDER BY created_at DESC LIMIT 1`,
+          [userId, plan],
+        );
+        const expected = Number(
+          charged?.amount ?? PLAN_PRICES[plan]?.amount ?? Infinity,
+        );
+        const paid = Number(payment.transaction_amount ?? 0);
+        if (payment.currency_id !== 'BRL' || paid + 0.01 < expected) {
+          this.logger.error(
+            `MP payment ${paymentId} amount mismatch: paid ${paid} ${payment.currency_id}, expected ${expected} (user ${userId}, plan ${plan})`,
+          );
+          status = 'amount_mismatch';
+        }
+      }
 
       await this.db.query(
         `UPDATE db_dtasc.payments
@@ -358,7 +634,9 @@ export class PaymentService {
           'UPDATE db_dtasc.users SET plan = $1 WHERE id = $2',
           [plan, userId],
         );
-        this.logger.log(`Plan upgraded: user ${userId} → ${plan} (payment ${paymentId})`);
+        this.logger.log(
+          `Plan upgraded: user ${userId} → ${plan} (payment ${paymentId})`,
+        );
       }
     } catch (err: any) {
       this.logger.error(`Webhook error: ${err.message}`);
@@ -366,7 +644,11 @@ export class PaymentService {
   }
 
   /** Manual plan activation after redirect (fallback when webhook hasn't fired yet). */
-  async activateAfterRedirect(userId: string, plan: string, preferenceId: string) {
+  async activateAfterRedirect(
+    userId: string,
+    plan: string,
+    preferenceId: string,
+  ) {
     const planKey = plan.toLowerCase();
     if (!PLAN_PRICES[planKey]) throw new BadRequestException('Plano inválido');
 
@@ -381,20 +663,30 @@ export class PaymentService {
     }
 
     // Webhook hasn't fired yet — return pending so frontend knows to wait
-    return { alreadyActivated: false, plan: planKey, status: rows[0]?.status ?? 'pending' };
+    return {
+      alreadyActivated: false,
+      plan: planKey,
+      status: rows[0]?.status ?? 'pending',
+    };
   }
 
   // ── Admin: Stripe product/price management ────────────────────────────
 
   private async formatStripeProduct(product: Stripe.Product) {
-    const prices = await this.stripeClient!.prices.list({ product: product.id, limit: 100 });
+    const prices = await this.stripeClient!.prices.list({
+      product: product.id,
+      limit: 100,
+    });
     return {
       id: product.id,
       name: product.name,
       description: product.description,
       active: product.active,
       metadata: product.metadata,
-      defaultPriceId: typeof product.default_price === 'string' ? product.default_price : product.default_price?.id ?? null,
+      defaultPriceId:
+        typeof product.default_price === 'string'
+          ? product.default_price
+          : (product.default_price?.id ?? null),
       prices: prices.data.map((p) => ({
         id: p.id,
         active: p.active,
@@ -406,7 +698,8 @@ export class PaymentService {
   }
 
   async listStripeProducts() {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
     const products = await this.stripeClient.products.list({ limit: 100 });
     return Promise.all(products.data.map((p) => this.formatStripeProduct(p)));
   }
@@ -418,8 +711,10 @@ export class PaymentService {
     currency?: string;
     interval?: 'month' | 'year';
   }) {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
-    if (!dto.name?.trim()) throw new BadRequestException('Nome do produto é obrigatório.');
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
+    if (!dto.name?.trim())
+      throw new BadRequestException('Nome do produto é obrigatório.');
 
     const product = await this.stripeClient.products.create({
       name: dto.name.trim(),
@@ -433,29 +728,43 @@ export class PaymentService {
         unit_amount: Math.round(dto.amount * 100),
         ...(dto.interval ? { recurring: { interval: dto.interval } } : {}),
       });
-      await this.stripeClient.products.update(product.id, { default_price: price.id });
+      await this.stripeClient.products.update(product.id, {
+        default_price: price.id,
+      });
     }
 
     const refreshed = await this.stripeClient.products.retrieve(product.id);
     return this.formatStripeProduct(refreshed);
   }
 
-  async addStripePrice(productId: string, dto: { amount: number; currency?: string; interval?: 'month' | 'year' }) {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
+  async addStripePrice(
+    productId: string,
+    dto: { amount: number; currency?: string; interval?: 'month' | 'year' },
+  ) {
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
     await this.stripeClient.prices.create({
       product: productId,
       currency: (dto.currency || 'brl').toLowerCase(),
       unit_amount: Math.round(dto.amount * 100),
       ...(dto.interval ? { recurring: { interval: dto.interval } } : {}),
     });
-    return this.formatStripeProduct(await this.stripeClient.products.retrieve(productId));
+    return this.formatStripeProduct(
+      await this.stripeClient.products.retrieve(productId),
+    );
   }
 
-  async updateStripeProduct(id: string, dto: { name?: string; description?: string; active?: boolean }) {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
+  async updateStripeProduct(
+    id: string,
+    dto: { name?: string; description?: string; active?: boolean },
+  ) {
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
     const product = await this.stripeClient.products.update(id, {
       ...(dto.name ? { name: dto.name.trim() } : {}),
-      ...(dto.description !== undefined ? { description: dto.description?.trim() || '' } : {}),
+      ...(dto.description !== undefined
+        ? { description: dto.description?.trim() || '' }
+        : {}),
       ...(dto.active !== undefined ? { active: dto.active } : {}),
     });
     return this.formatStripeProduct(product);
@@ -467,9 +776,18 @@ export class PaymentService {
    * disappears from checkout/new subscriptions but stays in Stripe's records.
    */
   async archiveStripeProduct(id: string) {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
-    const prices = await this.stripeClient.prices.list({ product: id, active: true, limit: 100 });
-    await Promise.all(prices.data.map((p) => this.stripeClient!.prices.update(p.id, { active: false })));
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
+    const prices = await this.stripeClient.prices.list({
+      product: id,
+      active: true,
+      limit: 100,
+    });
+    await Promise.all(
+      prices.data.map((p) =>
+        this.stripeClient!.prices.update(p.id, { active: false }),
+      ),
+    );
     await this.stripeClient.products.update(id, { active: false });
     return { success: true };
   }
@@ -482,9 +800,12 @@ export class PaymentService {
    * rather than duplicating what's already there.
    */
   async syncPlanProducts() {
-    if (!this.stripeClient) throw new BadRequestException('Stripe não configurado.');
+    if (!this.stripeClient)
+      throw new BadRequestException('Stripe não configurado.');
     const existing = await this.stripeClient.products.list({ limit: 100 });
-    const results: Awaited<ReturnType<PaymentService['formatStripeProduct']>>[] = [];
+    const results: Awaited<
+      ReturnType<PaymentService['formatStripeProduct']>
+    >[] = [];
 
     for (const [planKey, info] of Object.entries(PLAN_PRICES)) {
       let product = existing.data.find((p) => p.metadata?.plan_key === planKey);
@@ -495,15 +816,25 @@ export class PaymentService {
         });
       }
 
-      const prices = await this.stripeClient.prices.list({ product: product.id, active: true, limit: 100 });
+      const prices = await this.stripeClient.prices.list({
+        product: product.id,
+        active: true,
+        limit: 100,
+      });
       const wants: { interval: 'month' | 'year'; unitAmount: number }[] = [
         { interval: 'month', unitAmount: Math.round(info.amount * 100) },
-        { interval: 'year', unitAmount: Math.round(info.amount * YEARLY_DISCOUNT * 12 * 100) },
+        {
+          interval: 'year',
+          unitAmount: Math.round(info.amount * YEARLY_DISCOUNT * 12 * 100),
+        },
       ];
 
       for (const want of wants) {
         const already = prices.data.some(
-          (p) => p.recurring?.interval === want.interval && p.unit_amount === want.unitAmount && p.currency === 'brl',
+          (p) =>
+            p.recurring?.interval === want.interval &&
+            p.unit_amount === want.unitAmount &&
+            p.currency === 'brl',
         );
         if (!already) {
           await this.stripeClient.prices.create({
@@ -515,7 +846,11 @@ export class PaymentService {
         }
       }
 
-      results.push(await this.formatStripeProduct(await this.stripeClient.products.retrieve(product.id)));
+      results.push(
+        await this.formatStripeProduct(
+          await this.stripeClient.products.retrieve(product.id),
+        ),
+      );
     }
 
     return results;

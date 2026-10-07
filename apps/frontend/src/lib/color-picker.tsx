@@ -18,7 +18,7 @@ export function ColorPicker({ selected, onSelect }: Props) {
         onClick={() => setShowPicker(!showPicker)}
         className="flex items-center gap-3 w-full px-4 py-3 border rounded-xl shadow-sm transition-all hover:opacity-80"
         style={{
-          background: 'var(--surface)',
+          background: 'var(--card)',
           borderColor: 'var(--border)',
           color: 'var(--foreground)',
         }}
@@ -27,7 +27,7 @@ export function ColorPicker({ selected, onSelect }: Props) {
           className="w-5 h-5 rounded-full border border-white/20 shadow-inner shrink-0"
           style={{ backgroundColor: selected || '#000000' }}
         />
-        <span className="font-mono text-sm uppercase">
+        <span className="font-mono text-sm">
           {selected || 'Selecionar Cor'}
         </span>
       </button>
@@ -39,7 +39,7 @@ export function ColorPicker({ selected, onSelect }: Props) {
           <div
             className="absolute left-0 mt-2 z-50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-100"
             style={{
-              background: 'var(--surface)',
+              background: 'var(--card)',
               border: '1px solid var(--border)',
             }}
           >

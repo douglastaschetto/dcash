@@ -64,6 +64,33 @@ export class TransactionsService {
     return this.familyScope.getScope(userId);
   }
 
+  /** Every id a transaction points to must belong to the same user/family. */
+  private async assertOwnedRefs(
+    userId: string,
+    refs: {
+      categoryId?: string | null;
+      paymentMethodId?: string | null;
+      piggyBankId?: string | null;
+      fixedBillId?: string | null;
+    },
+  ) {
+    const scope = await this.getScope(userId);
+    const checks: [string | null | undefined, string, string][] = [
+      [refs.categoryId, 'category', 'Categoria não encontrada.'],
+      [refs.paymentMethodId, 'payment_method', 'Conta não encontrada.'],
+      [refs.piggyBankId, 'piggy_bank', 'Cofrinho não encontrado.'],
+      [refs.fixedBillId, 'fixed_bills', 'Conta fixa não encontrada.'],
+    ];
+    for (const [id, table, label] of checks) {
+      if (!id) continue;
+      const rows = await this.db.query(
+        `SELECT 1 FROM db_dtasc.${table} WHERE id = $2 AND ${scope.filter}`,
+        [scope.param, id],
+      );
+      if (!rows.length) throw new NotFoundException(label);
+    }
+  }
+
   private generateHash(data: {
     date: string;
     amount: number;
@@ -271,6 +298,7 @@ export class TransactionsService {
 
   async create(userId: string, dto: CreateTransactionDto) {
     const scope = await this.getScope(userId);
+    await this.assertOwnedRefs(userId, dto);
 
     if (dto.piggyBankId) {
       return this.handlePiggyBank(userId, scope.familyGroupId, dto);
@@ -398,6 +426,11 @@ export class TransactionsService {
       paymentMethodId,
       fixedBillId,
     } = data;
+    await this.assertOwnedRefs(userId, {
+      categoryId,
+      paymentMethodId,
+      fixedBillId,
+    });
 
     const filterOffset = scope.filter.replace('$1', '$9');
     const sql = `

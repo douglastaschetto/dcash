@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Plus } from 'lucide-react';
+import { Loader2, Plus } from '@/components/ui/icons';
 import api from '@/services/api';
 import { cn } from '@/lib/utils';
 import { IconPicker, LucideIcon } from '@/lib/icon-picker';
@@ -15,8 +15,8 @@ const CAT_TYPES: { value: CatType; label: string; color: string }[] = [
   { value: 'reserve', label: 'Reserva',  color: '#2563eb' },
 ];
 
-const field = 'w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-500';
-const fieldLabel = 'text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1 block';
+const field = 'field';
+const fieldLabel = 'text-xs font-medium text-fg-2 mb-1.5 block';
 
 /**
  * Fresh state on every mount is exactly the "reset form on open" behavior
@@ -45,9 +45,9 @@ export function CategoryModal({ onClose, onSaved }: { onClose: () => void; onSav
   };
 
   return (
-    <Modal onClose={onClose} title={<>Nova <span className="text-purple-500">Categoria</span></>}>
+    <Modal onClose={onClose} title={<>Nova <span className="text-info">Categoria</span></>}>
       <div className="space-y-3">
-        {error && <p className="text-red-500 text-xs font-bold">{error}</p>}
+        {error && <p className="text-danger text-xs font-semibold">{error}</p>}
 
         <div>
           <label className={fieldLabel}>Nome</label>
@@ -59,8 +59,8 @@ export function CategoryModal({ onClose, onSaved }: { onClose: () => void; onSav
           <div className="grid grid-cols-3 gap-2">
             {CAT_TYPES.map(t => (
               <button key={t.value} type="button" onClick={() => setType(t.value)}
-                className={cn('py-2 rounded-xl border text-[10px] font-black uppercase tracking-tight transition',
-                  type === t.value ? 'text-white border-transparent' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300')}
+                className={cn('py-2 rounded-xl border text-[11px] font-semibold tracking-tight transition',
+                  type === t.value ? 'text-white border-transparent' : 'bg-surface-2 border-border text-fg-2')}
                 style={type === t.value ? { backgroundColor: t.color, borderColor: t.color } : {}}>
                 {t.label}
               </button>
@@ -76,9 +76,9 @@ export function CategoryModal({ onClose, onSaved }: { onClose: () => void; onSav
         <div>
           <label className={fieldLabel}>Ícone</label>
           <button type="button" onClick={() => setIconPickerOpen(v => !v)}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 border border-zinc-300 dark:border-zinc-600 rounded-xl bg-zinc-50 dark:bg-zinc-800 hover:border-emerald-500 transition">
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 border border-border rounded-xl bg-surface-2 hover:border-primary transition">
             <LucideIcon name={icon} size={18} style={{ color }} />
-            <span className="text-xs font-bold text-zinc-600 dark:text-zinc-300">{icon}</span>
+            <span className="text-xs font-semibold text-fg-2">{icon}</span>
           </button>
           {iconPickerOpen && (
             <div className="mt-2">
@@ -88,7 +88,7 @@ export function CategoryModal({ onClose, onSaved }: { onClose: () => void; onSav
         </div>
 
         <button onClick={save} disabled={saving}
-          className="w-full py-3 rounded-2xl bg-purple-600 hover:bg-purple-700 text-white font-black uppercase text-xs tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
+          className="w-full h-10 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-medium text-[13px] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           {saving ? 'Salvando...' : 'Criar categoria'}
         </button>

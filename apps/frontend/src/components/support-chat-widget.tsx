@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BotMessageSquare, X, Send, Sparkles } from 'lucide-react';
+import { BotMessageSquare, X, Send, Sparkles } from '@/components/ui/icons';
 import { useSupportChat } from '@/hooks/useSupportChat';
 import { usePlan } from '@/hooks/usePlan';
 
@@ -37,37 +37,37 @@ export function SupportChatWidget() {
       <button
         onClick={toggleOpen}
         aria-label={open ? 'Fechar assistente de suporte' : 'Abrir assistente de suporte'}
-        className="relative p-2 text-slate-500 dark:text-emerald-300/70 hover:text-emerald-950 dark:hover:text-white transition"
+        className="icon-btn"
       >
-        {open ? <X className="h-5 w-5" /> : <BotMessageSquare className="h-5 w-5" />}
+        {open ? <X className="h-4 w-4" strokeWidth={1.75} /> : <BotMessageSquare className="h-4 w-4" strokeWidth={1.75} />}
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 z-50 flex h-[560px] max-h-[75vh] w-96 max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-2xl dark:border-emerald-900 dark:bg-emerald-950">
+        <div className="absolute right-0 top-full mt-2 z-50 flex h-[560px] max-h-[75vh] w-96 max-w-[92vw] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
           {/* Cabeçalho */}
-          <div className="flex items-center justify-between bg-emerald-950 px-4 py-3 text-white shrink-0">
+          <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3 text-fg shrink-0">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-emerald-300" />
-              <span className="text-sm font-bold">Assistente DCash</span>
+              <Sparkles className="h-4 w-4 text-accent" />
+              <span className="text-sm font-semibold">Assistente DCash</span>
             </div>
             <button onClick={toggleOpen} aria-label="Fechar">
-              <X className="h-4 w-4 text-emerald-300 hover:text-white" />
+              <X className="h-4 w-4 text-fg-muted hover:text-fg" />
             </button>
           </div>
 
           {/* Corpo */}
-          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-slate-50 px-4 py-4 dark:bg-emerald-950/40">
+          <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-surface px-4 py-4">
             {historyLoading && (
-              <p className="text-center text-xs text-slate-400 dark:text-emerald-300/60">Carregando conversa…</p>
+              <p className="text-center text-xs text-fg-muted dark:text-fg-2">Carregando conversa…</p>
             )}
 
             {!historyLoading && messages.length === 0 && (
               <div className="flex flex-col items-center gap-2 py-6 text-center">
-                <Sparkles className="h-7 w-7 text-emerald-400" />
-                <p className="text-sm font-semibold text-slate-700 dark:text-emerald-100">
+                <Sparkles className="h-7 w-7 text-accent" />
+                <p className="text-sm font-semibold text-fg-2 dark:text-fg">
                   Oi! Sou o assistente do DCash 👋
                 </p>
-                <p className="text-xs text-slate-500 dark:text-emerald-300/70">
+                <p className="text-xs text-fg-muted dark:text-fg-2">
                   {isPro
                     ? 'Pergunte sobre como usar o app ou sobre seus dados reais — saldo, gastos do mês, parcelas, planejamento, cofrinhos e sonhos.'
                     : 'Pode perguntar como usar qualquer parte do app — contas, contas fixas, cofrinhos, planejamento e mais.'}
@@ -80,13 +80,13 @@ export function SupportChatWidget() {
                 <div
                   className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm ${
                     m.role === 'user'
-                      ? 'bg-emerald-800 text-white'
-                      : 'bg-white text-slate-700 shadow-sm dark:bg-emerald-900 dark:text-emerald-50'
-                  } ${m.failed ? 'border border-red-300' : ''}`}
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-card text-fg border border-border'
+                  } ${m.failed ? 'border border-danger/30' : ''}`}
                 >
                   {m.content}
                   {m.failed && (
-                    <span className="mt-1 block text-[11px] text-red-500">Falha ao enviar.</span>
+                    <span className="mt-1 block text-[11px] text-danger">Falha ao enviar.</span>
                   )}
                 </div>
               </div>
@@ -94,18 +94,18 @@ export function SupportChatWidget() {
 
             {loading && (
               <div className="flex justify-start">
-                <div className="flex items-center gap-1 rounded-2xl bg-white px-4 py-3 shadow-sm dark:bg-emerald-900">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.3s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400 [animation-delay:-0.15s]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-slate-400" />
+                <div className="flex items-center gap-1 rounded-2xl border border-border bg-card px-4 py-3">
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg-muted [animation-delay:-0.3s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg-muted [animation-delay:-0.15s]" />
+                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-fg-muted" />
                 </div>
               </div>
             )}
           </div>
 
           {/* Rodapé */}
-          <div className="border-t border-slate-100 bg-white p-3 dark:border-emerald-900 dark:bg-emerald-950 shrink-0">
-            {error && <p className="mb-2 text-xs text-red-500">{error}</p>}
+          <div className="border-t border-border bg-card p-3 shrink-0">
+            {error && <p className="mb-2 text-xs text-danger">{error}</p>}
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -116,13 +116,13 @@ export function SupportChatWidget() {
                 }}
                 placeholder="Digite sua dúvida…"
                 disabled={loading}
-                className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-emerald-500 disabled:opacity-60 dark:border-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-50"
+                className="flex-1 field h-9 !px-3 disabled:opacity-60"
               />
               <button
                 onClick={handleSend}
                 disabled={loading || !text.trim()}
                 aria-label="Enviar"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-800 text-white transition hover:bg-emerald-700 disabled:opacity-40"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary transition hover:bg-primary-hover disabled:opacity-40"
               >
                 <Send className="h-4 w-4" />
               </button>

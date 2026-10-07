@@ -14,7 +14,24 @@ async function bootstrap() {
   const uploadsDir = join(process.cwd(), 'public', 'uploads');
   if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 
-  app.useStaticAssets(join(process.cwd(), 'public'));
+  // Baseline security headers (API + uploaded files)
+  app.use((_req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    res.removeHeader('X-Powered-By');
+    next();
+  });
+  app.disable('x-powered-by');
+
+  app.useStaticAssets(join(process.cwd(), 'public'), {
+    setHeaders: (res) =>
+      res.setHeader(
+        'Content-Security-Policy',
+        "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'",
+      ),
+  });
 
   app.setGlobalPrefix('api');
 

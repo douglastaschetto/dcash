@@ -1,7 +1,5 @@
-import { AlertCircle, RotateCcw, type LucideIcon } from 'lucide-react';
+import { AlertCircle, RotateCcw, type LucideIcon } from '@/components/ui/icons';
 import { Button } from './Button';
-
-const muted = 'color-mix(in srgb, var(--foreground) 50%, transparent)';
 
 /** "Nothing here yet" — as opposed to ErrorState, which is "something failed". */
 export function EmptyState({
@@ -14,10 +12,12 @@ export function EmptyState({
   description?: string;
 }) {
   return (
-    <div className="py-24 flex flex-col items-center text-center px-6">
-      <Icon size={48} strokeWidth={1} className="mb-4 opacity-30" style={{ color: 'var(--foreground)' }} />
-      <p className="text-xs font-black uppercase tracking-widest" style={{ color: muted }}>{title}</p>
-      {description && <p className="mt-1.5 text-xs max-w-xs" style={{ color: muted }}>{description}</p>}
+    <div className="py-16 flex flex-col items-center text-center px-6">
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-surface-2">
+        <Icon size={20} strokeWidth={1.75} className="text-fg-muted" />
+      </div>
+      <p className="text-sm font-medium text-fg">{title}</p>
+      {description && <p className="mt-1 text-xs max-w-xs text-fg-muted">{description}</p>}
     </div>
   );
 }
@@ -38,12 +38,14 @@ export function ErrorState({
   onRetry?: () => void;
 }) {
   return (
-    <div className="py-24 flex flex-col items-center text-center px-6 gap-3">
-      <AlertCircle className="text-red-500" size={36} />
-      <p className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>{title}</p>
-      <p className="text-xs max-w-xs" style={{ color: muted }}>{description}</p>
+    <div className="py-20 flex flex-col items-center text-center px-6 gap-3">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-danger/30 bg-danger-soft">
+        <AlertCircle className="text-danger" size={20} strokeWidth={1.75} />
+      </div>
+      <p className="text-sm font-semibold text-fg">{title}</p>
+      <p className="text-xs max-w-xs text-fg-muted">{description}</p>
       {onRetry && (
-        <Button size="sm" onClick={onRetry} icon={<RotateCcw size={14} />}>
+        <Button size="sm" variant="secondary" onClick={onRetry} icon={<RotateCcw size={14} />}>
           Tentar novamente
         </Button>
       )}

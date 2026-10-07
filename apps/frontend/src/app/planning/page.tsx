@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Loader2, ChevronLeft, ChevronRight, Check,
-  ArrowRight, ArrowLeft, Trash2, Plus, X, Target, Pencil, Copy,
-} from 'lucide-react';
+  Loader2, ChevronLeft, ChevronRight, Check, Trash2, Target, Copy,
+  Wand2, Search, AlertTriangle, RotateCcw, CalendarCheck,
+} from '@/components/ui/icons';
 import { LucideIcon } from '@/lib/icon-picker';
 import { CurrencyInput } from '@/lib/currency-input';
 import { AppLayout } from '@/components/app-layout';
+import { cn, parseDateOnly } from '@/lib/utils';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -23,9 +24,8 @@ const MONTHS = [
   'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro',
 ];
 
-function fmt(n: number) {
-  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
+const fmt = (n: number) => n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtBRL = (n: number) => `R$ ${fmt(n)}`;
 
 type YearlyStatus = { month: number; hasPlanning: boolean; totalPlanned: number; totalSpent: number; percent: number };
 
@@ -40,19 +40,29 @@ type CategoryLimit = {
 
 type ExpenseCategory = { id: string; name: string; color: string; icon: string };
 
-type Step = 'empty' | 'income' | 'categories';
+type Row = { categoryId: string; name: string; color: string; icon: string; amount: number; limitId?: string };
 
-type CatInput = { categoryId: string; name: string; color: string; icon: string; amount: number; limitId?: string };
+/* Income forecast + reserve % are planning aids the API doesn't store — kept per browser */
+const BASE_KEY = (y: number, m: number) => `dcash:planning-base:${y}-${m}`;
+function readBase(y: number, m: number): { income: number; reservePct: number } {
+  try {
+    const raw = localStorage.getItem(BASE_KEY(y, m));
+    if (raw) return { income: 0, reservePct: 20, ...JSON.parse(raw) };
+  } catch {}
+  return { income: 0, reservePct: 20 };
+}
+function writeBase(y: number, m: number, v: { income: number; reservePct: number }) {
+  try { localStorage.setItem(BASE_KEY(y, m), JSON.stringify(v)); } catch {}
+}
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
-function ProgressBar({ percent, color }: { percent: number; color: string }) {
-  const pct = Math.min(percent, 100);
+function ProgressBar({ percent, color, className }: { percent: number; color?: string; className?: string }) {
   const over = percent > 100;
   return (
-    <div className="h-1.5 w-full rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+    <div className={cn('h-1.5 w-full rounded-full bg-track overflow-hidden', className)}>
       <div
-        className="h-full rounded-full transition-all"
-        style={{ width: `${pct}%`, backgroundColor: over ? '#ef4444' : color || '#10b981' }}
+        className="h-full rounded-full transition-all duration-500"
+        style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: over ? 'var(--danger)' : color || 'var(--primary)' }}
       />
     </div>
   );
@@ -62,36 +72,28 @@ function ProgressBar({ percent, color }: { percent: number; color: string }) {
 export default function PlanningPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
   const [yearlyStatus, setYearlyStatus] = useState<YearlyStatus[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(true);
 
-  // Panel state
-  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
-  const [step, setStep] = useState<Step>('empty');
-  const [panelLoading, setPanelLoading] = useState(false);
+  const [categories, setCategories] = useState<ExpenseCategory[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [existingLimits, setExistingLimits] = useState<CategoryLimit[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [panelLoading, setPanelLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [replicating, setReplicating] = useState(false);
+  const [search, setSearch] = useState('');
+  const [savedFlash, setSavedFlash] = useState(false);
 
-  // Step 1 – income
   const [income, setIncome] = useState(0);
   const [reservePct, setReservePct] = useState(20);
 
-  // Step 2 – categories
-  const [expenseCategories, setExpenseCategories] = useState<ExpenseCategory[]>([]);
-  const [catInputs, setCatInputs] = useState<CatInput[]>([]);
-  const [existingLimits, setExistingLimits] = useState<CategoryLimit[]>([]);
-
-  const reserveAmt = income * (reservePct / 100);
-  const available = income - reserveAmt;
-  const distributed = catInputs.reduce((s, c) => s + c.amount, 0);
-  const remaining = available - distributed;
-
-  // ── Load yearly status ────────────────────────────────────────────────────
+  // ── Data loading ──────────────────────────────────────────────────────────
   const loadYearlyStatus = useCallback(async () => {
     setLoadingStatus(true);
     try {
-      const res = await fetch(`${API}/category-limits/yearly-status?year=${year}`, {
-        headers: getAuthHeaders(),
-      });
+      const res = await fetch(`${API}/category-limits/yearly-status?year=${year}`, { headers: getAuthHeaders() });
       if (res.ok) setYearlyStatus(await res.json());
     } finally {
       setLoadingStatus(false);
@@ -100,524 +102,515 @@ export default function PlanningPage() {
 
   useEffect(() => { loadYearlyStatus(); }, [loadYearlyStatus]);
 
-  // ── Load expense categories ───────────────────────────────────────────────
-  const loadExpenseCategories = useCallback(async (): Promise<ExpenseCategory[]> => {
-    try {
-      const res = await fetch(`${API}/categories`, { headers: getAuthHeaders() });
-      if (!res.ok) return [];
-      const all = await res.json();
-      const expenses = all.filter((c: any) => c.type === 'expense');
-      setExpenseCategories(expenses);
-      return expenses;
-    } catch { return []; }
+  useEffect(() => {
+    fetch(`${API}/categories`, { headers: getAuthHeaders() })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((all) => setCategories((all || []).filter((c: any) => c.type === 'expense')))
+      .catch(() => setCategories([]));
+    fetch(`${API}/transactions`, { headers: getAuthHeaders() })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setTransactions(Array.isArray(d) ? d : []))
+      .catch(() => setTransactions([]));
   }, []);
 
-  // ── Merge the full expense-category list with whatever limits exist ──────
-  const mergeWithCategories = (categories: ExpenseCategory[], limits: CategoryLimit[]): CatInput[] =>
-    categories.map((c) => {
+  const merge = useCallback((cats: ExpenseCategory[], limits: CategoryLimit[], keepIds = true): Row[] =>
+    cats.map((c) => {
       const l = limits.find((x) => x.categoryId === c.id);
       return {
         categoryId: c.id, name: c.name, color: c.color, icon: c.icon,
-        amount: l ? l.amount : 0,
-        limitId: l?.id,
+        amount: l ? Number(l.amount) : 0,
+        limitId: keepIds ? l?.id : undefined,
       };
-    });
+    }), []);
 
-  // ── Open month panel ──────────────────────────────────────────────────────
-  const openMonth = async (month: number) => {
-    setSelectedMonth(month);
-    setIncome(0); setReservePct(20);
-    const status = yearlyStatus.find((s) => s.month === month);
-    if (!status?.hasPlanning) {
-      setStep('empty');
-      setCatInputs([]);
-      setExistingLimits([]);
-      return;
-    }
-    // Has planning → load limits + all expense categories, then go to categories
+  const loadMonth = useCallback(async () => {
     setPanelLoading(true);
     try {
-      const [res, categories] = await Promise.all([
-        fetch(`${API}/category-limits?month=${month}&year=${year}`, { headers: getAuthHeaders() }),
-        loadExpenseCategories(),
-      ]);
-      if (!res.ok) { setStep('empty'); return; }
-      const limits: CategoryLimit[] = await res.json();
+      const res = await fetch(`${API}/category-limits?month=${month}&year=${year}`, { headers: getAuthHeaders() });
+      const limits: CategoryLimit[] = res.ok ? await res.json() : [];
       setExistingLimits(limits);
-      setCatInputs(mergeWithCategories(categories, limits));
-      setStep('categories');
     } finally {
       setPanelLoading(false);
     }
+  }, [month, year]);
+
+  useEffect(() => { loadMonth(); }, [loadMonth]);
+  useEffect(() => { setRows(merge(categories, existingLimits)); }, [categories, existingLimits, merge]);
+  useEffect(() => {
+    const b = readBase(year, month);
+    setIncome(b.income);
+    setReservePct(b.reservePct);
+  }, [year, month]);
+
+  const updateBase = (patch: Partial<{ income: number; reservePct: number }>) => {
+    const next = { income, reservePct, ...patch };
+    setIncome(next.income);
+    setReservePct(next.reservePct);
+    writeBase(year, month, next);
   };
 
-  const closePanel = () => { setSelectedMonth(null); };
+  // ── Spending history per category ─────────────────────────────────────────
+  const spentBy = useMemo(() => {
+    const map: Record<string, number> = {};
+    transactions.forEach((t) => {
+      if (t.type !== 'EXPENSE' || t.piggyBankId || !t.category?.id) return;
+      const d = parseDateOnly(t.date);
+      const key = `${t.category.id}|${d.getFullYear()}-${d.getMonth() + 1}`;
+      map[key] = (map[key] || 0) + Number(t.amount);
+    });
+    return map;
+  }, [transactions]);
 
-  // ── Start new planning ────────────────────────────────────────────────────
-  const startPlanning = async () => {
-    await loadExpenseCategories();
-    setStep('income');
+  const spentIn = (catId: string, y: number, m: number) => spentBy[`${catId}|${y}-${m}`] || 0;
+  const avg3 = (catId: string) => {
+    let sum = 0;
+    for (let i = 1; i <= 3; i++) {
+      const d = new Date(year, month - 1 - i, 1);
+      sum += spentIn(catId, d.getFullYear(), d.getMonth() + 1);
+    }
+    return Math.round((sum / 3) * 100) / 100;
   };
 
-  // ── Quick-create: open panel straight into the income step (skip the empty screen) ──
-  const createPlanning = async (month: number) => {
-    setSelectedMonth(month);
-    setIncome(0); setReservePct(20);
-    setCatInputs([]); setExistingLimits([]);
-    await loadExpenseCategories();
-    setStep('income');
+  // ── Derived numbers ───────────────────────────────────────────────────────
+  const reserveAmt = income * (reservePct / 100);
+  const available = income - reserveAmt;
+  const distributed = rows.reduce((s, r) => s + r.amount, 0);
+  const remaining = available - distributed;
+  const spentTotal = rows.reduce((s, r) => s + spentIn(r.categoryId, year, month), 0);
+  const plannedCount = rows.filter((r) => r.amount > 0).length;
+  const overCount = rows.filter((r) => r.amount > 0 && spentIn(r.categoryId, year, month) > r.amount).length;
+
+  const dirty = useMemo(() => {
+    const saved = new Map(existingLimits.map((l) => [l.categoryId, Number(l.amount)]));
+    return rows.some((r) => (saved.get(r.categoryId) ?? 0) !== r.amount);
+  }, [rows, existingLimits]);
+
+  const visibleRows = rows.filter((r) => !search.trim() || r.name.toLowerCase().includes(search.trim().toLowerCase()));
+
+  // ── Navigation (guards unsaved edits) ─────────────────────────────────────
+  const confirmLeave = () => !dirty || confirm('Há alterações não salvas neste mês. Descartar?');
+  const selectMonth = (m: number, y = year) => {
+    if ((m === month && y === year) || !confirmLeave()) return;
+    setYear(y); setMonth(m); setSearch('');
+  };
+  const changeYear = (delta: number) => {
+    if (!confirmLeave()) return;
+    setYear((y) => y + delta);
   };
 
-  // ── Replicate previous month's category amounts into this month ──────────
-  const [replicating, setReplicating] = useState(false);
-  const replicatePrevMonth = async (month: number) => {
+  // ── Actions ───────────────────────────────────────────────────────────────
+  const setAmount = (categoryId: string, amount: number) =>
+    setRows((prev) => prev.map((r) => (r.categoryId === categoryId ? { ...r, amount } : r)));
+
+  const fillWithAverage = () => {
+    const anyAvg = rows.some((r) => avg3(r.categoryId) > 0);
+    if (!anyAvg) { alert('Não há gastos nos últimos 3 meses para calcular a média.'); return; }
+    setRows((prev) => prev.map((r) => {
+      const a = avg3(r.categoryId);
+      return a > 0 && r.amount === 0 ? { ...r, amount: Math.ceil(a) } : r;
+    }));
+  };
+
+  const replicatePrevMonth = async () => {
     const prevMonth = month === 1 ? 12 : month - 1;
     const prevYear  = month === 1 ? year - 1 : year;
     setReplicating(true);
     try {
-      const [res, categories] = await Promise.all([
-        fetch(`${API}/category-limits?month=${prevMonth}&year=${prevYear}`, { headers: getAuthHeaders() }),
-        loadExpenseCategories(),
-      ]);
+      const res = await fetch(`${API}/category-limits?month=${prevMonth}&year=${prevYear}`, { headers: getAuthHeaders() });
       const limits: CategoryLimit[] = res.ok ? await res.json() : [];
       if (limits.length === 0) {
         alert(`Não há planejamento em ${MONTHS[prevMonth - 1]} para replicar.`);
         return;
       }
-      setSelectedMonth(month);
-      setIncome(0); setReservePct(20);
-      setExistingLimits([]);
-      setCatInputs(mergeWithCategories(categories, limits).map((c) => ({ ...c, limitId: undefined })));
-      setStep('categories');
+      const copied = merge(categories, limits, false);
+      setRows((prev) => prev.map((r) => ({ ...r, amount: copied.find((c) => c.categoryId === r.categoryId)?.amount ?? 0 })));
+      const prevBase = readBase(prevYear, prevMonth);
+      if (income === 0 && prevBase.income > 0) updateBase(prevBase);
     } finally {
       setReplicating(false);
     }
   };
 
-  // ── Go to categories step ─────────────────────────────────────────────────
-  const goToCategories = async () => {
-    if (catInputs.length === 0) {
-      await loadExpenseCategories();
-      // Pre-fill all expense categories
-      const inputs: CatInput[] = expenseCategories.map((c) => ({
-        categoryId: c.id, name: c.name, color: c.color, icon: c.icon, amount: 0,
-      }));
-      setCatInputs(inputs.length > 0 ? inputs : []);
-    }
-    setStep('categories');
+  const clearAll = () => {
+    if (distributed === 0) return;
+    if (!confirm('Zerar todos os limites deste mês? (Só será aplicado ao salvar.)')) return;
+    setRows((prev) => prev.map((r) => ({ ...r, amount: 0 })));
   };
 
-  // When expenseCategories loads after startPlanning → move to categories
-  useEffect(() => {
-    if (step === 'income' && expenseCategories.length > 0 && catInputs.length === 0) {
-      const inputs: CatInput[] = expenseCategories.map((c) => ({
-        categoryId: c.id, name: c.name, color: c.color, icon: c.icon, amount: 0,
-      }));
-      setCatInputs(inputs);
-    }
-  }, [expenseCategories, step, catInputs.length]);
+  const discard = () => setRows(merge(categories, existingLimits));
 
-  // ── Save planning ─────────────────────────────────────────────────────────
   const savePlanning = async () => {
-    if (!selectedMonth) return;
-    const toSave = catInputs.filter((c) => c.amount > 0);
-    if (toSave.length === 0) return;
     setSaving(true);
     try {
-      for (const c of toSave) {
-        await fetch(`${API}/category-limits`, {
-          method: 'POST',
-          headers: getAuthHeaders(),
-          body: JSON.stringify({ categoryId: c.categoryId, amount: c.amount, month: selectedMonth, year }),
-        });
-      }
-      // Delete removed limits (was in DB but now amount=0 or removed)
-      for (const limit of existingLimits) {
-        const kept = catInputs.find((c) => c.categoryId === limit.categoryId && c.amount > 0);
-        if (!kept) {
-          await fetch(`${API}/category-limits/${limit.id}`, {
-            method: 'DELETE',
+      const saved = new Map(existingLimits.map((l) => [l.categoryId, l]));
+      for (const r of rows) {
+        const prev = saved.get(r.categoryId);
+        if (r.amount > 0 && Number(prev?.amount ?? 0) !== r.amount) {
+          await fetch(`${API}/category-limits`, {
+            method: 'POST',
             headers: getAuthHeaders(),
+            body: JSON.stringify({ categoryId: r.categoryId, amount: r.amount, month, year }),
           });
+        } else if (r.amount === 0 && prev) {
+          await fetch(`${API}/category-limits/${prev.id}`, { method: 'DELETE', headers: getAuthHeaders() });
         }
       }
-      await loadYearlyStatus();
-      closePanel();
+      await Promise.all([loadYearlyStatus(), loadMonth()]);
+      setSavedFlash(true);
+      setTimeout(() => setSavedFlash(false), 2000);
     } catch {
+      alert('Não foi possível salvar o planejamento.');
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Clear an individual category's planned amount (category stays listed) ──
-  const clearLimit = async (limitId: string | undefined, categoryId: string) => {
-    if (limitId) {
-      await fetch(`${API}/category-limits/${limitId}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders(),
-      });
-    }
-    setCatInputs((prev) => prev.map((c) => (c.categoryId === categoryId ? { ...c, amount: 0, limitId: undefined } : c)));
-    setExistingLimits((prev) => prev.filter((l) => l.id !== limitId));
-  };
-
-  const hasPlanning = yearlyStatus.find((s) => s.month === selectedMonth)?.hasPlanning ?? false;
-
-  // ── Month status ──────────────────────────────────────────────────────────
-  const getStatus = (month: number) => yearlyStatus.find((s) => s.month === month);
+  const getStatus = (m: number) => yearlyStatus.find((s) => s.month === m);
+  const yearPlanned = yearlyStatus.reduce((s, x) => s + (x.totalPlanned || 0), 0);
+  const yearSpent = yearlyStatus.reduce((s, x) => s + (x.hasPlanning ? x.totalSpent || 0 : 0), 0);
+  const monthsPlanned = yearlyStatus.filter((s) => s.hasPlanning).length;
+  const isCurrent = (m: number) => m === now.getMonth() + 1 && year === now.getFullYear();
+  const hasPlanning = existingLimits.length > 0;
+  const prevMonthName = MONTHS[month === 1 ? 11 : month - 2];
 
   return (
-    <AppLayout title="Planejamento" subtitle="Controle seus gastos por categoria">
+    <AppLayout title="Planejamento" subtitle="Defina limites por categoria para cada mês" noPadding>
+      <div className="grid h-full grid-cols-1 overflow-y-auto lg:grid-cols-[300px_minmax(0,1fr)] lg:overflow-hidden 2xl:grid-cols-[340px_minmax(0,1fr)]">
 
-      {/* Year selector */}
-      <div data-tour="planning-year-nav" className="flex items-center justify-between mb-6 rounded-2xl border border-emerald-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-6 py-4 shadow-sm">
-        <button
-          onClick={() => setYear((y) => y - 1)}
-          className="p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <span className="text-xl font-bold text-emerald-950 dark:text-white">{year}</span>
-        <button
-          onClick={() => setYear((y) => y + 1)}
-          className="p-2 rounded-xl hover:bg-emerald-50 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
-
-      {/* Month grid */}
-      {loadingStatus ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-        </div>
-      ) : (
-        <div data-tour="planning-months-grid" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {MONTHS.map((monthName, idx) => {
-            const month = idx + 1;
-            const status = getStatus(month);
-            const isCurrent = month === now.getMonth() + 1 && year === now.getFullYear();
-            const isSelected = selectedMonth === month;
-            const planned = status?.hasPlanning ?? false;
-
-            return (
-              <div
-                key={month}
-                role="button"
-                tabIndex={0}
-                onClick={() => openMonth(month)}
-                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && openMonth(month)}
-                className={`relative flex flex-col items-start gap-2 rounded-2xl border-2 p-5 text-left transition cursor-pointer
-                  ${isSelected
-                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 shadow-md'
-                    : isCurrent
-                    ? 'border-emerald-400 bg-white dark:bg-slate-900 shadow-sm'
-                    : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-slate-600 hover:shadow-sm'
-                  }`}
-              >
-                {/* Current badge */}
-                {isCurrent && !isSelected && (
-                  <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-                    Atual
-                  </span>
-                )}
-
-                {/* Create / edit action icon */}
-                <button
-                  type="button"
-                  title={planned ? 'Editar planejamento' : 'Criar planejamento'}
-                  onClick={(e) => { e.stopPropagation(); planned ? openMonth(month) : createPlanning(month); }}
-                  className={`absolute bottom-3 right-3 h-7 w-7 rounded-lg flex items-center justify-center transition
-                    ${planned
-                      ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40'
-                      : 'text-slate-400 dark:text-slate-500 hover:bg-emerald-50 dark:hover:bg-slate-700 hover:text-emerald-600'
-                    }`}
-                >
-                  {planned ? <Pencil className="h-3.5 w-3.5" /> : <Plus className="h-4 w-4" />}
-                </button>
-
-                {/* Month name */}
-                <p className={`text-base font-bold ${isSelected ? 'text-emerald-800 dark:text-emerald-200' : 'text-emerald-950 dark:text-white'}`}>
-                  {monthName}
-                </p>
-
-                {/* Status */}
-                {planned ? (
-                  <>
-                    <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 shrink-0" />
-                      Planejado
-                    </span>
-                    {status && status.totalPlanned > 0 && (
-                      <div className="w-full pr-8">
-                        <ProgressBar percent={status.percent} color="#10b981" />
-                        <p className={`text-[11px] font-semibold mt-1 ${status.percent > 100 ? 'text-red-500' : 'text-slate-500 dark:text-slate-400'}`}>
-                          {status.percent.toFixed(0)}% realizado
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <span className="text-xs text-slate-400 dark:text-slate-500">Sem planejamento</span>
-                )}
+        {/* ═══════════════ Meses (esquerda) ═══════════════ */}
+        <aside className="flex flex-col border-b border-border lg:min-h-0 lg:border-b-0 lg:border-r">
+          {/* Year selector */}
+          <div className="shrink-0 p-4 pb-3">
+            <div data-tour="planning-year-nav" className="flex items-center justify-between rounded-lg border border-border bg-card p-0.5">
+              <button onClick={() => changeYear(-1)} aria-label="Ano anterior"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg transition-colors">
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-semibold tabular-nums text-fg">{year}</span>
+              <button onClick={() => changeYear(1)} aria-label="Próximo ano"
+                className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg transition-colors">
+                <ChevronRight size={16} />
+              </button>
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="rounded-lg border border-border bg-card px-3 py-2">
+                <p className="text-[11px] text-fg-muted">Planejado no ano</p>
+                <p className="truncate text-[13px] font-semibold tabular-nums text-fg">{fmtBRL(yearPlanned)}</p>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="rounded-lg border border-border bg-card px-3 py-2">
+                <p className="text-[11px] text-fg-muted">Meses planejados</p>
+                <p className="text-[13px] font-semibold tabular-nums text-fg">{monthsPlanned}/12</p>
+              </div>
+            </div>
+            {yearPlanned > 0 && (
+              <div className="mt-2">
+                <ProgressBar percent={(yearSpent / yearPlanned) * 100} />
+                <p className="mt-1 text-[11px] text-fg-muted tabular-nums">{fmtBRL(yearSpent)} gastos nos meses planejados</p>
+              </div>
+            )}
+          </div>
 
-      {/* ── Right panel ──────────────────────────────────────────────────── */}
-      {selectedMonth !== null && (
-        <div className="fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div className="flex-1 bg-black/40 backdrop-blur-sm" onClick={closePanel} />
-
-          {/* Panel */}
-          <div className="w-full max-w-[480px] flex flex-col bg-white dark:bg-slate-900 shadow-2xl animate-in slide-in-from-right duration-300 overflow-hidden">
-
-            {/* Header */}
-            <div className="relative bg-gradient-to-br from-emerald-950 to-emerald-800 p-6 text-white shrink-0">
-              <div className="absolute -top-8 -right-8 w-40 h-40 rounded-full bg-white/5" />
-              <div className="absolute -bottom-6 -left-6 w-28 h-28 rounded-full bg-white/5" />
-              <div className="relative">
-                <div className="flex items-start justify-between mb-1">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-emerald-300">
-                    {step === 'income' ? 'Passo 1 de 2' : step === 'categories' ? 'Passo 2 de 2' : 'Planejamento'}
-                  </p>
-                  <button onClick={closePanel} className="p-1.5 rounded-lg hover:bg-white/10 transition">
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <h2 className="text-2xl font-bold">
-                  {MONTHS[selectedMonth - 1]} {year}
-                </h2>
-                {step === 'categories' && catInputs.length > 0 && (
-                  <div className="flex gap-6 mt-4">
-                    <div>
-                      <p className="text-xs text-emerald-300 uppercase tracking-wide">Restante</p>
-                      <p className={`text-lg font-bold ${remaining < 0 ? 'text-red-300' : 'text-white'}`}>
-                        R$ {fmt(Math.abs(remaining))} {remaining < 0 ? 'acima' : ''}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-emerald-300 uppercase tracking-wide">Distribuído</p>
-                      <p className="text-lg font-bold">R$ {fmt(distributed)}</p>
-                    </div>
+          {/* Month list */}
+          <div
+            data-tour="planning-months-grid"
+            className="flex gap-2 overflow-x-auto px-4 pb-4 scrollbar-none lg:min-h-0 lg:flex-1 lg:flex-col lg:gap-1 lg:overflow-y-auto lg:overflow-x-hidden"
+          >
+            {loadingStatus && yearlyStatus.length === 0 ? (
+              <div className="flex flex-1 items-center justify-center py-10">
+                <Loader2 className="h-6 w-6 animate-spin text-accent" />
+              </div>
+            ) : MONTHS.map((name, idx) => {
+              const m = idx + 1;
+              const st = getStatus(m);
+              const planned = st?.hasPlanning ?? false;
+              const selected = m === month;
+              const over = planned && (st?.percent ?? 0) > 100;
+              return (
+                <button
+                  key={m}
+                  onClick={() => selectMonth(m)}
+                  aria-current={selected ? 'date' : undefined}
+                  className={cn(
+                    'group relative flex min-w-[150px] shrink-0 flex-col gap-1.5 rounded-lg border px-3 py-2.5 text-left transition-colors lg:min-w-0',
+                    selected
+                      ? 'border-primary-border bg-primary-soft'
+                      : 'border-transparent hover:bg-hover',
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={cn('text-[13px] font-medium', selected ? 'text-accent' : 'text-fg')}>{name}</span>
+                    <span className="flex items-center gap-1.5">
+                      {isCurrent(m) && (
+                        <span className="rounded px-1.5 py-px text-[10px] font-semibold bg-primary-soft text-accent border border-primary-border">Atual</span>
+                      )}
+                      {planned
+                        ? <span className={cn('text-[11px] font-medium tabular-nums', over ? 'text-danger' : 'text-fg-2')}>{(st?.percent ?? 0).toFixed(0)}%</span>
+                        : <span className="text-[11px] text-fg-muted">—</span>}
+                    </span>
                   </div>
-                )}
+                  {planned ? (
+                    <>
+                      <ProgressBar percent={st?.percent ?? 0} />
+                      <span className="text-[11px] tabular-nums text-fg-muted">
+                        {fmtBRL(st?.totalSpent ?? 0)} de {fmtBRL(st?.totalPlanned ?? 0)}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-[11px] text-fg-muted">Sem planejamento</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        {/* ═══════════════ Editor do mês (direita) ═══════════════ */}
+        <section className="flex flex-col lg:min-h-0">
+          {/* Header */}
+          <div className="shrink-0 space-y-4 border-b border-border p-4 md:px-6">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-lg font-semibold text-fg">{MONTHS[month - 1]} {year}</h2>
+                  {hasPlanning
+                    ? <span className="rounded-md border border-primary-border bg-primary-soft px-1.5 py-0.5 text-[11px] font-medium text-accent">Planejado</span>
+                    : <span className="rounded-md border border-border bg-surface-2 px-1.5 py-0.5 text-[11px] font-medium text-fg-2">Sem planejamento</span>}
+                </div>
+                <p className="text-xs text-fg-muted">Defina quanto pode ser gasto em cada categoria.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button onClick={fillWithAverage} className="btn btn-secondary" title="Preenche as categorias vazias com a média de gastos dos últimos 3 meses">
+                  <Wand2 size={14} /> Usar média 3 meses
+                </button>
+                <button onClick={replicatePrevMonth} disabled={replicating} className="btn btn-secondary">
+                  {replicating ? <Loader2 size={14} className="animate-spin" /> : <Copy size={14} />} Copiar {prevMonthName.toLowerCase()}
+                </button>
+                <button onClick={clearAll} disabled={distributed === 0} className="btn btn-secondary btn-square" title="Zerar todos os limites" aria-label="Zerar todos os limites">
+                  <Trash2 size={14} />
+                </button>
               </div>
             </div>
 
-            {panelLoading ? (
-              <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+            {/* Budget strip */}
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
+              <div className="col-span-2 rounded-xl border border-border bg-card p-3 xl:col-span-1">
+                <p className="text-[11px] text-fg-muted">Receita prevista</p>
+                <CurrencyInput
+                  value={income}
+                  onChange={(v) => updateBase({ income: v })}
+                  placeholder="0,00"
+                  className="mt-0.5 w-full bg-transparent text-base font-semibold tabular-nums text-fg outline-none border-none p-0"
+                />
               </div>
-            ) : (
-              <>
-                {/* ── Step: empty ─────────────────────────────────────────── */}
-                {step === 'empty' && (
-                  <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                    <div className="h-20 w-20 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center mb-6">
-                      <Target className="h-10 w-10 text-emerald-400" />
-                    </div>
-                    <h3 className="text-xl font-bold text-emerald-950 dark:text-white mb-2">
-                      Sem planejamento
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-8 max-w-xs">
-                      Defina limites por categoria e controle seus gastos mensais de forma inteligente.
-                    </p>
-                    <button
-                      data-tour="planning-start-btn"
-                      onClick={startPlanning}
-                      className="flex items-center gap-2 rounded-xl bg-emerald-950 px-8 py-3.5 text-sm font-bold text-white hover:bg-emerald-800 transition"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Iniciar planejamento
-                    </button>
-                    <button
-                      onClick={() => selectedMonth && replicatePrevMonth(selectedMonth)}
-                      disabled={replicating}
-                      className="flex items-center gap-2 mt-3 rounded-xl border border-slate-200 dark:border-slate-600 px-8 py-3 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50 transition"
-                    >
-                      {replicating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Copy className="h-4 w-4" />}
-                      Replicar mês anterior
-                    </button>
-                  </div>
+              <div className="col-span-2 rounded-xl border border-border bg-card p-3 xl:col-span-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-fg-muted">Reserva</p>
+                  <span className="text-[11px] font-semibold tabular-nums text-accent">{reservePct}% · {fmtBRL(reserveAmt)}</span>
+                </div>
+                <input
+                  type="range" min={0} max={50} step={1}
+                  value={reservePct}
+                  onChange={(e) => updateBase({ reservePct: Number(e.target.value) })}
+                  aria-label="Percentual de reserva"
+                  className="mt-2 w-full accent-primary"
+                />
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[11px] text-fg-muted">Planejado</p>
+                <p className="text-base font-semibold tabular-nums text-fg">{fmtBRL(distributed)}</p>
+                <p className="text-[11px] text-fg-muted">{plannedCount} categoria{plannedCount === 1 ? '' : 's'}</p>
+              </div>
+              <div className="rounded-xl border border-border bg-card p-3">
+                <p className="text-[11px] text-fg-muted">{income > 0 ? (remaining < 0 ? 'Acima do disponível' : 'Livre para distribuir') : 'Gasto no mês'}</p>
+                {income > 0 ? (
+                  <>
+                    <p className={cn('text-base font-semibold tabular-nums', remaining < 0 ? 'text-danger' : 'text-accent')}>{fmtBRL(Math.abs(remaining))}</p>
+                    <p className="text-[11px] text-fg-muted tabular-nums">de {fmtBRL(available)} disponíveis</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-base font-semibold tabular-nums text-fg">{fmtBRL(spentTotal)}</p>
+                    <p className="text-[11px] text-fg-muted">informe a receita para distribuir</p>
+                  </>
                 )}
-
-                {/* ── Step: income ────────────────────────────────────────── */}
-                {step === 'income' && (
-                  <div className="flex-1 overflow-y-auto p-6 space-y-6">
-                    {/* Income */}
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">
-                        Previsão de Receita Mensal
-                      </label>
-                      <div className="rounded-2xl border-2 border-emerald-200 dark:border-slate-600 bg-emerald-50 dark:bg-slate-800 p-5">
-                        <p className="text-xs text-slate-400 mb-1">R$</p>
-                        <CurrencyInput
-                          value={income}
-                          onChange={setIncome}
-                          className="w-full text-3xl font-bold text-emerald-950 dark:text-white bg-transparent outline-none border-none"
-                          placeholder="0,00"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Reserve slider */}
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <label className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                          Meta de Reserva
-                        </label>
-                        <span className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{reservePct}%</span>
-                      </div>
-                      <input
-                        type="range" min={0} max={50} step={1}
-                        value={reservePct}
-                        onChange={(e) => setReservePct(Number(e.target.value))}
-                        className="w-full accent-emerald-600"
-                      />
-                      <div className="flex justify-between text-xs text-slate-400 mt-1">
-                        <span>0%</span><span>25%</span><span>50%</span>
-                      </div>
-                    </div>
-
-                    {/* Summary */}
-                    <div className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-700">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Receita bruta</span>
-                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">R$ {fmt(income)}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 dark:border-slate-700">
-                        <span className="text-sm text-slate-500 dark:text-slate-400">Aporte / Reserva</span>
-                        <span className="text-sm font-semibold text-orange-500">- R$ {fmt(reserveAmt)}</span>
-                      </div>
-                      <div className="flex items-center justify-between px-5 py-4 bg-emerald-50 dark:bg-emerald-950/30">
-                        <span className="text-sm font-bold text-emerald-800 dark:text-emerald-200">Disponível para gastos</span>
-                        <span className="text-lg font-bold text-emerald-700 dark:text-emerald-300">R$ {fmt(available)}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* ── Step: categories ────────────────────────────────────── */}
-                {step === 'categories' && (
-                  <div className="flex-1 overflow-y-auto p-6">
-                    {catInputs.length === 0 && (
-                      <p className="text-sm text-slate-400 dark:text-slate-500 text-center py-8">
-                        Nenhuma categoria de despesa encontrada.<br />
-                        Cadastre categorias do tipo "Despesa" primeiro.
-                      </p>
-                    )}
-
-                    {catInputs.length > 0 && (
-                      <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-                        {/* Header row */}
-                        <div className="grid grid-cols-[1fr_130px_64px_36px] gap-3 items-center px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-700">
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Categoria</span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">Valor</span>
-                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400 text-right">% Total</span>
-                          <span />
-                        </div>
-
-                        <div className="divide-y divide-slate-100 dark:divide-slate-700">
-                          {catInputs.map((cat) => {
-                            const pctOfTotal = distributed > 0 ? (cat.amount / distributed) * 100 : null;
-
-                            return (
-                              <div
-                                key={cat.categoryId}
-                                className="grid grid-cols-[1fr_130px_64px_36px] gap-3 items-center px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
-                              >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  <div
-                                    className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0"
-                                    style={{ backgroundColor: `${cat.color}22`, color: cat.color || '#10b981' }}
-                                  >
-                                    <LucideIcon name={cat.icon || 'Tag'} size={14} />
-                                  </div>
-                                  <span className="text-sm font-medium text-emerald-950 dark:text-white truncate">{cat.name}</span>
-                                </div>
-
-                                <CurrencyInput
-                                  value={cat.amount}
-                                  onChange={(val) =>
-                                    setCatInputs((prev) =>
-                                      prev.map((c) => (c.categoryId === cat.categoryId ? { ...c, amount: val } : c)),
-                                    )
-                                  }
-                                  placeholder="0,00"
-                                  className="w-full rounded-lg bg-emerald-50 dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 px-3 py-2 text-sm font-semibold text-right text-slate-900 dark:text-white outline-none focus:border-emerald-500 dark:focus:border-emerald-400 transition"
-                                />
-
-                                <span className="text-xs font-semibold text-right text-slate-500 dark:text-slate-400">
-                                  {pctOfTotal !== null ? `${pctOfTotal.toFixed(0)}%` : '—'}
-                                </span>
-
-                                <button
-                                  onClick={() => clearLimit(cat.limitId, cat.categoryId)}
-                                  disabled={cat.amount === 0 && !cat.limitId}
-                                  title="Zerar valor"
-                                  className="p-1.5 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-30 disabled:hover:bg-transparent transition justify-self-end"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* ── Footer ──────────────────────────────────────────────── */}
-                <div className="shrink-0 border-t border-slate-100 dark:border-slate-700 p-5">
-                  {step === 'income' && (
-                    <div className="flex gap-3">
-                      <button
-                        onClick={goToCategories}
-                        disabled={income <= 0}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-950 px-6 py-3.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-40 transition"
-                      >
-                        Planejar categorias <ArrowRight className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => setStep('empty')}
-                        className="rounded-xl border border-slate-200 dark:border-slate-600 px-5 py-3.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                      >
-                        <ArrowLeft className="h-4 w-4" />
-                      </button>
-                    </div>
-                  )}
-
-                  {step === 'categories' && (
-                    <div className="flex gap-3">
-                      <button
-                        onClick={savePlanning}
-                        disabled={saving || catInputs.filter((c) => c.amount > 0).length === 0}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-950 px-6 py-3.5 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-40 transition"
-                      >
-                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                        Salvar planejamento
-                      </button>
-                      {!hasPlanning && (
-                        <button
-                          onClick={() => setStep('income')}
-                          className="rounded-xl border border-slate-200 dark:border-slate-600 px-5 py-3.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
-                        >
-                          <ArrowLeft className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
+              </div>
+              <div className="col-span-2 rounded-xl border border-border bg-card p-3 xl:col-span-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] text-fg-muted">Realizado</p>
+                  {overCount > 0 && (
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-danger"><AlertTriangle size={11} /> {overCount} acima</span>
                   )}
                 </div>
-              </>
+                <p className="text-base font-semibold tabular-nums text-fg">
+                  {distributed > 0 ? `${((spentTotal / distributed) * 100).toFixed(0)}%` : '—'}
+                </p>
+                <ProgressBar percent={distributed > 0 ? (spentTotal / distributed) * 100 : 0} className="mt-1" />
+              </div>
+            </div>
+          </div>
+
+          {/* Category table */}
+          <div className="flex-1 p-4 md:px-6 lg:min-h-0 lg:overflow-y-auto">
+            {panelLoading && rows.length === 0 ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-6 w-6 animate-spin text-accent" />
+              </div>
+            ) : categories.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 py-16 text-center">
+                <Target size={24} strokeWidth={1.5} className="text-fg-disabled" />
+                <p className="text-[13px] text-fg-muted">Nenhuma categoria de despesa cadastrada.</p>
+                <a href="/categories" className="text-xs font-medium text-accent hover:underline">Cadastrar categorias</a>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+                  <p className="text-sm font-semibold text-fg">Limites por categoria</p>
+                  <div className="relative w-48 sm:w-60">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted" />
+                    <input
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Buscar categoria..."
+                      className="field h-8 !pl-8 !text-[13px]"
+                    />
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[720px] text-[13px]">
+                    <thead>
+                      <tr className="border-b border-border bg-surface-2 text-left text-xs text-fg-muted">
+                        <th className="px-4 py-2.5 font-medium">Categoria</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Média 3m</th>
+                        <th className="px-3 py-2.5 font-medium text-right">Gasto no mês</th>
+                        <th className="px-3 py-2.5 font-medium w-44">Limite</th>
+                        <th className="px-3 py-2.5 font-medium w-[22%]">Uso do limite</th>
+                        <th className="px-3 py-2.5 font-medium text-right">% do plano</th>
+                        <th className="px-4 py-2.5 w-10" />
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {visibleRows.map((r) => {
+                        const spent = spentIn(r.categoryId, year, month);
+                        const avg = avg3(r.categoryId);
+                        const usePct = r.amount > 0 ? (spent / r.amount) * 100 : 0;
+                        const over = r.amount > 0 && spent > r.amount;
+                        const share = distributed > 0 ? (r.amount / distributed) * 100 : 0;
+                        const savedAmt = Number(existingLimits.find((l) => l.categoryId === r.categoryId)?.amount ?? 0);
+                        const changed = savedAmt !== r.amount;
+                        return (
+                          <tr key={r.categoryId} className="group hover:bg-hover transition-colors">
+                            <td className="px-4 py-2.5">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span
+                                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                                  style={{ backgroundColor: `color-mix(in srgb, ${r.color || 'var(--primary)'} 16%, transparent)`, color: r.color || 'var(--primary)' }}
+                                >
+                                  <LucideIcon name={r.icon || 'Tag'} size={15} />
+                                </span>
+                                <span className="truncate font-medium text-fg">{r.name}</span>
+                                {changed && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warning" title="Alterado (não salvo)" />}
+                              </div>
+                            </td>
+                            <td className="px-3 py-2.5 text-right">
+                              {avg > 0 ? (
+                                <button
+                                  onClick={() => setAmount(r.categoryId, Math.ceil(avg))}
+                                  title="Usar a média como limite"
+                                  className="rounded-md px-1.5 py-0.5 tabular-nums text-fg-2 hover:bg-primary-soft hover:text-accent transition-colors"
+                                >
+                                  {fmtBRL(avg)}
+                                </button>
+                              ) : <span className="text-fg-muted">—</span>}
+                            </td>
+                            <td className={cn('px-3 py-2.5 text-right tabular-nums', over ? 'font-medium text-danger' : spent > 0 ? 'text-fg' : 'text-fg-muted')}>
+                              {fmtBRL(spent)}
+                            </td>
+                            <td className="px-3 py-2">
+                              <CurrencyInput
+                                value={r.amount}
+                                onChange={(v) => setAmount(r.categoryId, v)}
+                                placeholder="0,00"
+                                className={cn('field h-8 !px-2.5 !text-[13px] text-right font-semibold tabular-nums', changed && '!border-warning/60')}
+                              />
+                            </td>
+                            <td className="px-3 py-2.5">
+                              {r.amount > 0 ? (
+                                <div className="flex items-center gap-2">
+                                  <ProgressBar percent={usePct} color={r.color} className="flex-1" />
+                                  <span className={cn('w-10 text-right text-[11px] tabular-nums', over ? 'font-medium text-danger' : 'text-fg-muted')}>
+                                    {usePct.toFixed(0)}%
+                                  </span>
+                                </div>
+                              ) : <span className="text-[11px] text-fg-muted">Sem limite</span>}
+                            </td>
+                            <td className="px-3 py-2.5 text-right text-[11px] tabular-nums text-fg-muted">
+                              {r.amount > 0 ? `${share.toFixed(0)}%` : '—'}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              <button
+                                onClick={() => setAmount(r.categoryId, 0)}
+                                disabled={r.amount === 0}
+                                title="Zerar limite"
+                                aria-label="Zerar limite"
+                                className="flex h-7 w-7 items-center justify-center rounded-md text-fg-muted opacity-0 transition hover:bg-danger-soft hover:text-danger group-hover:opacity-100 disabled:!opacity-0"
+                              >
+                                <RotateCcw size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {visibleRows.length === 0 && (
+                        <tr><td colSpan={7} className="px-4 py-10 text-center text-[13px] text-fg-muted">Nenhuma categoria encontrada.</td></tr>
+                      )}
+                    </tbody>
+                    {visibleRows.length > 0 && (
+                      <tfoot>
+                        <tr className="border-t border-border bg-surface-2 text-[13px]">
+                          <td className="px-4 py-2.5 font-medium text-fg-2">Total</td>
+                          <td />
+                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-fg">{fmtBRL(spentTotal)}</td>
+                          <td className="px-3 py-2.5 text-right font-semibold tabular-nums text-fg">{fmtBRL(distributed)}</td>
+                          <td colSpan={3} />
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
             )}
           </div>
-        </div>
-      )}
+
+          {/* Save bar */}
+          <div className="shrink-0 border-t border-border bg-card px-4 py-3 md:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-fg-muted">
+                {savedFlash
+                  ? <span className="flex items-center gap-1.5 font-medium text-accent"><Check size={13} /> Planejamento salvo</span>
+                  : dirty
+                    ? <span className="flex items-center gap-1.5 font-medium text-warning"><span className="h-1.5 w-1.5 rounded-full bg-warning" /> Alterações não salvas</span>
+                    : hasPlanning
+                      ? <span className="flex items-center gap-1.5"><CalendarCheck size={13} /> Tudo salvo</span>
+                      : 'Preencha os limites e salve para criar o planejamento.'}
+              </p>
+              <div className="flex gap-2">
+                {dirty && (
+                  <button onClick={discard} disabled={saving} className="btn btn-secondary">Descartar</button>
+                )}
+                <button
+                  data-tour="planning-start-btn"
+                  onClick={savePlanning}
+                  disabled={saving || !dirty}
+                  className="btn btn-primary"
+                >
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                  {hasPlanning ? 'Salvar alterações' : 'Criar planejamento'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </AppLayout>
   );
 }

@@ -18,6 +18,37 @@ export const TOUR_TARGET_CATALOG: TourTargetCatalogEntry[] = [
   { key: 'dashboard-planning-card', route: '/dashboard-v2', label: 'Card "Planejamento do mês"' },
   { key: 'transactions-lancar-btn', route: '/transactions', label: 'Botão "Lançar"' },
 
+  // Painel gerencial
+  { key: 'painel-greeting', route: '/painel', label: 'Saudação "Olá, Nome"' },
+  { key: 'painel-quick-actions', route: '/painel', label: 'Ações rápidas e atalhos' },
+  { key: 'painel-kpis', route: '/painel', label: 'Cards Saldo/Receitas/Despesas' },
+  { key: 'painel-week', route: '/painel', label: 'Cards de hoje + próximos 6 dias' },
+  { key: 'painel-day', route: '/painel', label: 'Detalhe do dia selecionado' },
+  { key: 'painel-categories', route: '/painel', label: 'Card "Despesas por categoria"' },
+  { key: 'painel-dre-toggle', route: '/painel', label: 'Alternador Gráfico/DRE' },
+  { key: 'painel-challenge', route: '/painel', label: 'Card "Desafio do mês"' },
+  { key: 'painel-installments', route: '/painel', label: 'Card "Raio-X parcelamentos"' },
+  { key: 'painel-notes', route: '/painel', label: 'Bilhetinhos (DCaos)' },
+  { key: 'painel-planning', route: '/painel', label: 'Card "Planejamento do mês"' },
+  { key: 'painel-status', route: '/painel', label: 'Resumo Compras/Cofrinhos/Sonhos/Desejos' },
+  { key: 'painel-radar', route: '/painel', label: 'Radar da família (insights)' },
+
+  // DCaos
+  { key: 'dcaos-hub-greeting', route: '/dcaos', label: 'Casa: saudação e atalhos' },
+  { key: 'dcaos-hub-insights', route: '/dcaos', label: 'Casa: insights do dia' },
+  { key: 'dcaos-hub-today', route: '/dcaos', label: 'Casa: hoje, mercado e bilhetinhos' },
+  { key: 'dcaos-hub-modules', route: '/dcaos', label: 'Casa: módulos' },
+  { key: 'dcaos-tasks-page', route: '/dcaos/tarefas', label: 'Quem Vai Fazer? (tarefas)' },
+  { key: 'dcaos-market-tabs', route: '/dcaos/mercado', label: 'Abas Lista de compras/Despensa' },
+  { key: 'dcaos-market-add', route: '/dcaos/mercado', label: 'Campo de adicionar item' },
+  { key: 'dcaos-market-pantry-tab', route: '/dcaos/mercado', label: 'Aba "Despensa"' },
+  { key: 'dcaos-market-showcase', route: '/dcaos/mercado', label: 'Botão "Vitrine de produtos"' },
+  { key: 'dcaos-notes-composer', route: '/dcaos/recados', label: 'Escrever recado' },
+  { key: 'dcaos-notes-tabs', route: '/dcaos/recados', label: 'Abas Mural/Meus bilhetes/Enviados' },
+  { key: 'dcaos-habits-page', route: '/dcaos/habitos', label: 'Faz Todo Dia (hábitos)' },
+  { key: 'dcaos-dates-page', route: '/dcaos/datas', label: 'Não Esquece (datas)' },
+  { key: 'dcaos-maintenance-page', route: '/dcaos/manutencao', label: 'Deu Ruim (manutenção)' },
+
   // Contas
   { key: 'accounts-add-btn', route: '/accounts', label: 'Botão "Nova conta"' },
   { key: 'accounts-balance-card', route: '/accounts', label: 'Card "Saldo Total"' },

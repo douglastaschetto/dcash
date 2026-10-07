@@ -6,7 +6,7 @@ import api from '@/services/api';
 import {
   ArrowLeft, Upload, CheckCircle2, AlertCircle,
   Loader2, FileUp, CheckCheck, X, Info,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { AppLayout } from '@/components/app-layout';
 import { PlanGate } from '@/components/plan-gate';
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -155,33 +155,33 @@ export default function OFXImportPage() {
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2.5 bg-zinc-100 dark:bg-white/5 hover:bg-emerald-500 hover:text-white rounded-xl transition-all text-zinc-600 dark:text-zinc-300"
+            className="p-2.5 bg-surface-2 dark:bg-white/5 hover:bg-primary hover:text-on-primary rounded-xl transition-all text-fg-2"
           >
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-black uppercase italic tracking-tighter text-zinc-900 dark:text-zinc-100">
-              Importar <span className="text-emerald-600">Extrato</span>
+            <h1 className="text-2xl font-semibold tracking-tight text-fg">
+              Importar <span className="text-accent">Extrato</span>
             </h1>
-            <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mt-0.5">
+            <p className="text-[11px] font-semibold text-fg-muted mt-0.5">
               OFX · CSV — Pré-conciliação automática
             </p>
           </div>
         </div>
 
         {/* Step 1 — Upload */}
-        <section className="rounded-[2rem] border border-zinc-300 dark:border-white/10 p-8 space-y-5 bg-white dark:bg-zinc-900/40">
-          <h2 className="text-[11px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
+        <section className="rounded-2xl border border-border p-8 space-y-5 bg-card dark:bg-surface-2">
+          <h2 className="text-[11px] font-semibold text-fg-2">
             1. Selecionar arquivo
           </h2>
 
           {/* Payment method selector */}
           <div>
-            <label className="block text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400 mb-2">
+            <label className="block text-[11px] font-semibold text-fg-2 mb-2">
               Conta / Cartão (opcional)
             </label>
             <select
-              className="w-full bg-white dark:bg-zinc-800 border border-zinc-400 dark:border-zinc-600 rounded-xl px-4 py-3 text-sm font-medium outline-none text-zinc-800 dark:text-zinc-200 focus:ring-2 ring-emerald-500/30"
+              className="w-full bg-card dark:bg-surface-2 border border-border-hover dark:border-border rounded-xl px-4 py-3 text-sm font-medium outline-none text-fg focus:ring-2 ring-primary/30"
               value={selectedPM}
               onChange={(e) => setSelectedPM(e.target.value)}
             >
@@ -195,8 +195,8 @@ export default function OFXImportPage() {
             className={cn(
               'border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all',
               uploading
-                ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/10'
-                : 'border-zinc-400 dark:border-zinc-600 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/5',
+                ? 'border-primary bg-primary-soft'
+                : 'border-border-hover dark:border-border hover:border-primary hover:bg-primary-soft',
             )}
             onClick={() => !uploading && fileRef.current?.click()}
             onDragOver={(e) => e.preventDefault()}
@@ -214,18 +214,18 @@ export default function OFXImportPage() {
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleUpload(f); }}
             />
             {uploading ? (
-              <Loader2 className="h-10 w-10 animate-spin text-emerald-500 mx-auto mb-3" />
+              <Loader2 className="h-10 w-10 animate-spin text-accent mx-auto mb-3" />
             ) : (
-              <FileUp className="h-10 w-10 text-zinc-400 dark:text-zinc-500 mx-auto mb-3" />
+              <FileUp className="h-10 w-10 text-fg-muted mx-auto mb-3" />
             )}
-            <p className="font-black text-sm text-zinc-700 dark:text-zinc-300">
+            <p className="font-semibold text-sm text-fg-2">
               {uploading ? 'Processando...' : 'Arraste o arquivo ou clique para selecionar'}
             </p>
-            <p className="text-xs text-zinc-500 mt-1">Formatos aceitos: .ofx, .csv</p>
+            <p className="text-xs text-fg-muted mt-1">Formatos aceitos: .ofx, .csv</p>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-red-500 text-xs font-semibold">
+            <div className="flex items-center gap-2 text-danger text-xs font-semibold">
               <AlertCircle size={14} /> {error}
             </div>
           )}
@@ -233,21 +233,21 @@ export default function OFXImportPage() {
 
         {/* Step 2 — Review */}
         {step === 'review' && (
-          <section className="rounded-[2rem] border border-zinc-300 dark:border-white/10 p-8 space-y-5 bg-white dark:bg-zinc-900/40">
+          <section className="rounded-2xl border border-border p-8 space-y-5 bg-card dark:bg-surface-2">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <h2 className="text-[11px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">
+              <h2 className="text-[11px] font-semibold text-fg-2">
                 2. Revisar transações ({staging.length} encontradas)
               </h2>
               <div className="flex gap-2">
                 <button
                   onClick={selAll}
-                  className="px-3 py-1.5 text-[10px] font-black uppercase rounded-xl border border-zinc-400 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-emerald-500 hover:text-emerald-600 transition"
+                  className="px-3 py-1.5 text-[11px] font-semibold rounded-xl border border-border-hover dark:border-border text-fg-2 hover:border-primary hover:text-accent transition"
                 >
                   Selec. novas ({nonDupCount})
                 </button>
                 <button
                   onClick={clrAll}
-                  className="px-3 py-1.5 text-[10px] font-black uppercase rounded-xl border border-zinc-400 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 hover:border-red-400 hover:text-red-500 transition"
+                  className="px-3 py-1.5 text-[11px] font-semibold rounded-xl border border-border-hover dark:border-border text-fg-2 hover:border-danger hover:text-danger transition"
                 >
                   Limpar
                 </button>
@@ -255,13 +255,13 @@ export default function OFXImportPage() {
             </div>
 
             {/* Info banner */}
-            <div className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800/30 text-blue-700 dark:text-blue-400 text-xs">
+            <div className="flex items-start gap-2 p-3 rounded-xl bg-info-soft border border-info/30 text-info text-xs">
               <Info size={14} className="mt-0.5 shrink-0" />
-              <span>Transações marcadas em <span className="font-bold text-amber-600 dark:text-amber-400">amarelo</span> já existem no seu extrato (duplicatas). Apenas as selecionadas serão importadas.</span>
+              <span>Transações marcadas em <span className="font-semibold text-warning">amarelo</span> já existem no seu extrato (duplicatas). Apenas as selecionadas serão importadas.</span>
             </div>
 
             {loading ? (
-              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-emerald-500" /></div>
+              <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-accent" /></div>
             ) : (
               <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-1">
                 {staging.map((item) => (
@@ -270,10 +270,10 @@ export default function OFXImportPage() {
                     className={cn(
                       'flex items-center gap-3 p-3 rounded-xl border transition-all',
                       item.is_duplicate
-                        ? 'border-amber-300 dark:border-amber-800/30 bg-amber-50 dark:bg-amber-900/10 opacity-70'
+                        ? 'border-warning/30 bg-warning-soft opacity-70'
                         : selectedIds.has(item.id)
-                        ? 'border-emerald-300 dark:border-emerald-800/30 bg-emerald-50 dark:bg-emerald-900/10'
-                        : 'border-zinc-200 dark:border-white/5 bg-zinc-50 dark:bg-zinc-900/30',
+                        ? 'border-primary-border bg-primary-soft'
+                        : 'border-border bg-surface-2',
                     )}
                   >
                     {/* Checkbox */}
@@ -281,29 +281,29 @@ export default function OFXImportPage() {
                       type="checkbox"
                       checked={selectedIds.has(item.id)}
                       onChange={() => toggleItem(item.id)}
-                      className="w-4 h-4 rounded accent-emerald-500"
+                      className="w-4 h-4 rounded accent-primary"
                       disabled={item.is_duplicate}
                     />
 
                     {/* Date */}
-                    <span className="text-[10px] font-bold text-zinc-500 dark:text-zinc-400 w-16 shrink-0">
+                    <span className="text-[11px] font-semibold text-fg-muted dark:text-fg-2 w-16 shrink-0">
                       {fmtDate(item.transaction_date)}
                     </span>
 
                     {/* Description */}
                     <div className="flex-1 min-w-0">
-                      <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate block">
+                      <span className="text-xs font-semibold text-fg truncate block">
                         {item.description}
                       </span>
                       {item.is_duplicate && (
-                        <span className="text-[9px] text-amber-600 font-bold uppercase">Já importado</span>
+                        <span className="text-[11px] text-warning font-semibold">Já importado</span>
                       )}
                     </div>
 
                     {/* Category picker (for selected non-dup items) */}
                     {selectedIds.has(item.id) && !item.is_duplicate && (
                       <select
-                        className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-400 dark:border-zinc-600 rounded-lg px-2 py-1.5 font-medium outline-none w-36 shrink-0 text-zinc-800 dark:text-zinc-200 focus:ring-2 ring-emerald-500/30"
+                        className="text-[11px] bg-card dark:bg-surface-2 border border-border-hover dark:border-border rounded-lg px-2 py-1.5 font-medium outline-none w-36 shrink-0 text-fg focus:ring-2 ring-primary/30"
                         value={categoryMap[item.id] || ''}
                         onChange={(e) => setItemCategory(item.id, e.target.value)}
                       >
@@ -314,8 +314,8 @@ export default function OFXImportPage() {
 
                     {/* Amount */}
                     <span className={cn(
-                      'text-sm font-black w-24 text-right shrink-0',
-                      item.amount < 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-zinc-800 dark:text-zinc-200',
+                      'text-sm font-semibold w-24 text-right shrink-0',
+                      item.amount < 0 ? 'text-accent' : 'text-fg',
                     )}>
                       {item.amount < 0 ? '+' : '-'} R$ {Math.abs(item.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </span>
@@ -323,7 +323,7 @@ export default function OFXImportPage() {
                     {/* Remove */}
                     <button
                       onClick={() => removeItem(item.id)}
-                      className="p-1.5 text-zinc-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition shrink-0"
+                      className="p-1.5 text-fg-muted hover:text-danger hover:bg-danger-soft rounded-lg transition shrink-0"
                     >
                       <X size={13} />
                     </button>
@@ -334,18 +334,18 @@ export default function OFXImportPage() {
 
             {/* Confirm bar */}
             {selectedIds.size > 0 && (
-              <div className="flex items-center justify-between pt-4 border-t border-zinc-200 dark:border-white/10 gap-4">
-                <span className="text-sm font-bold text-zinc-700 dark:text-zinc-300">
+              <div className="flex items-center justify-between pt-4 border-t border-border gap-4">
+                <span className="text-sm font-semibold text-fg-2">
                   {selectedIds.size} transação(ões) para importar
                 </span>
                 <button
                   onClick={confirmImport}
                   disabled={confirming}
                   className={cn(
-                    'px-6 py-3 rounded-2xl font-black text-sm uppercase transition-all flex items-center gap-2',
+                    'px-6 py-3 rounded-2xl font-semibold text-sm transition-all flex items-center gap-2',
                     done
-                      ? 'bg-emerald-500 text-white'
-                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/20',
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-primary hover:bg-primary-hover text-on-primary shadow-lg',
                   )}
                 >
                   {confirming ? (
@@ -360,18 +360,18 @@ export default function OFXImportPage() {
             )}
 
             {staging.length === 0 && !loading && (
-              <div className="flex flex-col items-center py-10 text-zinc-400">
+              <div className="flex flex-col items-center py-10 text-fg-muted">
                 <Upload size={40} strokeWidth={1} className="mb-3 opacity-30" />
-                <p className="text-xs font-black uppercase tracking-widest">Nenhum extrato em análise</p>
+                <p className="text-xs font-semibold">Nenhum extrato em análise</p>
               </div>
             )}
           </section>
         )}
 
         {/* Tips */}
-        <div className="rounded-2xl bg-zinc-100 dark:bg-white/[0.02] border border-zinc-300 dark:border-white/10 p-5 space-y-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-600 dark:text-zinc-400">Como funciona</p>
-          <ul className="text-xs text-zinc-600 dark:text-zinc-400 space-y-1 list-disc list-inside">
+        <div className="rounded-2xl bg-surface-2 dark:bg-white/[0.02] border border-border p-5 space-y-2">
+          <p className="text-[11px] font-semibold text-fg-2">Como funciona</p>
+          <ul className="text-xs text-fg-2 space-y-1 list-disc list-inside">
             <li>Exporte o extrato OFX ou CSV do seu banco/cartão</li>
             <li>Faça upload — duplicatas são detectadas automaticamente</li>
             <li>Revise, categorize e confirme as novas transações</li>

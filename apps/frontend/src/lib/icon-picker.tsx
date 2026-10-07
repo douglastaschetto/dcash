@@ -17,7 +17,7 @@ import {
   HardDrive, Cloud, Server, Bot, Code, Printer, Tablet, Tag, Folder, Bookmark, Bell, HelpCircle,
   MoreHorizontal, Infinity as InfinityIcon,
   type LucideIcon as LucideIconType,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { ICON_CATALOG, UNIQUE_ICONS, type IconCatalogEntry } from './icon-catalog';
 
 type Props = {
@@ -91,17 +91,17 @@ export function IconPicker({ selected, onSelect }: Props) {
     <div className="flex flex-col gap-3">
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-muted" />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Buscar ícone…"
-          className="w-full rounded-xl border-2 border-slate-200 pl-9 pr-8 py-2 text-sm outline-none focus:border-emerald-400 transition"
+          className="w-full rounded-xl border-2 border-border pl-9 pr-8 py-2 text-sm outline-none focus:border-primary transition"
         />
         {search && (
           <button
             onClick={() => setSearch('')}
-            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-fg-muted hover:text-fg-2"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -115,10 +115,10 @@ export function IconPicker({ selected, onSelect }: Props) {
             key={s}
             type="button"
             onClick={() => setSection(s)}
-            className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-full font-semibold transition ${
+            className={`flex-shrink-0 text-xs px-3 py-1.5 rounded-lg font-semibold transition ${
               section === s
-                ? 'bg-emerald-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-primary text-on-primary'
+                : 'bg-surface-2 text-fg-2 hover:bg-hover'
             }`}
           >
             {s}
@@ -127,9 +127,9 @@ export function IconPicker({ selected, onSelect }: Props) {
       </div>
 
       {/* Icon grid */}
-      <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-2">
+      <div className="grid grid-cols-8 gap-1 max-h-48 overflow-y-auto rounded-xl border border-border bg-surface-2 p-2">
         {filteredIcons.length === 0 && (
-          <div className="col-span-8 py-8 text-center text-sm text-slate-400">
+          <div className="col-span-8 py-8 text-center text-sm text-fg-muted">
             Nenhum ícone encontrado.
           </div>
         )}
@@ -141,8 +141,8 @@ export function IconPicker({ selected, onSelect }: Props) {
             onClick={() => onSelect(icon.name)}
             className={`flex items-center justify-center h-9 w-9 rounded-lg transition ${
               selected === icon.name
-                ? 'bg-emerald-100 ring-2 ring-emerald-500 scale-110'
-                : 'hover:bg-slate-200 text-slate-700'
+                ? 'bg-primary-soft ring-2 ring-primary/30 scale-110'
+                : 'hover:bg-hover text-fg-2'
             }`}
           >
             <LucideIcon name={icon.name} size={18} />
@@ -150,7 +150,7 @@ export function IconPicker({ selected, onSelect }: Props) {
         ))}
       </div>
 
-      <p className="text-xs text-slate-400 text-right">
+      <p className="text-xs text-fg-muted text-right">
         {filteredIcons.length} ícone{filteredIcons.length !== 1 ? 's' : ''}
       </p>
     </div>

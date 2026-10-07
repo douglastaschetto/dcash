@@ -178,6 +178,7 @@
   .plan-pill.basico{background:var(--pill-basico); color:#04302c;}
   .plan-pill.inter{background:var(--pill-inter); color:#2b1259;}
   .plan-pill.pro{background:var(--pill-pro); color:#3a2404;}
+  .plan-pill.dcaos{background:#10b981; color:#04291c;}
   table{width:100%; border-collapse:collapse; font-size:.92rem;}
   th,td{padding:10px 12px; border-bottom:1px solid var(--border); text-align:left;}
   th{color:var(--text-soft); font-size:.78rem; text-transform:uppercase; letter-spacing:.04em;}
@@ -236,10 +237,12 @@
     <a href="#intro">👋 O que é o DCash</a>
     <a href="#primeiros-passos">🚀 Primeiros passos</a>
 
-    <h4>Início</h4>
-    <a href="#dashboard">🏠 Painel Início</a>
+    <h4>Principal</h4>
+    <a href="#painel">🧭 Painel gerencial</a>
+    <a href="#navegacao">🗺️ Menu e atalhos</a>
 
     <h4>Finanças</h4>
+    <a href="#dashboard">📊 Dashboard financeiro</a>
     <a href="#contas">💳 Contas / Carteira</a>
     <a href="#transacoes">🔁 Transações</a>
     <a href="#contas-fixas">📌 Contas Fixas</a>
@@ -254,6 +257,16 @@
     <a href="#desejos">🛍️ Desejos</a>
     <a href="#desafios">🏆 Desafios</a>
 
+    <h4>DCaos — a casa</h4>
+    <a href="#dcaos">🏡 O que é o DCaos</a>
+    <a href="#dcaos-tarefas">📝 Quem Vai Fazer?</a>
+    <a href="#dcaos-mercado">🛒 Abastece Aí</a>
+    <a href="#dcaos-recados">🗒️ Recados</a>
+    <a href="#dcaos-habitos">🔁 Faz Todo Dia</a>
+    <a href="#dcaos-datas">🎂 Não Esquece</a>
+    <a href="#dcaos-manutencao">🔧 Deu Ruim</a>
+    <a href="#dcaos-notificacoes">🔔 Notificações</a>
+
     <h4>Organização</h4>
     <a href="#agenda">📅 Agenda</a>
     <a href="#tarefas">✅ Tarefas</a>
@@ -264,6 +277,7 @@
     <a href="#planos">💎 Planos e Assinatura</a>
 
     <h4>Ajuda</h4>
+    <a href="#tutoriais">🎓 Tutoriais guiados</a>
     <a href="#faq">❓ Perguntas Frequentes</a>
     <a href="#glossario">📖 Glossário</a>
   </nav>
@@ -272,18 +286,18 @@
 
     <div class="hero" id="intro">
       <h1>Guia Completo do DCash</h1>
-      <p>O DCash é o seu app de finanças pessoais (e familiares): organiza contas, gastos, contas fixas, parcelamentos, metas e investimentos em um só lugar. Este guia explica, em linguagem simples, para que serve cada tela e como tirar o melhor proveito dela — com exemplos práticos do dia a dia.</p>
+      <p>O DCash é o seu app de finanças pessoais (e familiares): organiza contas, gastos, contas fixas, parcelamentos, metas e investimentos em um só lugar — e, com o add-on <b>DCaos</b>, também a rotina da casa: tarefas, mercado, recados, hábitos, datas e manutenção. Este guia explica, em linguagem simples, para que serve cada tela e como tirar o melhor proveito dela — com exemplos práticos do dia a dia.</p>
       <div class="tags">
         <span class="tag">Sem jargão técnico</span>
         <span class="tag">Exemplo em cada seção</span>
-        <span class="tag">Atualizado com o app atual</span>
+        <span class="tag">Atualizado em 07/10/2026</span>
       </div>
     </div>
 
     <section class="page-section" id="primeiros-passos">
       <div class="head"><div class="emoji">🚀</div><div><h2>Primeiros passos</h2><p class="subtitle">O caminho mais rápido para o DCash começar a te ajudar de verdade</p></div></div>
       <div class="card">
-        <p>Ao entrar pela primeira vez, você verá um checklist "Primeiros passos" na tela Início. Ele te guia por estas 5 etapas — e some sozinho quando todas estiverem concluídas:</p>
+        <p>Ao entrar pela primeira vez, você verá um checklist "Primeiros passos" no <a href="#painel">Painel gerencial</a>. Ele te guia por estas 5 etapas — e some sozinho quando todas estiverem concluídas:</p>
         <ol>
           <li><span class="stepnum">1</span> Cadastre <b>uma conta</b> (seu banco, carteira de dinheiro, cartão de crédito etc.) em <a href="#contas">Contas</a>.</li>
           <li><span class="stepnum">2</span> Lance <b>sua primeira transação</b> (uma receita ou despesa) em <a href="#transacoes">Transações</a>.</li>
@@ -293,24 +307,59 @@
         </ol>
         <div class="callout tip">
           <div class="ic">💡</div>
-          <div><b>Dica</b>O quiz de boas-vindas que aparece logo no primeiro acesso serve só para te apresentar o app — ele não salva os dados que você digita ali (nome, telefone, cartões, categorias sugeridas). Configure essas informações de verdade nas telas <a href="#perfil">Perfil</a>, <a href="#categorias">Categorias</a>, <a href="#contas">Contas</a> e <a href="#planejamento">Planejamento</a>.</div>
+          <div><b>Dica</b>Quer um passeio guiado pela tela? Abra o menu da sua foto (canto superior direito) e escolha um dos <a href="#tutoriais">tutoriais guiados</a>. O quiz de boas-vindas que aparece logo no primeiro acesso serve só para te apresentar o app — ele não salva os dados que você digita ali (nome, telefone, cartões, categorias sugeridas). Configure essas informações de verdade nas telas <a href="#perfil">Perfil</a>, <a href="#categorias">Categorias</a>, <a href="#contas">Contas</a> e <a href="#planejamento">Planejamento</a>.</div>
         </div>
       </div>
     </section>
 
     <hr class="sep">
 
+    <!-- PAINEL GERENCIAL -->
+    <section class="page-section" id="painel">
+      <div class="head"><div class="emoji">🧭</div><div><h2>Painel gerencial</h2><p class="subtitle">Finanças e casa numa tela só — é a primeira coisa que você vê ao entrar</p></div></div>
+      <div class="card">
+        <p>O painel junta o resumo do seu dinheiro com a rotina da família. A ideia é bater o olho e saber: como está o mês, o que tem pra fazer hoje e o que precisa de atenção.</p>
+        <ul>
+          <li><b>"Olá, seu nome 👋"</b> no topo, com o nome da família e o mês que você está vendo.</li>
+          <li><b>Ações rápidas:</b> Nova receita, Nova despesa, o menu <b>Finanças ▾</b> (atalhos para todas as telas de finanças e metas), o menu <b>Casa ▾</b> (criar tarefa, item de mercado, recado, compromisso, hábito ou data) e os atalhos <b>Calendário</b>, <b>Tarefas</b> e <b>Compras</b>.</li>
+          <li><b>Saldo, Receitas e Despesas</b> do mês, comparados com o mês anterior.</li>
+          <li><b>Próximos dias:</b> 7 cards — <b>hoje e os próximos 6 dias</b> — com tarefas, hábitos, contas, eventos e datas de cada dia. Toque num dia para ver os detalhes logo abaixo: dá para concluir tarefas e marcar hábitos ali mesmo.</li>
+          <li><b>Despesas por categoria</b>, em gráfico ou <b>DRE</b> com uma coluna para cada pessoa da família e o total.</li>
+          <li><b>Desafio do mês</b> e <b>Raio-X dos parcelamentos</b> (saldo devedor, parcelas deste mês e do próximo, quitações, vencidas e as próximas quitações).</li>
+          <li><b>Bilhetinhos</b> da família <span class="plan-pill dcaos">DCaos</span>: reaja com emoji e toque em "✓ Li" para tirar da tela.</li>
+          <li><b>Resumo rápido:</b> Lista de compras (🟡 tem coisa pra comprar · 🟢 em dia), Cofrinhos, Sonhos e Desejos — toque para abrir cada um.</li>
+          <li><b>Radar da família:</b> pontos de atenção automáticos. O que é crítico (mês no vermelho, parcelas vencidas, manutenção urgente…) aparece num bloco vermelho no topo; depois vêm os avisos, as informações e as conquistas.</li>
+        </ul>
+        <div class="callout example">
+          <div class="ic">🧮</div>
+          <div><b>Exemplo</b>Você abre o DCash de manhã: o card "Hoje" mostra "Alimentar o pet" e "Academia"; o Radar avisa "2 parcelas vencidas · R$ 540" em vermelho; e um bilhete da sua parceira diz "Passa no mercado? Acabou o café". Você toca em "Li", reage com ❤️ e confere a lista de compras no resumo.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- NAVEGAÇÃO -->
+    <section class="page-section" id="navegacao">
+      <div class="head"><div class="emoji">🗺️</div><div><h2>Menu e atalhos</h2><p class="subtitle">Como andar pelo DCash sem se perder</p></div></div>
+      <div class="card">
+        <ul>
+          <li><b>Menu lateral recolhido:</b> no computador ele fica fininho, só com os ícones. <b>Passe o mouse</b> por cima e ele abre; tire o mouse e ele fecha.</li>
+          <li><b>Quer o menu sempre aberto?</b> Com ele aberto, clique no botão do topo do menu ("Manter menu aberto"). Para voltar ao modo recolhido, clique de novo ("Recolher menu").</li>
+          <li><b>Ícones coloridos:</b> cada tela tem um emoji (👛 Contas, 🐷 Cofrinhos, 🛒 Mercado…). Eles podem parecer um pouco diferentes no Windows, no Mac e no celular — é normal.</li>
+          <li><b>Grupos do menu:</b> Principal (Painel), Finanças, Metas, DCaos e Organização.</li>
+        </ul>
+      </div>
+    </section>
+
     <!-- DASHBOARD -->
     <section class="page-section" id="dashboard">
-      <div class="head"><div class="emoji">🏠</div><div><h2>Painel Início</h2><p class="subtitle">Sua visão geral do mês assim que você entra no app</p></div></div>
+      <div class="head"><div class="emoji">📊</div><div><h2>Dashboard financeiro</h2><p class="subtitle">Todos os números do mês, em detalhe (menu Finanças)</p></div></div>
       <div class="card">
-        <p>É a primeira tela que você vê ao entrar. Ela reúne, num só lugar, um resumo do seu dinheiro no mês selecionado: quanto entrou, quanto saiu, quanto sobrou, quanto está comprometido em parcelas e como você está indo comparado ao planejado.</p>
+        <p>É a visão financeira completa do mês selecionado: quanto entrou, quanto saiu, quanto sobrou, quanto está comprometido em parcelas e como você está indo comparado ao planejado.</p>
         <ul>
           <li><b>Cartões de resumo:</b> receita, despesa e saldo do mês, com a comparação (▲/▼) em relação ao mês anterior.</li>
-          <li><b>Gráfico por categoria:</b> mostra onde o dinheiro foi gasto, separado por membro da família quando aplicável. Se uma categoria passar do valor planejado, ela aparece em vermelho com o aviso "acima do orçamento".</li>
-          <li><b>Aba "DRE"</b> (Demonstrativo de Resultado): visão tipo "empresa", com resultado do mês, margem (%) e ponto de equilíbrio.</li>
+          <li><b>Gráfico por categoria:</b> mostra onde o dinheiro foi gasto. Se uma categoria passar do valor planejado, ela aparece em vermelho com o aviso "acima do orçamento".</li>
+          <li><b>Aba "DRE"</b> (Demonstrativo de Resultado): visão tipo "empresa", em <b>colunas por pessoa da família + Total</b>, com resultado, margem (%), ponto de equilíbrio e Superávit/Déficit de cada um.</li>
           <li><b>Raio-X de parcelamentos:</b> mostra que fatia da sua renda já está comprometida com parcelas. Passando de 30%, o card muda de "Saudável" para "Atenção".</li>
-          <li><b>Mini-calendário</b> com bolinhas coloridas: verde = receita, vermelho = despesa, azul = investimento, laranja = conta fixa.</li>
           <li><b>Botões rápidos</b> para lançar Nova Receita, Nova Despesa ou Nova Categoria sem sair da tela.</li>
         </ul>
         <div class="callout example">
@@ -324,7 +373,7 @@
     <section class="page-section" id="contas">
       <div class="head"><div class="emoji">💳</div><div><h2>Contas / Carteira</h2><p class="subtitle">Onde você cadastra bancos, dinheiro, cartões e financiamentos</p></div></div>
       <div class="card">
-        <p>Aqui você cadastra cada "lugar" onde seu dinheiro entra ou sai: conta bancária, dinheiro em espécie, PIX, boleto, cartão de crédito ou um financiamento. Cada uma vira um cartão nesta tela, mostrando o saldo e (para cartão) o limite.</p>
+        <p>Aqui você cadastra cada "lugar" onde seu dinheiro entra ou sai: conta bancária, dinheiro em espécie, PIX, boleto, cartão de crédito ou um financiamento. Cada uma vira um cartão nesta tela, mostrando o saldo e (para cartão) o limite. Use as <b>abas</b> no topo (Todos, Crédito, Débito, Dinheiro, PIX, Boleto, Financiamento) para ver só um tipo.</p>
         <ul>
           <li>Clique em <b>Nova conta</b> para cadastrar; escolha o tipo, dê um nome e informe limite/dia de vencimento se for cartão.</li>
           <li>Use os filtros no topo para ver só Cartões, só Dinheiro, só Boleto etc.</li>
@@ -509,17 +558,18 @@
     <section class="page-section" id="desejos">
       <div class="head"><div class="emoji">🛍️</div><div><h2>Desejos</h2><p class="subtitle">Sua lista de "quero comprar" com caça-preços embutido</p></div></div>
       <div class="card">
-        <p>Cadastre produtos que você quer comprar, com prioridade (Essencial, Médio, Baixo) e link de referência. Para cada item, você pode abrir o <b>Caça Preços</b>:</p>
+        <p>Cadastre produtos que você quer comprar, com prioridade (Essencial, Médio, Baixo) e link de referência. No topo você vê o total da lista, os essenciais, quanto seus cofrinhos já cobrem e quantos desejos já conquistou.</p>
         <ul>
-          <li><b>Preços Salvos:</b> compare cotações que você mesmo cadastrou de diferentes lojas; a mais barata ganha o selo dourado "Melhor".</li>
-          <li><b>Buscar Online:</b> pesquisa automática de preços (precisa estar configurada pelo administrador do sistema; se não estiver disponível, aparece um aviso explicando).</li>
-          <li><b>Adicionar Manual:</b> registre você mesmo uma cotação que viu em alguma loja.</li>
+          <li><b>Cadastro rápido:</b> digite o nome e toque na lupa para ver ofertas online; escolhendo uma, a foto, o link e a primeira cotação são preenchidos sozinhos. Ou informe o "preço que você viu".</li>
+          <li><b>Foto da web:</b> toque no quadro <b>"Buscar imagem"</b> e escolha uma imagem do produto encontrada na internet — não precisa enviar foto.</li>
+          <li><b>Caça Preços:</b> compare lojas na aba <b>Cotações</b> (diferença para a melhor oferta, juros do parcelamento e botão "Comprei aqui"), busque em <b>Buscar online</b> (filtros só novos / frete grátis) ou registre em <b>Adicionar manual</b> (cole o link e a loja é preenchida).</li>
+          <li><b>Insights:</b> próxima compra sugerida, desejos sem cotação, quanto você economiza pesquisando e a <b>regra dos 30 dias</b> — se o desejo continua fazendo sentido depois de 30 dias na lista, é desejo de verdade.</li>
+          <li>Comprou? Toque em <b>"Comprei"</b> no próprio card. Ele vai para a aba Adquiridos.</li>
         </ul>
         <div class="callout warn">
           <div class="ic">⚠️</div>
-          <div><b>Confira o frete</b>Preços trazidos automaticamente pela busca online são salvos sem considerar o valor real do frete. Antes de decidir onde comprar, confirme o frete direto no site da loja.</div>
+          <div><b>Confira o frete</b>Ofertas trazidas pela busca online são salvas sem o valor do frete (a busca só informa se é grátis). Confirme o frete no site da loja antes de decidir.</div>
         </div>
-        <p>Quando você compra o item, marque como <b>"Já Adquirido"</b> — ele fica em tons de cinza na lista, mas continua no seu histórico.</p>
       </div>
     </section>
 
@@ -545,7 +595,7 @@
     <section class="page-section" id="agenda">
       <div class="head"><div class="emoji">📅</div><div><h2>Agenda</h2><p class="subtitle">Seu calendário financeiro e pessoal, com bolinhas coloridas</p></div></div>
       <div class="card">
-        <p>Combina, num único calendário, tudo que tem data: suas transações, contas fixas e eventos que você mesmo cria (consultas, reuniões, lembretes).</p>
+        <p>A "Agenda (tudo)" combina, num único calendário, tudo que tem data: transações, contas fixas, eventos que você cria e, com o <a href="#dcaos">DCaos</a>, também tarefas da casa, hábitos, datas importantes e manutenções. Use os chips coloridos no topo para mostrar ou esconder cada camada.</p>
         <ul>
           <li><b>Bolinhas no dia:</b> verde = receita, vermelho = despesa, azul = investimento, laranja = conta fixa.</li>
           <li><b>Novo Evento:</b> escolha tipo, horário (ou "dia todo"), cor e, se quiser, um alerta por WhatsApp <span class="plan-pill pro">Plano Pro</span>.</li>
@@ -559,7 +609,7 @@
     <section class="page-section" id="tarefas">
       <div class="head"><div class="emoji">✅</div><div><h2>Tarefas</h2><p class="subtitle">Uma lista simples de afazeres, pessoal ou da família</p></div></div>
       <div class="card">
-        <p>Adicione tarefas rápidas com Enter ou pelo botão "+". Marque como concluída para movê-la para a seção recolhida "Concluídas".</p>
+        <p>Adicione tarefas rápidas com Enter ou pelo botão "+". Marque como concluída para movê-la para a seção recolhida "Concluídas". Para tarefas da casa com responsável e repetição (lixo, roupa, pet…), use o <a href="#dcaos-tarefas">Quem Vai Fazer?</a> do DCaos.</p>
         <p>Se você faz parte de um grupo familiar, a tarefa é automaticamente marcada como <b>"Família"</b> (visível para todos os membros); caso contrário é <b>"Pessoal"</b>.</p>
       </div>
     </section>
@@ -582,6 +632,92 @@
           <div class="ic">⚠️</div>
           <div><b>Alertas disparados não reativam sozinhos</b>Depois que um alerta de preço é disparado (e você é avisado por WhatsApp, se configurado), ele é desativado automaticamente. Para continuar monitorando, crie um novo alerta.</div>
         </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- DCAOS -->
+    <section class="page-section" id="dcaos">
+      <div class="head"><div class="emoji">🏡</div><div><h2>DCaos <span class="plan-pill dcaos">Add-on</span></h2><p class="subtitle">O gerenciador oficial da bagunça familiar</p></div></div>
+      <div class="card">
+        <p>O DCaos é um complemento pago do DCash para organizar a casa: quem faz o quê, o que falta no mercado, recados, hábitos, datas que ninguém pode esquecer e o que quebrou. <b>Uma assinatura vale para a família toda</b>, e ela é separada do seu plano do DCash (você pode ter qualquer plano). O valor aparece na tela de contratação; no anual há desconto.</p>
+        <p>A tela <b>Casa</b> resume tudo: insights do dia, quem tem o que fazer hoje, a lista de compras, os bilhetinhos, um mini calendário, o placar da família e atalhos para cada módulo. Os mesmos itens aparecem no <a href="#painel">Painel gerencial</a> e na <a href="#agenda">Agenda</a>.</p>
+        <div class="callout tip">
+          <div class="ic">💡</div>
+          <div><b>Tom bem-humorado</b>As mensagens do DCaos são propositalmente provocativas ("A louça não vai se lavar sozinha") — é para dar aquele empurrãozinho na família.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-tarefas">
+      <div class="head"><div class="emoji">📝</div><div><h2>Quem Vai Fazer? <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Tarefas da casa com responsável</p></div></div>
+      <div class="card">
+        <ul>
+          <li>Crie a tarefa, escolha <b>quem</b> faz e o <b>prazo</b>.</li>
+          <li><b>Repetição:</b> diária, semanal <b>nos dias que você escolher</b> (ex.: lixo seg/qua/sex), quinzenal ou mensal. Ao concluir, a próxima já aparece.</li>
+          <li>Um placar mostra quem mais ajudou no mês.</li>
+        </ul>
+        <div class="callout example"><div class="ic">🧮</div><div><b>Exemplo</b>"Tirar o lixo" — responsável: Pedro — semanal: seg, qua e sex. Toda segunda, quarta e sexta a tarefa aparece no card do dia no painel.</div></div>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-mercado">
+      <div class="head"><div class="emoji">🛒</div><div><h2>Abastece Aí <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Lista de compras e despensa no mesmo lugar</p></div></div>
+      <div class="card">
+        <ul>
+          <li><b>Anote do jeito que fala:</b> "2 kg açúcar", "3 leite", "1 dz ovos" — quantidade, unidade e categoria são preenchidas sozinhas.</li>
+          <li><b>Lista de compras:</b> uma lista só, na ordem dos corredores (hortifrúti, açougue, laticínios…) e em ordem alfabética. No mercado, marque o que foi pro carrinho e toque em <b>Finalizar compra</b>: os itens voltam para a despensa e a família é avisada.</li>
+          <li><b>Despensa:</b> "Usei" diminui a quantidade; <b>"Acabou!"</b> zera e coloca na lista. Em "Avisar com" você define o estoque mínimo — chegou nele, o item vai sozinho para a lista.</li>
+          <li><b>Vitrine de produtos:</b> monte a despensa em 1 minuto escolhendo produtos ilustrados; cada um já vem com quantidade, aviso de estoque baixo e <b>validade média</b>.</li>
+          <li><b>Validade:</b> o card mostra "vence em ~5d" ou "venceu há 2d", contando a partir da última compra. É uma estimativa média — confira sempre a embalagem.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-recados">
+      <div class="head"><div class="emoji">🗒️</div><div><h2>Recados <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Porque post-it na geladeira some</p></div></div>
+      <div class="card">
+        <ul>
+          <li>Escreva para a <b>família toda</b> ou para <b>uma pessoa</b>, escolha a cor e, se quiser, fixe o recado.</li>
+          <li><b>Mural:</b> o que você ainda não leu. Toque em <b>"Marcar como lido"</b> e o recado vai para <b>Meus bilhetes</b>. Os que você escreveu ficam em <b>Enviados</b>, com quantas pessoas já viram.</li>
+          <li>Abrir a tela não marca nada como lido — você decide.</li>
+          <li><b>Reações:</b> ❤️ Amei, 👍 Curti, 😂 Haha, 😮 Uau, 😢 Triste, 😡 Bravo — uma por pessoa, igual no WhatsApp. No painel, toque duas vezes no bilhete para mandar ❤️.</li>
+          <li>Os bilhetes também aparecem no <a href="#painel">Painel gerencial</a> até você tocar em "✓ Li".</li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-habitos">
+      <div class="head"><div class="emoji">🔁</div><div><h2>Faz Todo Dia <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Hábitos pessoais com sequência de dias</p></div></div>
+      <div class="card">
+        <p>Academia, leitura, água, meditação… Escolha os dias da semana, marque quando fizer e acompanhe a sequência (🔥). Tarefas da casa não entram aqui — elas ficam no <a href="#dcaos-tarefas">Quem Vai Fazer?</a>.</p>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-datas">
+      <div class="head"><div class="emoji">🎂</div><div><h2>Não Esquece <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Aniversário da sogra incluso</p></div></div>
+      <div class="card">
+        <p>Aniversários, datas comemorativas e vencimento de documentos, com aviso alguns dias antes. As datas aparecem na Agenda e no Radar do painel quando estão chegando.</p>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-manutencao">
+      <div class="head"><div class="emoji">🔧</div><div><h2>Deu Ruim <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">A torneira já virou decoração</p></div></div>
+      <div class="card">
+        <p>Registre o que quebrou (com prioridade) e as manutenções preventivas (revisão do carro, limpeza do ar-condicionado…) com a próxima data. Problemas <b>urgentes</b> aparecem em vermelho no Radar do painel.</p>
+      </div>
+    </section>
+
+    <section class="page-section" id="dcaos-notificacoes">
+      <div class="head"><div class="emoji">🔔</div><div><h2>Notificações <span class="plan-pill dcaos">DCaos</span></h2><p class="subtitle">Avisos no celular e no computador</p></div></div>
+      <div class="card">
+        <ul>
+          <li>Permita as notificações quando o DCash pedir e receba avisos de tarefas, mercado, recados, hábitos, datas e manutenção.</li>
+          <li>Você pode <b>silenciar módulos</b> e definir um <b>horário de silêncio</b> (ex.: 22h às 7h).</li>
+          <li>O DCash pode ser <b>instalado</b> como app no celular ("Adicionar à tela de início").</li>
+        </ul>
+        <div class="callout warn"><div class="ic">📱</div><div><b>iPhone</b>No iPhone, as notificações só funcionam com o DCash adicionado à tela de início (pelo Safari, botão Compartilhar → "Adicionar à Tela de Início").</div></div>
       </div>
     </section>
 
@@ -631,11 +767,30 @@
           </tbody>
         </table>
         </div>
-        <p style="margin-top:14px">Formas de pagamento aceitas: cartão de crédito, PIX e boleto, processadas com segurança pelos nossos parceiros de pagamento. Após a confirmação do pagamento, seu plano é liberado automaticamente — isso pode levar alguns instantes enquanto o pagamento é confirmado pelo banco/operadora.</p>
+        <p style="margin-top:14px"><b>Mensal ou anual:</b> no pagamento por cartão você pode escolher o ciclo anual, com desconto de 20%. <b>DCaos</b> é um complemento à parte: uma assinatura própria que vale para toda a família, independente do plano.</p>
+        <p>Formas de pagamento aceitas: cartão de crédito, PIX e boleto, processadas com segurança pelos nossos parceiros de pagamento. Após a confirmação do pagamento, seu plano é liberado automaticamente — isso pode levar alguns instantes enquanto o pagamento é confirmado pelo banco/operadora.</p>
         <div class="callout tip">
           <div class="ic">💡</div>
           <div><b>Pagamento via boleto ou PIX</b>Boleto pode levar até 3 dias úteis para compensar; PIX e cartão costumam ser confirmados quase na hora. Se a tela de confirmação demorar, não se preocupe — assim que o pagamento for aprovado, seu plano é atualizado automaticamente.</div>
         </div>
+      </div>
+    </section>
+
+    <hr class="sep">
+
+    <!-- TUTORIAIS -->
+    <section class="page-section" id="tutoriais">
+      <div class="head"><div class="emoji">🎓</div><div><h2>Tutoriais guiados</h2><p class="subtitle">Passeios interativos pela tela, passo a passo</p></div></div>
+      <div class="card">
+        <p>Abra o menu da sua foto (canto superior direito) e escolha um tutorial. Ele destaca cada parte da tela e explica para que serve; use "Próximo" e "Voltar", ou feche quando quiser.</p>
+        <ul>
+          <li>🧭 <b>Conhecendo o Painel gerencial</b> — o que olhar primeiro todo dia.</li>
+          <li>📊 <b>Conhecendo o Painel Início</b> — dashboard financeiro e lançamentos.</li>
+          <li>🏡 <b>DCaos: a casa organizada</b> — passa por todos os módulos da casa. <span class="plan-pill dcaos">DCaos</span></li>
+          <li>🛒 <b>Abastece Aí: lista e despensa</b> — anotar itens, despensa e vitrine. <span class="plan-pill dcaos">DCaos</span></li>
+          <li>🗒️ <b>Recados e bilhetinhos</b> — escrever, ler, reagir e guardar. <span class="plan-pill dcaos">DCaos</span></li>
+        </ul>
+        <div class="callout tip"><div class="ic">💡</div><div>Os tutoriais do DCaos só funcionam para quem tem o complemento ativo.</div></div>
       </div>
     </section>
 
@@ -689,6 +844,36 @@
         <summary>Pedi recuperação de senha e recebi a mensagem de sucesso, mas o e-mail não chegou. O que fazer?</summary>
         <p>Por segurança, o DCash sempre mostra a mensagem de "e-mail enviado" mesmo que o endereço digitado não esteja cadastrado (assim ninguém descobre quais e-mails existem no sistema). Confira se digitou o e-mail correto — o mesmo usado no cadastro — e verifique a caixa de spam antes de tentar de novo.</p>
       </details>
+
+      <details>
+        <summary>O menu lateral fica pequeno e só abre quando passo o mouse. Dá para deixar aberto?</summary>
+        <p>Sim. Passe o mouse para abrir e clique no botão do topo do menu ("Manter menu aberto"). Para voltar a recolher, clique no mesmo botão ("Recolher menu"). Veja <a href="#navegacao">Menu e atalhos</a>.</p>
+      </details>
+
+      <details>
+        <summary>Um bilhete sumiu do painel. Onde ele foi parar?</summary>
+        <p>Se você tocou em "✓ Li", ele foi guardado em <a href="#dcaos-recados">Recados → Meus bilhetes</a>. O painel mostra só bilhetes ainda não lidos, mandados para você ou para a família toda.</p>
+      </details>
+
+      <details>
+        <summary>Não vejo Casa, Mercado e Recados no meu DCash. Por quê?</summary>
+        <p>Essas telas fazem parte do <a href="#dcaos">DCaos</a>, um complemento pago à parte. Se alguém da sua família já contratou, você também tem acesso — confira se está no mesmo grupo familiar em <a href="#perfil">Perfil</a>.</p>
+      </details>
+
+      <details>
+        <summary>A validade de um item da despensa está errada.</summary>
+        <p>A validade do DCaos é uma <b>estimativa média</b> contada a partir da última compra — ela não lê a data da embalagem. Ajuste a "Validade média (dias)" em Editar item, ou confira sempre a embalagem.</p>
+      </details>
+
+      <details>
+        <summary>A busca de imagens ou de ofertas nos Desejos não traz resultados.</summary>
+        <p>A busca online tem um limite mensal de consultas. Se não funcionar, cole o link de uma imagem ou cadastre a cotação manualmente — tudo continua funcionando.</p>
+      </details>
+
+      <details>
+        <summary>Não recebo notificações do DCaos no celular.</summary>
+        <p>Confira se você permitiu notificações no navegador, se não está dentro do horário de silêncio e se o módulo não está silenciado. No iPhone, é preciso adicionar o DCash à tela de início. Veja <a href="#dcaos-notificacoes">Notificações</a>.</p>
+      </details>
     </section>
 
     <hr class="sep">
@@ -708,6 +893,9 @@
             <p><b>Grupo familiar</b> — conjunto de pessoas que compartilham as mesmas contas/transações/metas no app.</p>
             <p><b>DRE</b> — Demonstrativo de Resultado: visão "receita menos despesa" do mês, como um mini-balanço.</p>
             <p><b>Recurso "gated"/bloqueado</b> — funcionalidade disponível apenas a partir de determinado plano de assinatura.</p>
+            <p><b>DCaos</b> — complemento do DCash para organizar a rotina da casa e da família.</p>
+            <p><b>Radar da família</b> — lista automática de pontos de atenção no Painel gerencial.</p>
+            <p><b>Vitrine</b> — catálogo de produtos prontos para montar a despensa rapidinho.</p>
             <p><b>Staging de importação</b> — área temporária onde ficam os lançamentos de um extrato antes de você confirmar a importação.</p>
           </div>
         </div>
@@ -715,7 +903,7 @@
     </section>
 
     <footer>
-      DCash — Guia do Usuário gerado a partir do funcionamento real do sistema · uso interno e de suporte ao cliente
+      DCash — Guia do Usuário gerado a partir do funcionamento real do sistema · atualizado em 07/10/2026 · uso interno e de suporte ao cliente
     </footer>
 
   </main>

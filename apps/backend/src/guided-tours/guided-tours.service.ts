@@ -88,6 +88,72 @@ const PILOT_TOUR = {
   ] as SeedStep[],
 };
 
+const step = (target: string, route: string, title: string, description: string,
+  placement: SeedStep['placement'] = 'bottom', actionType: SeedStep['actionType'] = 'none', actionValue?: string): SeedStep =>
+  ({ target, route, title, description, placement, actionType, actionValue });
+
+const PAINEL_TOUR = {
+  key: 'painel-intro',
+  title: 'Conhecendo o Painel gerencial',
+  description: 'Finanças e casa numa tela só: o que olhar primeiro todo dia.',
+  steps: [
+    step('painel-greeting', '/painel', '👋 Seu Painel gerencial', 'É a tela inicial do DCash: junta o resumo das finanças com a rotina da casa. O selo ao lado mostra a família e o mês que você está vendo.'),
+    step('painel-quick-actions', '/painel', '⚡ Ações e atalhos', 'Lance receita ou despesa em 1 clique. Os menus "Finanças" e "Casa" levam a qualquer tela, e os atalhos abrem Calendário, Tarefas e Compras.'),
+    step('painel-kpis', '/painel', '💰 O mês em 3 números', 'Saldo, receitas e despesas do mês selecionado, comparados com o mês anterior.'),
+    step('painel-week', '/painel', '📆 Hoje + próximos 6 dias', 'Cada card é um dia com tarefas, hábitos, contas e eventos. Toque num dia para ver os detalhes logo abaixo.'),
+    step('painel-day', '/painel', '☀️ O dia em detalhe', 'Conclua tarefas, marque hábitos e veja as finanças do dia selecionado sem sair do painel. "Marcar" cria um compromisso.', 'top'),
+    step('painel-categories', '/painel', '🥧 Para onde vai o dinheiro', 'Ranking de despesas por categoria, com o orçado de cada uma quando há planejamento.', 'top'),
+    step('painel-dre-toggle', '/painel', '📊 Visão DRE por pessoa', 'Clique em "Próximo" e mudamos para o DRE: receitas e despesas em colunas por membro da família, com total.', 'left', 'click'),
+    step('painel-installments', '/painel', '🗂️ Raio-X dos parcelamentos', 'Saldo devedor, parcelas do mês e do próximo, quitações e parcelas vencidas num só card.', 'top'),
+    step('painel-planning', '/painel', '🎯 Planejamento do mês', 'Acompanhe se cada categoria está dentro do limite que você definiu.', 'left'),
+    step('painel-status', '/painel', '🧭 Resumo rápido', 'Lista de compras (amarela quando tem item pra comprar), cofrinhos, sonhos e desejos. Toque para abrir cada um.', 'left'),
+    step('painel-radar', '/painel', '📡 Radar da família', 'Pontos de atenção automáticos: mês no vermelho, parcelas vencidas, tarefas atrasadas, aniversários… O que é crítico aparece em vermelho no topo. Tour concluído! 🎉', 'left'),
+  ],
+};
+
+const DCAOS_TOUR = {
+  key: 'dcaos-intro',
+  title: 'DCaos: a casa organizada',
+  description: 'Tarefas, mercado, recados, hábitos, datas e manutenção da família (add-on DCaos).',
+  steps: [
+    step('dcaos-hub-greeting', '/dcaos', '🏡 Bem-vindo à Casa', 'O resumo da rotina da família. Os botões criam tarefa, item de mercado ou um "deu ruim" rapidinho.'),
+    step('dcaos-hub-insights', '/dcaos', '✨ Como está a casa hoje', 'Tarefas do dia, lista de compras, recados, datas e manutenções, com o que precisa de atenção.'),
+    step('dcaos-hub-today', '/dcaos', '📝 Hoje, mercado e bilhetes', 'Quem tem o que fazer hoje, a lista de compras de papel e os bilhetinhos da família.', 'top'),
+    step('dcaos-hub-modules', '/dcaos', '🧩 Todos os módulos', 'Atalhos para cada parte do DCaos. Vamos passear por eles agora.', 'top'),
+    step('dcaos-tasks-page', '/dcaos/tarefas', '📝 Quem Vai Fazer?', 'Tarefas da casa com responsável, prazo e repetição (diária, dias da semana, quinzenal, mensal). Tem placar de quem mais ajudou.', 'top'),
+    step('dcaos-market-tabs', '/dcaos/mercado', '🛒 Abastece Aí', 'Lista de compras e despensa no mesmo lugar. Marque "Acabou!" na despensa e o item vai sozinho pra lista.'),
+    step('dcaos-notes-composer', '/dcaos/recados', '🗒️ Recados', 'Deixe bilhetes para a família toda ou para alguém. Eles aparecem no painel até a pessoa marcar como lido.'),
+    step('dcaos-habits-page', '/dcaos/habitos', '🔁 Faz Todo Dia', 'Hábitos pessoais (saúde, estudo, bem-estar) com sequência de dias. Tarefas da casa ficam em "Quem Vai Fazer?".', 'top'),
+    step('dcaos-dates-page', '/dcaos/datas', '🎂 Não Esquece', 'Aniversários, datas comemorativas e vencimento de documentos, com lembrete antes.', 'top'),
+    step('dcaos-maintenance-page', '/dcaos/manutencao', '🔧 Deu Ruim', 'Consertos e manutenções preventivas da casa e do carro. Urgências aparecem no Radar do painel. Tour concluído! 🎉', 'top'),
+  ],
+};
+
+const MARKET_TOUR = {
+  key: 'dcaos-mercado',
+  title: 'Abastece Aí: lista e despensa',
+  description: 'Como usar a lista de compras, a despensa e a vitrine de produtos.',
+  steps: [
+    step('dcaos-market-tabs', '/dcaos/mercado', '🛒 Duas visões', '"Lista de compras" é o que falta comprar; "Despensa" é o que já tem em casa.'),
+    step('dcaos-market-add', '/dcaos/mercado', '✍️ Anote do jeito que fala', 'Digite "2 kg açúcar" ou "3 leite": quantidade, unidade e categoria são preenchidas sozinhas.'),
+    step('dcaos-market-pantry-tab', '/dcaos/mercado', '📦 Vamos para a despensa', 'Clique em "Próximo" e abrimos a aba Despensa pra você.', 'bottom', 'click'),
+    step('dcaos-market-showcase', '/dcaos/mercado', '✨ Vitrine de produtos', 'Monte a despensa em 1 minuto: escolha os produtos e eles já vêm com quantidade, aviso de estoque baixo e validade média. Tour concluído! 🎉', 'left'),
+  ],
+};
+
+const NOTES_TOUR = {
+  key: 'dcaos-recados',
+  title: 'Recados e bilhetinhos',
+  description: 'Mandar, ler, reagir e guardar os bilhetes da família.',
+  steps: [
+    step('dcaos-notes-composer', '/dcaos/recados', '✍️ Escreva um recado', 'Escolha pra quem (família toda ou uma pessoa), a cor e se quer fixar. Ctrl+Enter envia.'),
+    step('dcaos-notes-tabs', '/dcaos/recados', '📥 Mural, Meus bilhetes e Enviados', 'O Mural mostra o que você ainda não leu. Ao marcar "Li", o bilhete vai para "Meus bilhetes". Seus recados ficam em "Enviados".'),
+    step('painel-notes', '/painel', '💬 Bilhetes no painel', 'Os bilhetes também aparecem no painel. Reaja com ❤️ 👍 😂 😮 😢 😡 (ou toque duas vezes no texto) e toque em "Li" para tirar da tela. Tour concluído! 🎉', 'left'),
+  ],
+};
+
+const SEED_TOURS = [PILOT_TOUR, PAINEL_TOUR, DCAOS_TOUR, MARKET_TOUR, NOTES_TOUR];
+
 @Injectable()
 export class GuidedToursService {
   private schemaEnsured = false;
@@ -135,15 +201,17 @@ export class GuidedToursService {
     if (this.seedEnsured) return;
     await this.ensureSchema();
 
-    const existing = await this.db.query(`SELECT id FROM ${S}.guided_tours WHERE key = $1`, [PILOT_TOUR.key]);
-    if (!existing.length) {
+    // Built-in tours are inserted once (by key); admin edits afterwards are kept.
+    for (const seed of SEED_TOURS) {
+      const existing = await this.db.query(`SELECT id FROM ${S}.guided_tours WHERE key = $1`, [seed.key]);
+      if (existing.length) continue;
       const tourId = randomUUID();
       await this.db.query(
         `INSERT INTO ${S}.guided_tours (id, key, title, description) VALUES ($1, $2, $3, $4)`,
-        [tourId, PILOT_TOUR.key, PILOT_TOUR.title, PILOT_TOUR.description],
+        [tourId, seed.key, seed.title, seed.description],
       );
-      for (let i = 0; i < PILOT_TOUR.steps.length; i++) {
-        const step = PILOT_TOUR.steps[i];
+      for (let i = 0; i < seed.steps.length; i++) {
+        const step = seed.steps[i];
         await this.db.query(
           `INSERT INTO ${S}.guided_tour_steps
              (id, tour_id, step_order, target, route, title, description, placement, action_type, action_value)

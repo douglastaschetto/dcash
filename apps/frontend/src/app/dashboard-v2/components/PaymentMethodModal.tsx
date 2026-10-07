@@ -1,24 +1,25 @@
 'use client';
 
 import { useState } from 'react';
-import { Loader2, Plus, Wallet, Banknote, CreditCard, Receipt, TrendingUp } from 'lucide-react';
+import { Loader2, Plus, Wallet, Banknote, CreditCard, Receipt, TrendingUp } from '@/components/ui/icons';
 import api from '@/services/api';
 import { cn } from '@/lib/utils';
 import { ColorPicker } from '@/lib/color-picker';
 import { CurrencyInput } from '@/lib/currency-input';
 import { Modal } from './Modal';
 
-type PaymentType = 'credit_card' | 'cash' | 'pix' | 'boleto' | 'financing';
+type PaymentType = 'credit_card' | 'debit_card' | 'cash' | 'pix' | 'boleto' | 'financing';
 const PM_TYPES: { value: PaymentType; label: string; icon: React.ReactNode; hasLimit: boolean }[] = [
   { value: 'cash',        label: 'Dinheiro',           icon: <Wallet size={15} />,      hasLimit: false },
   { value: 'pix',         label: 'PIX',                icon: <Banknote size={15} />,    hasLimit: false },
   { value: 'credit_card', label: 'Cartão de Crédito',  icon: <CreditCard size={15} />,  hasLimit: true  },
+  { value: 'debit_card',  label: 'Cartão de Débito',   icon: <CreditCard size={15} />,  hasLimit: false },
   { value: 'boleto',      label: 'Boleto',             icon: <Receipt size={15} />,     hasLimit: false },
   { value: 'financing',   label: 'Financiamento',      icon: <TrendingUp size={15} />,  hasLimit: true  },
 ];
 
-const field = 'w-full rounded-xl px-3.5 py-2.5 text-sm outline-none transition bg-zinc-50 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-600 text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:border-emerald-500';
-const fieldLabel = 'text-[9px] font-black uppercase tracking-widest text-zinc-500 mb-1 block';
+const field = 'field';
+const fieldLabel = 'text-xs font-medium text-fg-2 mb-1.5 block';
 
 /** Same "remount = reset" rationale as CategoryModal — see its comment. */
 export function PaymentMethodModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
@@ -52,9 +53,9 @@ export function PaymentMethodModal({ onClose, onSaved }: { onClose: () => void; 
   };
 
   return (
-    <Modal onClose={onClose} title={<>Nova <span className="text-blue-500">Forma de Pag.</span></>}>
+    <Modal onClose={onClose} title={<>Nova <span className="text-info">Forma de Pag.</span></>}>
       <div className="space-y-3">
-        {error && <p className="text-red-500 text-xs font-bold">{error}</p>}
+        {error && <p className="text-danger text-xs font-semibold">{error}</p>}
 
         <div>
           <label className={fieldLabel}>Nome</label>
@@ -66,10 +67,10 @@ export function PaymentMethodModal({ onClose, onSaved }: { onClose: () => void; 
           <div className="grid grid-cols-2 gap-2">
             {PM_TYPES.map(t => (
               <button key={t.value} type="button" onClick={() => setType(t.value)}
-                className={cn('flex items-center gap-2 px-3 py-2 rounded-xl border text-[10px] font-black transition',
+                className={cn('flex items-center gap-2 px-3 py-2 rounded-xl border text-[11px] font-semibold transition',
                   type === t.value
-                    ? 'bg-blue-500 text-white border-blue-500'
-                    : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-300 dark:border-zinc-600 text-zinc-600 dark:text-zinc-300')}>
+                    ? 'bg-primary-soft text-accent border-primary'
+                    : 'bg-surface-2 border-border text-fg-2')}>
                 {t.icon} {t.label}
               </button>
             ))}
@@ -105,7 +106,7 @@ export function PaymentMethodModal({ onClose, onSaved }: { onClose: () => void; 
         )}
 
         <button onClick={save} disabled={saving}
-          className="w-full py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black uppercase text-xs tracking-widest transition disabled:opacity-50 flex items-center justify-center gap-2">
+          className="w-full h-10 rounded-lg bg-primary hover:bg-primary-hover text-on-primary font-medium text-[13px] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
           {saving ? 'Salvando...' : 'Criar forma de pagamento'}
         </button>

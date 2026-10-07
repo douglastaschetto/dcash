@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Users, Plus, LogIn, Check, Copy, Pencil, X, Loader2 } from 'lucide-react';
+import { Users, Plus, LogIn, Check, Copy, Pencil, X, Loader2 } from '@/components/ui/icons';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -138,13 +138,13 @@ export function FamilyGroupCard() {
   };
 
   return (
-    <div data-tour="profile-family-group" className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-950 to-emerald-800 p-5 shadow-sm text-white">
+    <div data-tour="profile-family-group" className="rounded-2xl border border-primary-border bg-gradient-to-br from-hero-from to-hero-to p-5 shadow-sm text-white">
       <div className="flex items-center gap-3 mb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700/60">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary">
           <Users className="h-5 w-5" />
         </div>
         <div>
-          <h3 className="text-lg font-bold">Grupo Familiar</h3>
+          <h3 className="text-lg font-semibold">Grupo Familiar</h3>
           <p className="text-xs text-emerald-200">Compartilhe finanças</p>
         </div>
       </div>
@@ -157,7 +157,7 @@ export function FamilyGroupCard() {
         <>
           {msg && (
             <div className={`mb-4 rounded-xl px-4 py-3 text-sm font-medium
-              ${msg.includes('sucesso') ? 'bg-emerald-700/60 text-emerald-100' : 'bg-red-500/20 text-red-200'}`}>
+ ${msg.includes('sucesso') ? 'bg-primary text-on-primary' : 'bg-danger-soft text-danger'}`}>
               {msg}
             </div>
           )}
@@ -173,7 +173,7 @@ export function FamilyGroupCard() {
                   <button
                     onClick={createGroup}
                     disabled={creatingGroup}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-card px-4 py-3 text-sm font-semibold text-fg hover:bg-primary-soft disabled:opacity-50 transition"
                   >
                     {creatingGroup ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                     Criar grupo familiar
@@ -181,7 +181,7 @@ export function FamilyGroupCard() {
 
                   <button
                     onClick={() => setJoinMode(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-emerald-600 px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-emerald-700/40 transition"
+                    className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-emerald-100 hover:bg-primary-hover transition"
                   >
                     <LogIn className="h-4 w-4" />
                     Entrar com código
@@ -193,20 +193,20 @@ export function FamilyGroupCard() {
                     value={inviteInput}
                     onChange={e => setInviteInput(e.target.value.toUpperCase())}
                     placeholder="DCASH-XXXXXX"
-                    className="w-full rounded-xl bg-emerald-800/60 border border-emerald-600 px-4 py-3 text-white placeholder:text-emerald-400 focus:outline-none focus:border-emerald-300 transition font-mono"
+                    className="w-full rounded-xl bg-emerald-800/60 border border-primary px-4 py-3 text-white placeholder:text-emerald-400 focus:outline-none focus:border-primary-border transition font-mono"
                   />
                   <div className="flex gap-2">
                     <button
                       onClick={joinGroup}
                       disabled={joiningGroup || !inviteInput.trim()}
-                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
+                      className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-card px-4 py-3 text-sm font-semibold text-fg hover:bg-primary-soft disabled:opacity-50 transition"
                     >
                       {joiningGroup ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogIn className="h-4 w-4" />}
                       Entrar
                     </button>
                     <button
                       onClick={() => { setJoinMode(false); setInviteInput(''); }}
-                      className="rounded-xl border border-emerald-600 px-4 py-3 text-sm text-emerald-200 hover:bg-emerald-700/40 transition"
+                      className="rounded-xl border border-primary px-4 py-3 text-sm text-emerald-200 hover:bg-primary-hover transition"
                     >
                       Cancelar
                     </button>
@@ -219,7 +219,7 @@ export function FamilyGroupCard() {
           {familyGroup && (
             <div className="space-y-4">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-1.5">
+                <p className="text-[11px] font-semibold text-emerald-300 mb-1.5">
                   Nome do grupo
                 </p>
                 {editingGroupName ? (
@@ -229,25 +229,25 @@ export function FamilyGroupCard() {
                       value={groupNameInput}
                       onChange={e => setGroupNameInput(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && saveGroupName()}
-                      className="flex-1 rounded-lg bg-emerald-800/60 border border-emerald-600 px-3 py-2 text-sm text-white placeholder:text-emerald-400 focus:outline-none focus:border-emerald-300 transition"
+                      className="flex-1 rounded-lg bg-emerald-800/60 border border-primary px-3 py-2 text-sm text-white placeholder:text-emerald-400 focus:outline-none focus:border-primary-border transition"
                     />
                     <button
                       onClick={saveGroupName}
                       disabled={savingGroupName || !groupNameInput.trim()}
-                      className="p-2 rounded-lg bg-white text-emerald-950 hover:bg-emerald-50 disabled:opacity-50 transition"
+                      className="p-2 rounded-lg bg-card text-fg hover:bg-primary-soft disabled:opacity-50 transition"
                     >
                       {savingGroupName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                     </button>
                     <button
                       onClick={() => setEditingGroupName(false)}
-                      className="p-2 rounded-lg border border-emerald-600 text-emerald-200 hover:bg-emerald-700/40 transition"
+                      className="p-2 rounded-lg border border-primary text-emerald-200 hover:bg-primary-hover transition"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2 bg-emerald-800/60 rounded-lg px-3 py-2">
-                    <span className="flex-1 font-bold text-white text-sm truncate">{familyGroup.name}</span>
+                    <span className="flex-1 font-semibold text-white text-sm truncate">{familyGroup.name}</span>
                     {familyGroup.isOwner && (
                       <button
                         onClick={() => { setGroupNameInput(familyGroup.name); setEditingGroupName(true); }}
@@ -260,16 +260,16 @@ export function FamilyGroupCard() {
                   </div>
                 )}
                 {familyGroup.isOwner && !editingGroupName && (
-                  <p className="text-[10px] text-emerald-400 mt-1">Você criou este grupo e pode renomeá-lo.</p>
+                  <p className="text-[11px] text-emerald-400 mt-1">Você criou este grupo e pode renomeá-lo.</p>
                 )}
               </div>
 
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-1.5">
+                <p className="text-[11px] font-semibold text-emerald-300 mb-1.5">
                   Código de convite
                 </p>
                 <div className="flex items-center gap-2 bg-emerald-800/60 rounded-lg px-3 py-2">
-                  <span className="flex-1 font-mono font-bold text-white tracking-widest text-sm">
+                  <span className="flex-1 font-mono font-semibold text-white text-sm">
                     {familyGroup.inviteCode}
                   </span>
                   <button
@@ -280,27 +280,27 @@ export function FamilyGroupCard() {
                     {copied ? 'Copiado!' : 'Copiar'}
                   </button>
                 </div>
-                <p className="text-[10px] text-emerald-400 mt-1">
+                <p className="text-[11px] text-emerald-400 mt-1">
                   Compartilhe este código para outros entrarem no seu grupo.
                 </p>
               </div>
 
-              <div className="border-t border-emerald-700/50 pt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-emerald-300 mb-2">
+              <div className="border-t border-primary pt-3">
+                <p className="text-[11px] font-semibold text-emerald-300 mb-2">
                   Membros do Grupo ({members.length})
                 </p>
                 <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
                   {members.map(member => (
                     <div key={member.id} className="flex items-center gap-2.5 bg-emerald-900/40 rounded-lg p-2">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 font-bold text-xs shrink-0">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary font-semibold text-xs shrink-0">
                         {member.name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold truncate">{member.name}</p>
-                        <p className="text-[10px] text-emerald-300 truncate">{member.email}</p>
+                        <p className="text-[11px] text-emerald-300 truncate">{member.email}</p>
                       </div>
                       {familyGroup.ownerId === member.id && (
-                        <span className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300">
+                        <span className="shrink-0 text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300">
                           Criador
                         </span>
                       )}

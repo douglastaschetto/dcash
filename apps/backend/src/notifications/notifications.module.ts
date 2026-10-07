@@ -1,3 +1,4 @@
+import { AdminGuard } from '../common/guards/admin.guard';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { NotificationsService } from './notifications.service';
@@ -9,7 +10,7 @@ import { PlanModule } from '../plan/plan.module';
 @Module({
   imports: [ConfigModule, DatabaseModule, AuthModule, PlanModule],
   controllers: [NotificationsController],
-  providers: [NotificationsService],
+  providers: [NotificationsService, AdminGuard],
   exports: [NotificationsService],
 })
 export class NotificationsModule {}

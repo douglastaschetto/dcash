@@ -3,37 +3,219 @@
 /* Dark mode responds to [data-theme="dark"] on <html> (Tailwind v4 custom variant) */
 @variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-:root {
-  --background: #f0fdf4;
-  --foreground: #064e3b;
-  --surface: #ffffff;
-  --surface-secondary: #ecfdf5;
-  --border: #d1fae5;
+/*
+ * ─── Design tokens ───────────────────────────────────────────────────────
+ * Every component consumes these semantic variables (directly via var() or
+ * through the Tailwind utilities declared in `@theme inline` below, e.g.
+ * `bg-card`, `text-fg-muted`, `border-border`, `bg-primary`).
+ * Never hardcode palette colors in components — add a token here instead.
+ *
+ * The theme attribute is set by layout.tsx's inline script and by the theme
+ * toggles (top bar + profile page). Light is the default when no attribute
+ * is present.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #f7f9f8;
+  --sidebar: #ffffff;
+  --surface: #f7f9f8;
+  --surface-secondary: #f3f6f4;
+  --card: #ffffff;
+  --card-hover: #fbfcfb;
+  --hover: #eef3f0;
+  --input: #ffffff;
+  --input-border: #dde4e0;
+  --track: #e8eeea;
+  --border: #e1e7e4;
+  --border-hover: #cbd5d0;
+
+  --text-primary: #17201c;
+  --text-secondary: #59645e;
+  --text-muted: #89928d;
+  --text-disabled: #b3bbb6;
+
+  --primary: #059669;
+  --primary-hover: #047857;
+  --primary-text: #059669;
+  --primary-soft: #ecfdf5;
+  --primary-border: #a7f3d0;
+  --on-primary: #ffffff;
+
+  --success: #059669;
+  --success-soft: #ecfdf5;
+  --warning: #b45309;
+  --warning-soft: #fffbeb;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
+
+  /* Inverse surface (tooltips, dark chips) — dark in both themes */
+  --inverse: #17201c;
+  --on-inverse: #f5f7f6;
+
+  /* Highlight "hero" card (like the reference's payment card) */
+  --hero-from: #064e3b;
+  --hero-to: #047857;
+  --hero-border: #065f46;
+
+  /* Categorical series (validated: CVD + normal-vision separation, contrast) */
+  --series-1: #059669;
+  --series-2: #2563eb;
+  --series-3: #d97706;
+  --series-4: #9333ea;
+  --series-5: #db2777;
+  --chart-grid: #eef2f0;
+  --chart-bar: #e4eae7;
+  --chart-bar-hover: #d3dcd7;
+  --chart-axis: #89928d;
+  --overlay: rgb(15 17 16 / 0.45);
+  --shadow-color: 23 32 28;
+
+  /* Legacy alias used by older inline-styled pages */
+  --foreground: var(--text-primary);
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: #0f1110;
+  --sidebar: #121513;
+  --surface: #151917;
+  --surface-secondary: #1a1f1c;
+  --card: #191d1b;
+  --card-hover: #1d231f;
+  --hover: #1f2622;
+  --input: #151917;
+  --input-border: #29302d;
+  --track: #252c28;
+  --border: #29302d;
+  --border-hover: #37413c;
+
+  --text-primary: #f5f7f6;
+  --text-secondary: #a7b0ab;
+  --text-muted: #6f7973;
+  --text-disabled: #4f5853;
+
+  --primary: #10b981;
+  --primary-hover: #059669;
+  --primary-text: #34d399;
+  --primary-soft: rgb(16 185 129 / 0.12);
+  --primary-border: rgb(16 185 129 / 0.28);
+  --on-primary: #07130e;
+
+  --success: #34d399;
+  --success-soft: rgb(16 185 129 / 0.12);
+  --warning: #fbbf24;
+  --warning-soft: rgb(245 158 11 / 0.12);
+  --danger: #f87171;
+  --danger-soft: rgb(239 68 68 / 0.12);
+  --info: #60a5fa;
+  --info-soft: rgb(59 130 246 / 0.12);
+
+  --inverse: #2a322e;
+  --on-inverse: #f5f7f6;
+
+  --hero-from: #13261e;
+  --hero-to: #0f1a15;
+  --hero-border: #1f3a2e;
+
+  --series-1: #059669;
+  --series-2: #3b82f6;
+  --series-3: #d97706;
+  --series-4: #a855f7;
+  --series-5: #e11d74;
+  --chart-grid: #222926;
+  --chart-bar: #252c28;
+  --chart-bar-hover: #313a35;
+  --chart-axis: #6f7973;
+  --overlay: rgb(0 0 0 / 0.6);
+  --shadow-color: 0 0 0;
 }
 
 @theme inline {
+  /* Semantic colors → Tailwind utilities (bg-card, text-fg, border-border…) */
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-sidebar: var(--sidebar);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-secondary);
+  --color-card: var(--card);
+  --color-card-hover: var(--card-hover);
+  --color-hover: var(--hover);
+  --color-input: var(--input);
+  --color-input-border: var(--input-border);
+  --color-track: var(--track);
+  --color-border: var(--border);
+  --color-border-hover: var(--border-hover);
 
-/*
- * Keyed off the same [data-theme="dark"] attribute as the `dark:` Tailwind
- * variant above (see layout.tsx's inline script and profile page's theme
- * toggle, which are the single source of truth for the attribute).
- * Previously this block used `@media (prefers-color-scheme: dark)`, which
- * only reacted to the OS setting — so a user who explicitly chose "Escuro"
- * while their OS was in light mode got `dark:` classes correctly applied
- * elsewhere in the app, but pages styled with these CSS vars (login,
- * plans, ajuda, onboarding, auth-success, reset-password) stayed light.
- */
-[data-theme="dark"] {
-  --background: #082f25;
-  --foreground: #e7f5ef;
-  --surface: #0d3d30;
-  --surface-secondary: #0a3328;
-  --border: #1a5c41;
+  --color-fg: var(--text-primary);
+  --color-fg-2: var(--text-secondary);
+  --color-fg-muted: var(--text-muted);
+  --color-fg-disabled: var(--text-disabled);
+  --color-foreground: var(--text-primary);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-accent: var(--primary-text);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-border: var(--primary-border);
+  --color-on-primary: var(--on-primary);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --color-inverse: var(--inverse);
+  --color-on-inverse: var(--on-inverse);
+  --color-hero-from: var(--hero-from);
+  --color-hero-to: var(--hero-to);
+  --color-hero-border: var(--hero-border);
+  --color-overlay: var(--overlay);
+  --color-chart-bar: var(--chart-bar);
+  --color-chart-bar-hover: var(--chart-bar-hover);
+
+  --font-sans: var(--font-inter), var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Compact, professional radii: controls 6 · inputs/buttons 8 · cards 12 · containers 16 */
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.5rem;
+  --radius-2xl: 0.75rem;
+  --radius-3xl: 1rem;
+
+  /* Depth comes from surfaces + borders; shadows stay minimal */
+  --shadow-xs: 0 1px 1px rgb(var(--shadow-color) / 0.03);
+  --shadow-sm: 0 1px 2px rgb(var(--shadow-color) / 0.04);
+  --shadow: 0 1px 3px rgb(var(--shadow-color) / 0.06);
+  --shadow-md: 0 2px 6px -1px rgb(var(--shadow-color) / 0.07);
+  --shadow-lg: 0 8px 20px -8px rgb(var(--shadow-color) / 0.14);
+  --shadow-xl: 0 12px 28px -10px rgb(var(--shadow-color) / 0.18);
+  --shadow-2xl: 0 18px 40px -14px rgb(var(--shadow-color) / 0.22);
+
+  /*
+   * Neutral fallback ramp: any leftover zinc/slate/gray utility renders in
+   * the same green-tinted neutrals as the tokens above, so nothing looks
+   * off-system even if it predates the token migration.
+   */
+  --color-zinc-50: #f7f9f8;   --color-slate-50: #f7f9f8;   --color-gray-50: #f7f9f8;   --color-neutral-50: #f7f9f8;
+  --color-zinc-100: #eef3f0;  --color-slate-100: #eef3f0;  --color-gray-100: #eef3f0;  --color-neutral-100: #eef3f0;
+  --color-zinc-200: #e1e7e4;  --color-slate-200: #e1e7e4;  --color-gray-200: #e1e7e4;  --color-neutral-200: #e1e7e4;
+  --color-zinc-300: #cbd5d0;  --color-slate-300: #cbd5d0;  --color-gray-300: #cbd5d0;  --color-neutral-300: #cbd5d0;
+  --color-zinc-400: #89928d;  --color-slate-400: #89928d;  --color-gray-400: #89928d;  --color-neutral-400: #89928d;
+  --color-zinc-500: #6f7973;  --color-slate-500: #6f7973;  --color-gray-500: #6f7973;  --color-neutral-500: #6f7973;
+  --color-zinc-600: #59645e;  --color-slate-600: #59645e;  --color-gray-600: #59645e;  --color-neutral-600: #59645e;
+  --color-zinc-700: #37413c;  --color-slate-700: #37413c;  --color-gray-700: #37413c;  --color-neutral-700: #37413c;
+  --color-zinc-800: #232926;  --color-slate-800: #232926;  --color-gray-800: #232926;  --color-neutral-800: #232926;
+  --color-zinc-900: #191d1b;  --color-slate-900: #191d1b;  --color-gray-900: #191d1b;  --color-neutral-900: #191d1b;
+  --color-zinc-950: #0f1110;  --color-slate-950: #0f1110;  --color-gray-950: #0f1110;  --color-neutral-950: #0f1110;
 }
 
 html {
@@ -42,17 +224,183 @@ html {
 
 body {
   background: var(--background);
-  color: var(--foreground);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
   box-sizing: border-box;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: var(--border);
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
+  }
+
+  /* Emerald focus ring for every interactive element reached via keyboard */
+  :where(a, button, [role="button"], input, select, textarea, [tabindex]):focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--primary) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  /* Native form fields pick up the input tokens automatically */
+  :where(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), select, textarea):focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--primary);
+  }
+}
+
+/* Tabular numerals keep money columns aligned */
+.tabular-nums,
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Reusable component classes (token-based) ─────────────────────────── */
+@layer components {
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+  }
+  .hero-card {
+    background: linear-gradient(135deg, var(--hero-from), var(--hero-to));
+    border: 1px solid var(--hero-border);
+    color: #f5f7f6;
+  }
+  .field {
+    width: 100%;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--input-border);
+    background: var(--input);
+    color: var(--text-primary);
+    padding: 0 0.875rem;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .field:hover {
+    border-color: var(--border-hover);
+  }
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 9999px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text-secondary);
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  }
+  @media (max-width: 639px) {
+    .icon-btn {
+      width: 2rem;
+      height: 2rem;
+    }
+  }
+  .icon-btn:hover {
+    background: var(--hover);
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    padding: 0 0.875rem;
+    border-radius: 0.5rem;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+  .btn-secondary {
+    background: var(--card);
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--hover);
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+  }
+  .btn-square {
+    width: 2.25rem;
+    padding: 0;
+  }
+  .eyebrow {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
 }

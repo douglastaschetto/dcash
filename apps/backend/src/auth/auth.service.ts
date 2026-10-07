@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
   BadRequestException,
 } from '@nestjs/common';
@@ -7,21 +8,31 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { createHash, randomBytes } from 'crypto';
 import { User } from '../models/user.entity';
 import { FamilyGroup } from '../models/family-group.entity';
 import { DatabaseService } from '../database/database.service';
 import { EmailService } from '../common/email/email.service';
-import { RegisterDto, LoginDto } from './dto/auth.dto';
-
-const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hora
+import {
+  RegisterDto,
+  LoginDto,
+  VerifyCodeDto,
+  ResetPasswordDto,
+} from './dto/auth.dto';
+import {
+  AuthCodesService,
+  maskEmail,
+  type CodePurpose,
+} from './auth-codes.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly db: DatabaseService,
     private readonly emailService: EmailService,
+    private readonly codes: AuthCodesService,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
     @InjectRepository(FamilyGroup)
@@ -51,8 +62,48 @@ export class AuthService {
       ...(familyGroup ? { familyGroup } : {}),
     });
     await this.userRepo.save(user);
+    if (!this.twoFactorOn)
+      return { ...this.generateToken(user), firstLogin: true };
+    await this.db.query(
+      'UPDATE db_dtasc.users SET email_verified = false WHERE id = $1',
+      [user.id],
+    );
 
-    return { ...this.generateToken(user), firstLogin: true };
+    // Account is only usable after confirming the e-mail code
+    await this.codes.issue(user, 'verify_email');
+    return this.challengeFor(user.email, 'verify_email');
+  }
+
+  /**
+   * Without SMTP in production nobody could receive a code (lockout), so the
+   * second factor is skipped there and the problem is logged loudly. In dev the
+   * code is printed in the server log instead.
+   */
+  private get twoFactorOn() {
+    if (this.emailService.isConfigured || process.env.NODE_ENV !== 'production')
+      return true;
+    this.logger.error(
+      'SMTP não configurado em produção — verificação em duas etapas DESATIVADA. Configure SMTP_HOST/SMTP_USER/SMTP_PASS.',
+    );
+    return false;
+  }
+
+  /** Response telling the client to show the code screen. */
+  private challengeFor(email: string, purpose: CodePurpose) {
+    return {
+      requiresCode: true as const,
+      purpose,
+      email: maskEmail(email),
+      challenge: this.codes.signChallenge(email, purpose),
+    };
+  }
+
+  private async isVerified(userId: string) {
+    const [row] = await this.db.query<{ email_verified: boolean }>(
+      'SELECT email_verified FROM db_dtasc.users WHERE id = $1',
+      [userId],
+    );
+    return row?.email_verified !== false;
   }
 
   async login(data: LoginDto) {
@@ -73,7 +124,52 @@ export class AuthService {
       }
     }
 
-    return { ...this.generateToken(user), firstLogin: false };
+    if (!this.twoFactorOn)
+      return { ...this.generateToken(user), firstLogin: false };
+
+    // Second factor: e-mail not confirmed yet → confirm it first
+    if (!(await this.isVerified(user.id))) {
+      await this.codes.issue(user, 'verify_email', { reuseRecent: true });
+      return this.challengeFor(user.email, 'verify_email');
+    }
+    // Known device (verified in the last 30 days) → straight in
+    if (await this.codes.isTrusted(user.id, data.deviceToken)) {
+      return { ...this.generateToken(user), firstLogin: false };
+    }
+    await this.codes.issue(user, 'login', { reuseRecent: true });
+    return this.challengeFor(user.email, 'login');
+  }
+
+  /** Second step: checks the e-mail code and logs the user in. */
+  async verifyCode(data: VerifyCodeDto, userAgent?: string) {
+    const { email, purpose } = this.codes.readChallenge(data.challenge);
+    if (purpose === 'reset_password')
+      throw new BadRequestException('Use a tela de nova senha.');
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new BadRequestException('Código expirado. Peça um novo.');
+    await this.codes.verify(user.id, purpose, data.code);
+    if (purpose === 'verify_email') {
+      await this.db.query(
+        'UPDATE db_dtasc.users SET email_verified = true WHERE id = $1',
+        [user.id],
+      );
+    }
+    const deviceToken = data.trustDevice
+      ? await this.codes.trustDevice(user.id, userAgent)
+      : undefined;
+    return {
+      ...this.generateToken(user),
+      firstLogin: purpose === 'verify_email',
+      deviceToken,
+    };
+  }
+
+  async resendCode(challenge: string) {
+    const { email, purpose } = this.codes.readChallenge(challenge);
+    const user = await this.userRepo.findOne({ where: { email } });
+    // Unknown e-mail (password reset) answers the same way — no account enumeration
+    if (user) await this.codes.issue(user, purpose);
+    return { success: true, email: maskEmail(email) };
   }
 
   async loginSocial(profile: { email: string; name: string; avatar?: string }) {
@@ -90,53 +186,61 @@ export class AuthService {
       });
       await this.userRepo.save(user);
     }
+    // Google already verified this e-mail
+    await this.db.query(
+      'UPDATE db_dtasc.users SET email_verified = true WHERE id = $1 AND email_verified = false',
+      [user.id],
+    );
 
     return { ...this.generateToken(user), firstLogin: isNew };
   }
 
-  async forgotPassword(email: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { email } });
-    if (!user) return; // silencioso por segurança — não revela se o e-mail existe
-
-    const rawToken = randomBytes(32).toString('hex');
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
-    const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MS);
-
-    await this.db.query(
-      `INSERT INTO db_dtasc.password_reset_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [user.id, tokenHash, expiresAt],
-    );
-
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const resetUrl = `${frontendUrl}/reset-password?token=${rawToken}`;
-    await this.emailService.sendPasswordReset(user.email, resetUrl);
+  /** Google callback → one-time code for the redirect (the token never goes in the URL). */
+  async googleRedirectCode(profile: {
+    email: string;
+    name: string;
+    avatar?: string;
+  }) {
+    const result = await this.loginSocial(profile);
+    return this.codes.issueOAuthCode(result.user.id, result.firstLogin);
   }
 
-  async resetPassword(rawToken: string, newPassword: string): Promise<void> {
-    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+  /** The app trades the one-time code for the session. */
+  async exchangeOAuthCode(code: string) {
+    const { userId, firstLogin } = await this.codes.consumeOAuthCode(code);
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('Sessão inválida.');
+    return { ...this.generateToken(user), firstLogin };
+  }
 
-    const rows = await this.db.query(
-      `SELECT id, user_id AS "userId" FROM db_dtasc.password_reset_tokens
-       WHERE token_hash = $1 AND used_at IS NULL AND expires_at > NOW()`,
-      [tokenHash],
-    );
-    const record = rows[0];
-    if (!record) {
-      throw new BadRequestException(
-        'Link de redefinição inválido ou expirado.',
-      );
-    }
+  /** Always answers with a challenge, whether the e-mail exists or not. */
+  async forgotPassword(email: string) {
+    const normalized = email.trim().toLowerCase();
+    const user =
+      (await this.userRepo.findOne({ where: { email: normalized } })) ??
+      (await this.userRepo.findOne({ where: { email: email.trim() } }));
+    if (user)
+      await this.codes.issue(user, 'reset_password', { reuseRecent: true });
+    return this.challengeFor(user?.email ?? normalized, 'reset_password');
+  }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await this.db.query(
-      'UPDATE db_dtasc.users SET password = $1 WHERE id = $2',
-      [hashedPassword, record.userId],
+  /** Validates the e-mailed code, sets the new password and signs the user in. */
+  async resetPassword(data: ResetPasswordDto) {
+    const { email } = this.codes.readChallenge(
+      data.challenge,
+      'reset_password',
     );
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) throw new BadRequestException('Código incorreto.');
+    await this.codes.verify(user.id, 'reset_password', data.code);
+    const hashedPassword = await bcrypt.hash(data.password, 12);
     await this.db.query(
-      'UPDATE db_dtasc.password_reset_tokens SET used_at = NOW() WHERE id = $1',
-      [record.id],
+      'UPDATE db_dtasc.users SET password = $1, email_verified = true, password_changed_at = NOW() WHERE id = $2',
+      [hashedPassword, user.id],
     );
+    // A password change logs out every remembered device
+    await this.codes.revokeDevices(user.id);
+    return { ...this.generateToken(user), firstLogin: false };
   }
 
   async getProfile(userId: string) {
@@ -239,19 +343,6 @@ export class AuthService {
       userId,
     ]);
     return { success: true, theme };
-  }
-
-  async updatePlan(userId: string, plan: string) {
-    const normalized = plan.toLowerCase();
-    const valid = ['free', 'basico', 'intermediario', 'pro'];
-    if (!valid.includes(normalized))
-      throw new BadRequestException('Plano inválido');
-    plan = normalized;
-    await this.db.query('UPDATE db_dtasc.users SET plan = $1 WHERE id = $2', [
-      plan,
-      userId,
-    ]);
-    return { success: true, plan };
   }
 
   private generateToken(user: User) {

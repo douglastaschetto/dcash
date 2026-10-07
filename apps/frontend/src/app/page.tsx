@@ -29,30 +29,30 @@ const featureItems = [
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-emerald-50 dark:bg-zinc-950 text-slate-950 dark:text-zinc-100">
+    <div className="min-h-screen bg-primary-soft dark:bg-surface text-fg">
       <header className="mx-auto flex max-w-[1200px] items-center justify-between px-6 py-6 sm:px-10">
         <div>
-          <span className="text-sm font-semibold uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">
+          <span className="text-sm font-semibold text-accent">
             Dtasc
           </span>
-          <div className="mt-1 text-3xl font-extrabold tracking-tight text-emerald-950 dark:text-white">
+          <div className="mt-1 text-2xl font-semibold tracking-tight text-fg">
             Dcash
           </div>
         </div>
-        <nav className="hidden items-center gap-8 text-sm font-medium text-emerald-700 dark:text-emerald-400 md:flex">
-          <a href="#solucoes" className="transition hover:text-emerald-950 dark:hover:text-white">
+        <nav className="hidden items-center gap-8 text-sm font-medium text-accent md:flex">
+          <a href="#solucoes" className="transition hover:text-fg">
             Soluções
           </a>
-          <a href="#vantagens" className="transition hover:text-emerald-950 dark:hover:text-white">
+          <a href="#vantagens" className="transition hover:text-fg">
             Vantagens
           </a>
-          <a href="#sobre" className="transition hover:text-emerald-950 dark:hover:text-white">
+          <a href="#sobre" className="transition hover:text-fg">
             Sobre
           </a>
         </nav>
         <a
           href="/login"
-          className="inline-flex items-center gap-2 rounded-full border border-emerald-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-5 py-2 text-sm font-semibold text-emerald-950 dark:text-white transition hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-zinc-800"
+          className="inline-flex items-center gap-2 rounded-lg border border-primary-border dark:border-border bg-white dark:bg-card px-5 py-2 text-sm font-semibold text-fg transition hover:border-primary hover:bg-primary-soft dark:hover:bg-hover"
         >
           Comece agora
           <ArrowRight className="h-4 w-4" />
@@ -62,14 +62,14 @@ export default function Home() {
       <main className="mx-auto flex max-w-[1200px] flex-col gap-24 px-6 pb-20 sm:px-10">
         <section className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(320px,0.9fr)] lg:items-center">
           <div className="space-y-8">
-            <span className="inline-flex rounded-full bg-emerald-950 px-4 py-1 text-sm font-semibold uppercase tracking-[0.28em] text-white shadow-sm">
+            <span className="inline-flex rounded-md border border-primary-border bg-primary-soft px-3 py-1 text-xs font-medium text-accent">
               Gestão Financeira
             </span>
             <div className="space-y-4">
-              <h1 className="max-w-2xl text-5xl font-black tracking-tight text-emerald-950 dark:text-white sm:text-6xl">
+              <h1 className="max-w-2xl text-3xl font-semibold tracking-tight text-fg sm:text-3xl">
                 Dcash por Dtasc: finanças pessoais com clareza e autonomia.
               </h1>
-              <p className="max-w-xl text-lg leading-8 text-slate-700 dark:text-zinc-300 sm:text-xl">
+              <p className="max-w-xl text-lg leading-8 text-fg-2 sm:text-xl">
                 Transforme seus objetivos em resultados reais com uma plataforma pensada para orçamento, controle de despesas e metas de vida.
               </p>
             </div>
@@ -77,31 +77,31 @@ export default function Home() {
             <div className="flex flex-col gap-4 sm:flex-row">
               <a
                 href="#solucoes"
-                className="inline-flex items-center justify-center rounded-full bg-emerald-950 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-800"
+                className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-on-primary transition hover:bg-primary-hover"
               >
                 Conheça as soluções
                 <ArrowRight className="ml-2 h-4 w-4" />
               </a>
               <a
                 href="#sobre"
-                className="inline-flex items-center justify-center rounded-full border border-emerald-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-6 py-3 text-sm font-semibold text-emerald-950 dark:text-white transition hover:bg-emerald-50 dark:hover:bg-zinc-800"
+                className="inline-flex items-center justify-center rounded-lg border border-primary-border dark:border-border bg-white dark:bg-card px-6 py-3 text-sm font-semibold text-fg transition hover:bg-primary-soft dark:hover:bg-hover"
               >
                 Sobre a holding
               </a>
             </div>
           </div>
 
-          <div className="rounded-[32px] border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-8 shadow-[0_30px_80px_rgba(14,71,74,0.12)]">
-            <div className="flex items-center justify-between rounded-3xl bg-emerald-950 p-6 text-white">
+          <div className="rounded-2xl border border-primary-border dark:border-border bg-card p-8 shadow-[0_30px_80px_rgba(14,71,74,0.12)]">
+            <div className="flex items-center justify-between rounded-3xl hero-card p-6 text-white">
               <div>
-                <p className="text-sm uppercase tracking-[0.24em] text-emerald-200">Fluxo inteligente</p>
+                <p className="text-sm text-emerald-200">Fluxo inteligente</p>
                 <p className="mt-3 text-2xl font-semibold">Controle em tempo real</p>
               </div>
               <div className="flex h-14 w-14 items-center justify-center rounded-3xl bg-emerald-800">
                 <Sparkles className="h-6 w-6" />
               </div>
             </div>
-            <div className="mt-8 space-y-4 text-slate-700 dark:text-zinc-300">
+            <div className="mt-8 space-y-4 text-fg-2">
               <p>
                 Planeje seu próximo mês, organize contas e acompanhe investimentos com relatórios claros e fáceis de usar.
               </p>
@@ -110,13 +110,13 @@ export default function Home() {
               </p>
             </div>
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl bg-emerald-50 dark:bg-zinc-800/60 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">Meta mensal</p>
-                <p className="mt-3 text-2xl font-semibold text-emerald-950 dark:text-white">R$ 3.500</p>
+              <div className="rounded-3xl bg-primary-soft dark:bg-surface-2 p-5">
+                <p className="text-sm text-accent">Meta mensal</p>
+                <p className="mt-3 text-2xl font-semibold text-fg">R$ 3.500</p>
               </div>
-              <div className="rounded-3xl bg-emerald-50 dark:bg-zinc-800/60 p-5">
-                <p className="text-sm uppercase tracking-[0.24em] text-emerald-700 dark:text-emerald-400">Economia projetada</p>
-                <p className="mt-3 text-2xl font-semibold text-emerald-950 dark:text-white">12%</p>
+              <div className="rounded-3xl bg-primary-soft dark:bg-surface-2 p-5">
+                <p className="text-sm text-accent">Economia projetada</p>
+                <p className="mt-3 text-2xl font-semibold text-fg">12%</p>
               </div>
             </div>
           </div>
@@ -124,23 +124,23 @@ export default function Home() {
 
         <section id="solucoes" className="space-y-10">
           <div className="space-y-4">
-            <p className="text-sm uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">Soluções</p>
-            <h2 className="text-4xl font-bold tracking-tight text-emerald-950 dark:text-white sm:text-5xl">
+            <p className="text-sm text-accent">Soluções</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
               Tudo que você precisa para dominar seu dinheiro.
             </h2>
-            <p className="max-w-3xl text-lg leading-8 text-slate-600 dark:text-zinc-400">
+            <p className="max-w-3xl text-lg leading-8 text-fg-2">
               Dcash une previsibilidade, controle e visão estratégica para pessoas que querem cuidar melhor do orçamento, sem complicação.
             </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-3">
             {featureItems.map((item) => (
-              <article key={item.title} className="rounded-3xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-7 shadow-sm">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-950 text-white">
+              <article key={item.title} className="rounded-3xl border border-primary-border dark:border-border bg-card p-7 shadow-sm">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-on-primary">
                   <item.icon className="h-6 w-6" />
                 </div>
-                <h3 className="mt-6 text-xl font-semibold text-emerald-950 dark:text-white">{item.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-zinc-400">{item.description}</p>
+                <h3 className="mt-6 text-xl font-semibold text-fg">{item.title}</h3>
+                <p className="mt-3 text-sm leading-7 text-fg-2">{item.description}</p>
               </article>
             ))}
           </div>
@@ -148,35 +148,35 @@ export default function Home() {
 
         <section id="vantagens" className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
           <div className="space-y-6">
-            <p className="text-sm uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">Benefícios</p>
-            <h2 className="text-4xl font-bold tracking-tight text-emerald-950 dark:text-white sm:text-5xl">
+            <p className="text-sm text-accent">Benefícios</p>
+            <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
               Praticidade para quem quer mais controle e menos surpresas.
             </h2>
-            <p className="max-w-xl text-lg leading-8 text-slate-600 dark:text-zinc-400">
+            <p className="max-w-xl text-lg leading-8 text-fg-2">
               Receba alertas, gerencie pagamentos recorrentes e acompanhe a evolução do seu patrimônio com visões simples e estratégicas.
             </p>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-3xl bg-emerald-50 dark:bg-zinc-900 p-6">
-                <h3 className="font-semibold text-emerald-950 dark:text-white">Dashboard em um clique</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-zinc-400">
+              <div className="rounded-3xl bg-primary-soft dark:bg-card p-6">
+                <h3 className="font-semibold text-fg">Dashboard em um clique</h3>
+                <p className="mt-2 text-sm leading-6 text-fg-2">
                   Tudo em um painel com os números essenciais para a sua rotina financeira.
                 </p>
               </div>
-              <div className="rounded-3xl bg-emerald-50 dark:bg-zinc-900 p-6">
-                <h3 className="font-semibold text-emerald-950 dark:text-white">Metas alinhadas</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-zinc-400">
+              <div className="rounded-3xl bg-primary-soft dark:bg-card p-6">
+                <h3 className="font-semibold text-fg">Metas alinhadas</h3>
+                <p className="mt-2 text-sm leading-6 text-fg-2">
                   Configure objetivos de economia, despesas e sonhos de consumo de forma transparente.
                 </p>
               </div>
             </div>
           </div>
-          <div className="rounded-[32px] bg-emerald-950 p-10 text-white shadow-[0_30px_80px_rgba(15,75,63,0.24)]">
-            <div className="inline-flex rounded-full bg-emerald-800 px-4 py-2 text-sm font-semibold uppercase tracking-[0.3em] text-emerald-200">
+          <div className="rounded-2xl hero-card p-10 text-white">
+            <div className="inline-flex rounded-lg bg-emerald-800 px-4 py-2 text-sm font-semibold text-emerald-200">
               Visão completa
             </div>
             <div className="mt-8 space-y-6">
               <div>
-                <p className="text-4xl font-bold">Organize seu financeiro</p>
+                <p className="text-2xl font-semibold">Organize seu financeiro</p>
                 <p className="mt-4 max-w-lg leading-8 text-emerald-200">
                   Conecte suas despesas, categorias e metas em uma jornada contínua de melhora financeira.
                 </p>
@@ -195,41 +195,41 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="sobre" className="rounded-[32px] border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-10 shadow-sm">
+        <section id="sobre" className="rounded-2xl border border-primary-border dark:border-border bg-card p-10 shadow-sm">
           <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div className="space-y-4">
-              <p className="text-sm uppercase tracking-[0.32em] text-emerald-700 dark:text-emerald-400">Sobre o Dcash</p>
-              <h2 className="text-4xl font-bold tracking-tight text-emerald-950 dark:text-white sm:text-5xl">
+              <p className="text-sm text-accent">Sobre o Dcash</p>
+              <h2 className="text-2xl font-semibold tracking-tight text-fg sm:text-3xl">
                 A solução financeira da holding Dtasc para quem busca controle e crescimento.
               </h2>
-              <p className="max-w-xl text-lg leading-8 text-slate-600 dark:text-zinc-400">
+              <p className="max-w-xl text-lg leading-8 text-fg-2">
                 Dcash foi desenvolvido para apoiar pessoas e famílias na gestão diária do orçamento, com foco em simplicidade, automação e resultados visíveis.
               </p>
             </div>
-            <div className="space-y-5 rounded-3xl bg-emerald-50 dark:bg-zinc-800/60 p-8">
+            <div className="space-y-5 rounded-3xl bg-primary-soft dark:bg-surface-2 p-8">
               <div className="space-y-2">
-                <p className="text-sm uppercase tracking-[0.28em] text-emerald-700 dark:text-emerald-400">Confiança</p>
-                <p className="text-xl font-semibold text-emerald-950 dark:text-white">Uma plataforma da Dtasc com mentalidade de inovação e solidez.</p>
+                <p className="text-sm text-accent">Confiança</p>
+                <p className="text-xl font-semibold text-fg">Uma plataforma da Dtasc com mentalidade de inovação e solidez.</p>
               </div>
-              <div className="grid gap-4 text-emerald-700 dark:text-emerald-400 sm:grid-cols-2">
-                <div className="rounded-3xl bg-white dark:bg-zinc-900 p-5 shadow-sm">
-                  <p className="text-sm uppercase tracking-[0.24em] text-emerald-500">Transparência</p>
-                  <p className="mt-3 font-semibold text-emerald-950 dark:text-white">Dados claros e decisões melhores.</p>
+              <div className="grid gap-4 text-accent sm:grid-cols-2">
+                <div className="rounded-3xl bg-card p-5 shadow-sm">
+                  <p className="text-sm text-accent">Transparência</p>
+                  <p className="mt-3 font-semibold text-fg">Dados claros e decisões melhores.</p>
                 </div>
-                <div className="rounded-3xl bg-white dark:bg-zinc-900 p-5 shadow-sm">
-                  <p className="text-sm uppercase tracking-[0.24em] text-emerald-500">Praticidade</p>
-                  <p className="mt-3 font-semibold text-emerald-950 dark:text-white">Controle financeiro sem papelada nem dor de cabeça.</p>
+                <div className="rounded-3xl bg-card p-5 shadow-sm">
+                  <p className="text-sm text-accent">Praticidade</p>
+                  <p className="mt-3 font-semibold text-fg">Controle financeiro sem papelada nem dor de cabeça.</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section id="contato" className="rounded-[32px] bg-emerald-950 p-10 text-white shadow-[0_30px_80px_rgba(15,75,63,0.24)]">
+        <section id="contato" className="rounded-2xl hero-card p-10 text-white">
           <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
-              <p className="text-sm uppercase tracking-[0.32em] text-emerald-200">Pronto para começar?</p>
-              <h2 className="mt-4 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+              <p className="text-sm text-emerald-200">Pronto para começar?</p>
+              <h2 className="mt-4 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Traga mais segurança e clareza para suas finanças.
               </h2>
             </div>
@@ -239,7 +239,7 @@ export default function Home() {
               </p>
               <a
                 href="mailto:contato@dtasc.com.br"
-                className="inline-flex w-full items-center justify-center rounded-full bg-white px-6 py-3 text-center text-sm font-semibold text-emerald-950 transition hover:bg-emerald-100"
+                className="inline-flex w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-center text-sm font-semibold text-fg transition hover:bg-primary-soft"
               >
                 Fale conosco
               </a>
@@ -248,8 +248,8 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-emerald-200 dark:border-zinc-800 bg-emerald-50 dark:bg-zinc-950 py-8">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-6 text-sm text-emerald-700 dark:text-emerald-400 sm:flex-row sm:items-center sm:justify-between sm:px-10">
+      <footer className="border-t border-primary-border dark:border-border bg-primary-soft dark:bg-surface py-8">
+        <div className="mx-auto flex max-w-[1200px] flex-col gap-3 px-6 text-sm text-accent sm:flex-row sm:items-center sm:justify-between sm:px-10">
           <p>© {new Date().getFullYear()} Dtasc. Todos os direitos reservados.</p>
           <p>Desenvolvido para Dcash, solução de gestão financeira pessoal.</p>
         </div>

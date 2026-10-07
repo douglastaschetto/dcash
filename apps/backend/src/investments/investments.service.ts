@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
+import { BadRequestException as BadReq } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/database.service';
 import { PlanService } from '../plan/plan.service';
@@ -30,6 +31,14 @@ export class InvestmentsService {
 
   /* ── Market proxy ──────────────────────────────────────────── */
   private async market<T = any>(path: string): Promise<T> {
+    // Tickers are interpolated into the URL path: allow only plain symbols (ITSA4, MXRF11, PETR4.SA)
+    const ticker = path.split('/')[2];
+    if (
+      path.startsWith('/stock/') &&
+      !/^[A-Za-z0-9.^-]{1,15}$/.test(ticker ?? '')
+    ) {
+      throw new BadReq('Ticker inválido.');
+    }
     const res = await fetch(`${MARKET_URL}${path}`);
     if (!res.ok) throw new Error(`Market service: ${res.status}`);
     return res.json() as T;

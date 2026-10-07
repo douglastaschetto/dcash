@@ -1,4 +1,13 @@
-import { Controller, Post, Get, Patch, Body, Request, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Body,
+  Request,
+  UseGuards,
+} from '@nestjs/common';
 import { FamilyService } from './family.service';
 import { JoinFamilyDto } from './dto/join-family.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -15,6 +24,7 @@ export class FamilyController {
 
   @UseGuards(JwtAuthGuard)
   @Post('join')
+  @Throttle({ default: { limit: 5, ttl: 10 * 60_000 } })
   async joinGroup(@Request() req: any, @Body() body: JoinFamilyDto) {
     return this.familyService.joinGroup(req.user.id, body.inviteCode);
   }

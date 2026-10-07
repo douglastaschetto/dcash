@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Check, Star, ChevronRight, Sparkles } from 'lucide-react';
+import { Check, Star, ChevronRight, Sparkles } from '@/components/ui/icons';
 
-const muted = 'color-mix(in srgb, var(--foreground) 50%, transparent)';
+const muted = 'var(--text-muted)';
 
 const PLANS = [
   {
@@ -64,19 +64,19 @@ export default function PlansPage() {
       className="min-h-screen relative overflow-hidden"
       style={{ background: 'var(--background)', color: 'var(--foreground)' }}
     >
-      <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-emerald-500/8 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] bg-primary-soft blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-primary-soft blur-[120px] rounded-full pointer-events-none" />
 
       <div className="relative z-10 min-h-screen overflow-y-auto">
         <div className="max-w-4xl mx-auto px-6 py-16">
           <div className="flex flex-col items-center mb-8 text-center">
             <div className="flex items-center gap-2 mb-1">
-              <Sparkles size={12} className="text-emerald-500 animate-pulse" />
-              <span className="text-[10px] font-black uppercase tracking-[0.5em] text-emerald-500">
+              <Sparkles size={12} className="text-accent animate-pulse" />
+              <span className="text-[11px] font-semibold text-accent">
                 Primeiro acesso
               </span>
             </div>
-            <h1 className="text-4xl font-black mb-3">Escolha seu plano</h1>
+            <h1 className="text-2xl font-semibold mb-3">Escolha seu plano</h1>
             <p className="text-base" style={{ color: muted }}>
               Selecione o plano ideal para seu momento. Pode mudar depois.
             </p>
@@ -86,10 +86,10 @@ export default function PlansPage() {
           <div className="flex items-center justify-center gap-3 mb-10">
             <button
               onClick={() => setBilling('monthly')}
-              className="rounded-full px-4 py-2 text-xs font-bold transition"
+              className="rounded-lg px-4 py-2 text-xs font-semibold transition"
               style={{
-                background: billing === 'monthly' ? '#10b981' : 'var(--surface-secondary)',
-                color: billing === 'monthly' ? '#fff' : 'var(--foreground)',
+                background: billing === 'monthly' ? 'var(--primary)' : 'var(--surface-secondary)',
+                color: billing === 'monthly' ? 'var(--on-primary)' : 'var(--foreground)',
                 border: '1px solid var(--border)',
               }}
             >
@@ -97,17 +97,17 @@ export default function PlansPage() {
             </button>
             <button
               onClick={() => setBilling('yearly')}
-              className="rounded-full px-4 py-2 text-xs font-bold transition flex items-center gap-2"
+              className="rounded-lg px-4 py-2 text-xs font-semibold transition flex items-center gap-2"
               style={{
-                background: billing === 'yearly' ? '#10b981' : 'var(--surface-secondary)',
-                color: billing === 'yearly' ? '#fff' : 'var(--foreground)',
+                background: billing === 'yearly' ? 'var(--primary)' : 'var(--surface-secondary)',
+                color: billing === 'yearly' ? 'var(--on-primary)' : 'var(--foreground)',
                 border: '1px solid var(--border)',
               }}
             >
               Anual
               <span
-                className="rounded-full px-2 py-0.5 text-[10px] font-black"
-                style={{ background: billing === 'yearly' ? 'rgba(255,255,255,0.25)' : '#10b98122', color: billing === 'yearly' ? '#fff' : '#10b981' }}
+                className="rounded-full px-2 py-0.5 text-[11px] font-semibold"
+                style={{ background: billing === 'yearly' ? 'rgb(0 0 0 / 0.12)' : 'var(--primary-soft)', color: billing === 'yearly' ? 'var(--on-primary)' : 'var(--primary-text)' }}
               >
                 -20%
               </span>
@@ -121,40 +121,40 @@ export default function PlansPage() {
                 <button
                   key={plan.key}
                   onClick={() => handleSelectPlan(plan.key)}
-                  className="relative rounded-[1.5rem] p-6 text-left transition hover:shadow-2xl group flex flex-col"
+                  className="relative rounded-2xl p-6 text-left transition hover:shadow-2xl group flex flex-col"
                   style={{
-                    background: 'var(--surface)',
-                    border: `2px solid ${plan.popular ? '#10b981' : 'var(--border)'}`,
+                    background: 'var(--card)',
+                    border: `2px solid ${plan.popular ? 'var(--primary)' : 'var(--border)'}`,
                   }}
                 >
                   {plan.popular && (
-                    <div className="absolute -top-3 left-6 flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-black uppercase tracking-wide px-3 py-1 rounded-full">
+                    <div className="absolute -top-3 left-6 flex items-center gap-1.5 bg-primary text-on-primary text-xs font-semibold tracking-wide px-3 py-1 rounded-lg">
                       <Star size={10} fill="white" /> Mais popular
                     </div>
                   )}
 
                   <div className="flex items-start justify-between mb-5">
                     <div>
-                      <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: muted }}>
+                      <p className="text-xs font-semibold mb-2" style={{ color: muted }}>
                         {plan.title}
                       </p>
                       <div className="flex items-end gap-1">
-                        <span className="text-3xl font-black">{price}</span>
+                        <span className="text-2xl font-semibold">{price}</span>
                         {period && <span className="text-sm mb-1" style={{ color: muted }}>{period}</span>}
                       </div>
                     </div>
                     <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center transition group-hover:bg-emerald-500 shrink-0"
-                      style={{ background: '#10b98115' }}
+                      className="w-10 h-10 rounded-xl flex items-center justify-center transition group-hover:bg-primary shrink-0"
+                      style={{ background: 'var(--primary-soft)' }}
                     >
-                      <ChevronRight size={18} className="text-emerald-500 transition group-hover:text-white" />
+                      <ChevronRight size={18} className="text-accent transition group-hover:text-white" />
                     </div>
                   </div>
 
                   <ul className="space-y-2">
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm" style={{ color: muted }}>
-                        <Check size={14} className="text-emerald-500 shrink-0" />
+                        <Check size={14} className="text-accent shrink-0" />
                         {f}
                       </li>
                     ))}
@@ -169,7 +169,7 @@ export default function PlansPage() {
             <button
               onClick={() => handleSelectPlan(BASICO.key)}
               className="font-semibold underline transition hover:opacity-70"
-              style={{ color: '#10b981' }}
+              style={{ color: 'var(--primary-text)' }}
             >
               {BASICO.title} — {priceFor(BASICO.monthly).price}/mês
             </button>
@@ -182,10 +182,10 @@ export default function PlansPage() {
       </div>
 
       <div
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.5em] pointer-events-none z-10"
+        className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-3 text-[11px] font-semibold pointer-events-none z-10"
         style={{ color: muted }}
       >
-        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
         DCASH · Finanças Familiares
       </div>
     </div>

@@ -5,8 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   Loader2, Sun, Moon, Monitor, Save, CalendarDays,
   Crown, Zap, Star, MessageCircle, Camera,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 import { AppLayout } from '@/components/app-layout';
+import { applyTheme, type ThemeOption } from '@/lib/theme';
 import { FamilyGroupCard } from './components/FamilyGroupCard';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
@@ -21,7 +22,6 @@ function getAuthOnlyHeaders(): HeadersInit {
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 }
 
-type ThemeOption = 'light' | 'dark' | 'system';
 
 type FamilyGroup = {
   id: string;
@@ -73,11 +73,11 @@ const PLANS: PlanMeta[] = [
     label: 'Gratuito',
     price: 'R$ 0/mês',
     icon: Star,
-    color: 'text-slate-500 dark:text-zinc-400',
-    activeBg: 'bg-slate-50',
-    activeBorder: 'border-slate-400',
-    badgeBg: 'bg-slate-100 dark:bg-zinc-800',
-    badgeText: 'text-slate-600 dark:text-zinc-300',
+    color: 'text-fg-muted dark:text-fg-2',
+    activeBg: 'bg-surface-2',
+    activeBorder: 'border-border-hover',
+    badgeBg: 'bg-surface-2',
+    badgeText: 'text-fg-2',
     perks: ['Transações básicas', 'Relatórios mensais', '3 categorias', '1 cartão'],
   },
   {
@@ -85,11 +85,11 @@ const PLANS: PlanMeta[] = [
     label: 'Básico',
     price: 'R$ 9,90/mês',
     icon: Zap,
-    color: 'text-blue-500',
-    activeBg: 'bg-blue-50',
-    activeBorder: 'border-blue-400',
-    badgeBg: 'bg-blue-100 dark:bg-blue-900/40',
-    badgeText: 'text-blue-700 dark:text-blue-400',
+    color: 'text-info',
+    activeBg: 'bg-info-soft',
+    activeBorder: 'border-info',
+    badgeBg: 'bg-info-soft',
+    badgeText: 'text-info',
     perks: ['Tudo do Gratuito', 'Categorias ilimitadas', 'Contas fixas', 'Exportar relatórios'],
   },
   {
@@ -97,11 +97,11 @@ const PLANS: PlanMeta[] = [
     label: 'Intermediário',
     price: 'R$ 19,90/mês',
     icon: Crown,
-    color: 'text-emerald-600',
-    activeBg: 'bg-emerald-50',
-    activeBorder: 'border-emerald-500',
-    badgeBg: 'bg-emerald-100 dark:bg-emerald-900/40',
-    badgeText: 'text-emerald-700 dark:text-emerald-400',
+    color: 'text-accent',
+    activeBg: 'bg-primary-soft',
+    activeBorder: 'border-primary',
+    badgeBg: 'bg-primary-soft',
+    badgeText: 'text-accent',
     perks: ['Tudo do Básico', 'Grupo familiar', 'Metas e sonhos', 'Cartões ilimitados'],
   },
   {
@@ -109,11 +109,11 @@ const PLANS: PlanMeta[] = [
     label: 'Pro',
     price: 'R$ 34,90/mês',
     icon: Crown,
-    color: 'text-amber-500',
-    activeBg: 'bg-amber-50',
-    activeBorder: 'border-amber-400',
-    badgeBg: 'bg-amber-100 dark:bg-amber-900/40',
-    badgeText: 'text-amber-700 dark:text-amber-400',
+    color: 'text-warning',
+    activeBg: 'bg-warning-soft',
+    activeBorder: 'border-warning',
+    badgeBg: 'bg-warning-soft',
+    badgeText: 'text-warning',
     perks: ['Tudo do Intermediário', 'Google Agenda', 'Alertas WhatsApp', 'Suporte prioritário'],
   },
 ];
@@ -123,21 +123,6 @@ const THEMES: { value: ThemeOption; label: string; icon: React.ElementType; desc
   { value: 'dark',   label: 'Escuro',  icon: Moon,    desc: 'Sempre tema escuro' },
   { value: 'system', label: 'Sistema', icon: Monitor, desc: 'Segue o dispositivo' },
 ];
-
-function applyTheme(theme: ThemeOption) {
-  if (typeof document === 'undefined') return;
-  const root = document.documentElement;
-  if (theme === 'dark') {
-    root.setAttribute('data-theme', 'dark');
-  } else if (theme === 'light') {
-    root.removeAttribute('data-theme');
-  } else {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (prefersDark) root.setAttribute('data-theme', 'dark');
-    else root.removeAttribute('data-theme');
-  }
-  localStorage.setItem('dcash:theme', theme);
-}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -365,7 +350,7 @@ export default function ProfilePage() {
     return (
       <AppLayout title="Perfil">
         <div className="flex items-center justify-center py-32">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-accent" />
         </div>
       </AppLayout>
     );
@@ -374,13 +359,13 @@ export default function ProfilePage() {
   return (
     <AppLayout title="Perfil" subtitle="Gerencie seus dados e preferências">
       {loadError && (
-        <div className="mb-4 rounded-xl border border-red-200 dark:border-red-800/40 bg-red-50 dark:bg-red-950/40 px-4 py-3 flex items-center justify-between gap-3">
-          <p className="text-sm font-medium text-red-700 dark:text-red-400">
+        <div className="mb-4 rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm font-medium text-danger">
             Não foi possível carregar seus dados de perfil. Tente novamente em instantes.
           </p>
           <button
             onClick={loadProfile}
-            className="shrink-0 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition"
+            className="shrink-0 rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition"
           >
             Tentar novamente
           </button>
@@ -393,11 +378,11 @@ export default function ProfilePage() {
 
           {/* SEÇÃO: Conta */}
           <section>
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Conta</p>
+            <p className="text-[11px] font-semibold text-fg-muted mb-2 px-1">Conta</p>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
               {/* Dados Pessoais */}
-              <div data-tour="profile-personal-data" className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm">
+              <div data-tour="profile-personal-data" className="rounded-2xl border border-primary-border dark:border-border bg-card p-4 shadow-sm">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="relative shrink-0 group">
                     <button
@@ -409,18 +394,18 @@ export default function ProfilePage() {
                       {avatar ? (
                         <img src={avatar} alt={profile?.name ?? ''} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-700 text-white text-base font-bold">
+                        <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-700 text-white text-base font-semibold">
                           {initial}
                         </div>
                       )}
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute inset-0 flex items-center justify-center bg-overlay opacity-0 group-hover:opacity-100 transition-opacity">
                         {uploadingAvatar
                           ? <Loader2 className="h-4 w-4 text-white animate-spin" />
                           : <Camera className="h-4 w-4 text-white" />}
                       </div>
                     </button>
                     {profile?.isAdmin && (
-                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 shadow-md pointer-events-none" title="Master">
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-warning shadow-md pointer-events-none" title="Master">
                         <Crown className="h-3 w-3 text-white" />
                       </span>
                     )}
@@ -428,49 +413,49 @@ export default function ProfilePage() {
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-sm font-bold text-emerald-950 dark:text-white truncate">{profile?.name}</h2>
+                      <h2 className="text-sm font-semibold text-fg truncate">{profile?.name}</h2>
                       {profile?.isAdmin && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-900/40 px-2 py-0.5 text-[10px] font-bold text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700 shrink-0">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-warning-soft px-2 py-0.5 text-[11px] font-semibold text-warning border border-warning/30 shrink-0">
                           <Crown className="h-3 w-3" /> ADMIN
                         </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-500 dark:text-zinc-500 truncate">{profile?.email}</p>
+                    <p className="text-xs text-fg-muted truncate">{profile?.email}</p>
                   </div>
                 </div>
 
                 <div className="space-y-2.5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">Nome</label>
+                    <label className="block text-xs font-semibold text-fg-2 mb-1">Nome</label>
                     <input
                       value={name}
                       onChange={e => setName(e.target.value)}
-                      className="w-full rounded-lg bg-emerald-50 dark:bg-zinc-800 border border-emerald-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 transition"
+                      className="w-full rounded-lg bg-primary-soft dark:bg-surface-2 border border-primary-border dark:border-border px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:outline-none focus:border-primary transition"
                       placeholder="Seu nome"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">E-mail</label>
+                    <label className="block text-xs font-semibold text-fg-2 mb-1">E-mail</label>
                     <input
                       value={profile?.email ?? ''}
                       readOnly
-                      className="w-full rounded-lg bg-slate-100 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-500 dark:text-zinc-500 cursor-not-allowed"
+                      className="w-full rounded-lg bg-surface-2 border border-border px-3 py-2 text-sm text-fg-muted cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-zinc-300 mb-1">WhatsApp / Telefone</label>
+                    <label className="block text-xs font-semibold text-fg-2 mb-1">WhatsApp / Telefone</label>
                     <input
                       value={phone}
                       onChange={e => setPhone(e.target.value)}
-                      className="w-full rounded-lg bg-emerald-50 dark:bg-zinc-800 border border-emerald-200 dark:border-zinc-700 px-3 py-2 text-sm text-slate-900 dark:text-zinc-100 placeholder:text-slate-400 dark:placeholder:text-zinc-500 focus:outline-none focus:border-emerald-500 transition"
+                      className="w-full rounded-lg bg-primary-soft dark:bg-surface-2 border border-primary-border dark:border-border px-3 py-2 text-sm text-fg placeholder:text-fg-muted focus:outline-none focus:border-primary transition"
                       placeholder="+55 11 99999-9999"
                     />
                   </div>
 
                   {profileMsg && (
-                    <p className={`text-xs font-medium ${profileMsg.includes('sucesso') ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <p className={`text-xs font-medium ${profileMsg.includes('sucesso') ? 'text-accent' : 'text-danger'}`}>
                       {profileMsg}
                     </p>
                   )}
@@ -478,7 +463,7 @@ export default function ProfilePage() {
                   <button
                     onClick={saveProfile}
                     disabled={saving}
-                    className="flex items-center gap-2 rounded-lg bg-emerald-950 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 transition"
+                    className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-50 transition"
                   >
                     {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     Salvar alterações
@@ -494,29 +479,29 @@ export default function ProfilePage() {
                   const hasPhone = !!phone.trim();
 
                   const waFlag = !planAllows
-                    ? { text: 'Só Pro', cls: 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' }
+                    ? { text: 'Só Pro', cls: 'bg-warning-soft text-warning' }
                     : whatsappConsent
-                      ? { text: 'Ativo', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' }
-                      : { text: 'Inativo', cls: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500' };
+                      ? { text: 'Ativo', cls: 'bg-primary-soft text-accent' }
+                      : { text: 'Inativo', cls: 'bg-surface-2 text-fg-muted' };
 
                   const gFlag = googleConnected
-                    ? { text: 'Conectado', cls: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' }
-                    : { text: 'Não conectado', cls: 'bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-500' };
+                    ? { text: 'Conectado', cls: 'bg-primary-soft text-accent' }
+                    : { text: 'Não conectado', cls: 'bg-surface-2 text-fg-muted' };
 
                   return (
-                    <div className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm divide-y divide-slate-100 dark:divide-zinc-800 h-full">
+                    <div className="rounded-2xl border border-primary-border dark:border-border bg-card shadow-sm divide-y divide-border h-full">
 
                       {/* WhatsApp row */}
                       <div className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${whatsappConsent && planAllows ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-slate-100 dark:bg-zinc-800'}`}>
-                            <MessageCircle className={`h-4 w-4 ${whatsappConsent && planAllows ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${whatsappConsent && planAllows ? 'bg-primary-soft' : 'bg-surface-2'}`}>
+                            <MessageCircle className={`h-4 w-4 ${whatsappConsent && planAllows ? 'text-accent' : 'text-fg-muted'}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-emerald-950 dark:text-white">WhatsApp</p>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-500 truncate">Alertas de contas e resumos financeiros</p>
+                            <p className="text-sm font-semibold text-fg">WhatsApp</p>
+                            <p className="text-[11px] text-fg-muted truncate">Alertas de contas e resumos financeiros</p>
                           </div>
-                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${waFlag.cls}`}>
+                          <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${waFlag.cls}`}>
                             {waFlag.text}
                           </span>
                         </div>
@@ -524,14 +509,14 @@ export default function ProfilePage() {
                         {!planAllows ? (
                           <button
                             onClick={() => router.push('/plans')}
-                            className="mt-2 ml-12 text-[11px] font-bold text-amber-700 underline hover:text-amber-900 transition"
+                            className="mt-2 ml-12 text-[11px] font-semibold text-warning underline hover:text-warning transition"
                           >
                             Ver planos ↓
                           </button>
                         ) : (
                           <div className="mt-3 ml-12 space-y-2">
                             {!hasPhone && (
-                              <p className="text-[11px] text-red-600 font-medium">Cadastre seu número acima para ativar.</p>
+                              <p className="text-[11px] text-danger font-medium">Cadastre seu número acima para ativar.</p>
                             )}
                             <div className="flex items-center gap-3">
                               <button
@@ -540,20 +525,20 @@ export default function ProfilePage() {
                                 disabled={savingConsent || !hasPhone}
                                 onClick={() => toggleConsent(!whatsappConsent)}
                                 className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none disabled:opacity-40
-                                  ${whatsappConsent ? 'bg-emerald-500' : 'bg-slate-300'}
-                                  ${savingConsent ? 'opacity-60' : ''}`}
+ ${whatsappConsent ? 'bg-primary' : 'bg-track'}
+ ${savingConsent ? 'opacity-60' : ''}`}
                               >
-                                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
-                                  ${whatsappConsent ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-card shadow transition-transform
+ ${whatsappConsent ? 'translate-x-4' : 'translate-x-0.5'}`} />
                               </button>
-                              <span className="text-xs text-slate-600 dark:text-zinc-400">Receber alertas</span>
+                              <span className="text-xs text-fg-2">Receber alertas</span>
 
                               {whatsappConsent && hasPhone && (
                                 <select
                                   value={whatsappAlertHour}
                                   onChange={e => saveAlertHour(Number(e.target.value))}
                                   disabled={savingAlertHour}
-                                  className="ml-auto rounded-lg bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-2 py-1 text-xs font-semibold text-slate-700 dark:text-zinc-300 focus:outline-none focus:border-emerald-500 transition disabled:opacity-60"
+                                  className="ml-auto rounded-lg bg-surface-2 border border-border px-2 py-1 text-xs font-semibold text-fg-2 focus:outline-none focus:border-primary transition disabled:opacity-60"
                                 >
                                   {ALERT_HOURS.map(h => (
                                     <option key={h} value={h}>{String(h).padStart(2, '0')}:00</option>
@@ -568,14 +553,14 @@ export default function ProfilePage() {
                       {/* Google Agenda row */}
                       <div className="p-4">
                         <div className="flex items-center gap-3">
-                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${googleConnected ? 'bg-emerald-100 dark:bg-emerald-900/40' : 'bg-slate-100 dark:bg-zinc-800'}`}>
-                            <CalendarDays className={`h-4 w-4 ${googleConnected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-zinc-500'}`} />
+                          <div className={`flex h-9 w-9 items-center justify-center rounded-full shrink-0 ${googleConnected ? 'bg-primary-soft' : 'bg-surface-2'}`}>
+                            <CalendarDays className={`h-4 w-4 ${googleConnected ? 'text-accent' : 'text-fg-muted'}`} />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-emerald-950 dark:text-white">Google Agenda</p>
-                            <p className="text-[11px] text-slate-500 dark:text-zinc-500 truncate">Sincroniza vencimentos e lembretes</p>
+                            <p className="text-sm font-semibold text-fg">Google Agenda</p>
+                            <p className="text-[11px] text-fg-muted truncate">Sincroniza vencimentos e lembretes</p>
                           </div>
-                          <span className={`shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${gFlag.cls}`}>
+                          <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full ${gFlag.cls}`}>
                             {gFlag.text}
                           </span>
                         </div>
@@ -588,19 +573,19 @@ export default function ProfilePage() {
                               disabled={savingGoogleSync}
                               onClick={() => toggleGoogleSync(!googleCalendarSync)}
                               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus:outline-none
-                                ${googleCalendarSync ? 'bg-emerald-500' : 'bg-slate-300'}
-                                ${savingGoogleSync ? 'opacity-60' : ''}`}
+ ${googleCalendarSync ? 'bg-primary' : 'bg-track'}
+ ${savingGoogleSync ? 'opacity-60' : ''}`}
                             >
-                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform
-                                ${googleCalendarSync ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                              <span className={`inline-block h-3.5 w-3.5 rounded-full bg-card shadow transition-transform
+ ${googleCalendarSync ? 'translate-x-4' : 'translate-x-0.5'}`} />
                             </button>
-                            <span className="text-xs text-slate-600 dark:text-zinc-400">Sincronizar eventos automaticamente</span>
+                            <span className="text-xs text-fg-2">Sincronizar eventos automaticamente</span>
                           </div>
                         ) : (
                           <button
                             onClick={connectGoogle}
                             disabled={googleLoading}
-                            className="mt-2 ml-12 flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 hover:text-emerald-900 transition disabled:opacity-50"
+                            className="mt-2 ml-12 flex items-center gap-1.5 text-[11px] font-semibold text-accent hover:text-fg transition disabled:opacity-50"
                           >
                             {googleLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <CalendarDays className="h-3 w-3" />}
                             Conectar Agenda
@@ -620,7 +605,7 @@ export default function ProfilePage() {
 
               {/* Assinatura */}
               <div data-tour="profile-subscription">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Assinatura</p>
+                <p className="text-[11px] font-semibold text-fg-muted mb-2 px-1">Assinatura</p>
                 {(() => {
                   const currentKey = (profile?.plan ?? 'free').toLowerCase();
                   const current = PLANS.find(p => p.key === currentKey) ?? PLANS[0];
@@ -628,26 +613,26 @@ export default function ProfilePage() {
                   const isHighest = currentKey === 'pro';
 
                   return (
-                    <div className="rounded-2xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm h-full flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm h-full flex flex-col sm:flex-row sm:items-center gap-3">
                       <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className={`flex h-11 w-11 items-center justify-center rounded-full ${current.activeBg} dark:bg-zinc-800 shrink-0`}>
+                        <div className={`flex h-11 w-11 items-center justify-center rounded-full ${current.activeBg} dark:bg-surface-2 shrink-0`}>
                           <CurrentIcon className={`h-5 w-5 ${current.color}`} />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-[10px] text-slate-500 dark:text-zinc-500 font-medium">Seu plano</p>
+                          <p className="text-[11px] text-fg-muted font-medium">Seu plano</p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-bold text-emerald-950 dark:text-white">{current.label}</p>
-                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${current.badgeBg} ${current.badgeText}`}>
+                            <p className="text-sm font-semibold text-fg">{current.label}</p>
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${current.badgeBg} ${current.badgeText}`}>
                               {current.price}
                             </span>
                           </div>
                           {profile?.planExpiresAt && (
-                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1">
+                            <p className="text-[11px] text-fg-muted mt-1">
                               {profile.planStatus === 'canceling'
                                 ? `Cancela em ${new Date(profile.planExpiresAt).toLocaleDateString('pt-BR')}`
                                 : `Renova em ${new Date(profile.planExpiresAt).toLocaleDateString('pt-BR')}`}
                               {profile.planStatus === 'past_due' && (
-                                <span className="text-amber-600 dark:text-amber-400 font-semibold"> · Pagamento pendente</span>
+                                <span className="text-warning font-semibold"> · Pagamento pendente</span>
                               )}
                             </p>
                           )}
@@ -658,7 +643,7 @@ export default function ProfilePage() {
                         {!isHighest && (
                           <button
                             onClick={() => router.push('/plans')}
-                            className="flex items-center justify-center gap-1.5 rounded-xl bg-emerald-950 px-4 py-2.5 text-xs font-semibold text-white hover:bg-emerald-800 transition"
+                            className="flex items-center justify-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-on-primary hover:bg-primary-hover transition"
                           >
                             <Zap className="h-3.5 w-3.5" />
                             Upgrade de Plano
@@ -668,7 +653,7 @@ export default function ProfilePage() {
                           <button
                             onClick={handleCancelSubscription}
                             disabled={cancelingSubscription}
-                            className="flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 dark:border-zinc-700 px-4 py-2.5 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:border-red-300 hover:text-red-500 disabled:opacity-50 transition"
+                            className="flex items-center justify-center gap-1.5 rounded-xl border border-border px-4 py-2.5 text-xs font-semibold text-fg-muted dark:text-fg-2 hover:border-danger/30 hover:text-danger disabled:opacity-50 transition"
                           >
                             {cancelingSubscription ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                             Cancelar assinatura
@@ -682,8 +667,8 @@ export default function ProfilePage() {
 
               {/* Aparência */}
               <div>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Aparência</p>
-                <div className="rounded-2xl border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-4 shadow-sm h-full flex flex-col justify-center">
+                <p className="text-[11px] font-semibold text-fg-muted mb-2 px-1">Aparência</p>
+                <div className="rounded-2xl border border-primary-border dark:border-border bg-card p-4 shadow-sm h-full flex flex-col justify-center">
                   <div className="grid grid-cols-3 gap-2">
                     {THEMES.map(({ value, label, icon: Icon }) => {
                       const active = theme === value;
@@ -692,21 +677,21 @@ export default function ProfilePage() {
                           key={value}
                           onClick={() => saveTheme(value)}
                           className={`relative flex flex-col items-center gap-1.5 rounded-xl border-2 py-3 text-center transition
-                            ${active
-                              ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 shadow-sm'
-                              : 'border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 hover:border-emerald-200 hover:bg-emerald-50/50 dark:hover:bg-zinc-800'}`}
+ ${active
+                              ? 'border-primary bg-primary-soft shadow-sm'
+                              : 'border-border bg-card hover:border-primary-border hover:bg-primary-soft dark:hover:bg-hover'}`}
                         >
-                          <Icon className={`h-5 w-5 ${active ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-500'}`} />
-                          <p className={`text-[10px] font-bold ${active ? 'text-emerald-950 dark:text-white' : 'text-slate-600 dark:text-zinc-400'}`}>{label}</p>
+                          <Icon className={`h-5 w-5 ${active ? 'text-accent' : 'text-fg-muted'}`} />
+                          <p className={`text-[11px] font-semibold ${active ? 'text-fg' : 'text-fg-2'}`}>{label}</p>
                           {active && (
-                            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            <span className="absolute top-1.5 right-1.5 h-1.5 w-1.5 rounded-full bg-primary" />
                           )}
                         </button>
                       );
                     })}
                   </div>
                   {savingTheme && (
-                    <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-2 flex items-center gap-1">
+                    <p className="text-[11px] text-fg-muted mt-2 flex items-center gap-1">
                       <Loader2 className="h-3 w-3 animate-spin" /> Salvando...
                     </p>
                   )}
@@ -718,7 +703,7 @@ export default function ProfilePage() {
 
         {/* ── Coluna Direita ──────────────────────────────────────────────── */}
         <div className="lg:col-span-1">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-2 px-1">Família</p>
+          <p className="text-[11px] font-semibold text-fg-muted mb-2 px-1">Família</p>
           <FamilyGroupCard />
         </div>
 

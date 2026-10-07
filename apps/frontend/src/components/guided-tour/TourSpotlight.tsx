@@ -31,7 +31,7 @@ export function TourSpotlight({ targetEl }: { targetEl: HTMLElement }) {
         width: rect.width + pad * 2,
         height: rect.height + pad * 2,
         boxShadow: '0 0 0 9999px rgba(15, 23, 42, 0.65)',
-        outline: '3px solid #10b981',
+        outline: '3px solid var(--primary)',
         outlineOffset: '2px',
       }}
     />

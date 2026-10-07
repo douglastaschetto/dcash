@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowRight, ShieldCheck, Zap, Crown,
   Check, Loader2, CreditCard, ArrowLeft,
-} from 'lucide-react';
+} from '@/components/ui/icons';
 
 /** Same 20% discount already advertised on /plans — kept in sync with the backend's YEARLY_DISCOUNT. */
 const YEARLY_DISCOUNT = 0.8;
@@ -32,9 +32,9 @@ const PLANS: Record<string, {
     label: 'Básico',
     price: 9.90,
     icon: Zap,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
-    border: 'border-blue-300',
+    color: 'text-info',
+    bg: 'bg-info-soft',
+    border: 'border-info/30',
     perks: [
       'Tudo do plano Gratuito',
       'Categorias ilimitadas',
@@ -47,9 +47,9 @@ const PLANS: Record<string, {
     label: 'Intermediário',
     price: 19.90,
     icon: Crown,
-    color: 'text-emerald-700',
-    bg: 'bg-emerald-50',
-    border: 'border-emerald-400',
+    color: 'text-accent',
+    bg: 'bg-primary-soft',
+    border: 'border-primary',
     perks: [
       'Tudo do plano Básico',
       'Grupo familiar (até 5 membros)',
@@ -62,9 +62,9 @@ const PLANS: Record<string, {
     label: 'Pro',
     price: 34.90,
     icon: Crown,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50',
-    border: 'border-amber-400',
+    color: 'text-warning',
+    bg: 'bg-warning-soft',
+    border: 'border-warning',
     perks: [
       'Tudo do plano Intermediário',
       'Alertas via WhatsApp',
@@ -83,14 +83,14 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
 
   if (!plan) {
     return (
-      <div className="min-h-screen bg-emerald-50 dark:bg-zinc-950 flex items-center justify-center p-6">
-        <div className="rounded-[32px] border border-emerald-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 p-10 shadow-xl text-center space-y-4 max-w-sm w-full">
-          <ShieldCheck className="mx-auto h-12 w-12 text-slate-300 dark:text-zinc-600" />
-          <h1 className="text-xl font-bold text-emerald-950 dark:text-emerald-400">Plano não encontrado</h1>
-          <p className="text-sm text-slate-500 dark:text-zinc-400">Acesse a página de perfil para escolher um plano.</p>
+      <div className="min-h-screen bg-primary-soft dark:bg-surface flex items-center justify-center p-6">
+        <div className="rounded-2xl border border-primary-border dark:border-border bg-card p-10 shadow-xl text-center space-y-4 max-w-sm w-full">
+          <ShieldCheck className="mx-auto h-12 w-12 text-fg-disabled dark:text-fg-muted" />
+          <h1 className="text-xl font-semibold text-fg dark:text-accent">Plano não encontrado</h1>
+          <p className="text-sm text-fg-muted dark:text-fg-2">Acesse a página de perfil para escolher um plano.</p>
           <button
             onClick={() => router.push('/profile')}
-            className="inline-flex items-center gap-2 rounded-xl bg-emerald-950 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-800 transition"
+            className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-hover transition"
           >
             Ver planos <ArrowRight className="h-4 w-4" />
           </button>
@@ -123,7 +123,7 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
   const priceStr = displayPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-950 to-slate-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
 
         <button
@@ -133,48 +133,48 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
           <ArrowLeft className="h-4 w-4" /> Voltar
         </button>
 
-        <div className="rounded-[32px] bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden">
+        <div className="rounded-2xl bg-card shadow-2xl overflow-hidden">
 
           {/* Plan header */}
-          <div className={`${plan.bg} dark:bg-zinc-800/60 ${plan.border} dark:border-zinc-700 border-b px-8 py-6`}>
+          <div className={`${plan.bg} dark:bg-surface-2 ${plan.border} dark:border-border border-b px-8 py-6`}>
             <div className="flex items-center gap-3 mb-1">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-zinc-900 shadow-sm shrink-0">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-card shadow-sm shrink-0">
                 <PlanIcon className={`h-5 w-5 ${plan.color}`} />
               </div>
               <div>
-                <p className="text-xs text-slate-500 dark:text-zinc-400">Você está assinando</p>
-                <p className={`text-lg font-bold ${plan.color}`}>DCash {plan.label}</p>
+                <p className="text-xs text-fg-muted dark:text-fg-2">Você está assinando</p>
+                <p className={`text-lg font-semibold ${plan.color}`}>DCash {plan.label}</p>
               </div>
             </div>
             <div className="flex items-baseline gap-1 mt-4">
-              <span className="text-4xl font-black text-slate-900 dark:text-zinc-100">{priceStr}</span>
-              <span className="text-slate-400 dark:text-zinc-500 text-sm">{billingCycle === 'yearly' ? '/ano' : '/mês'}</span>
+              <span className="text-2xl font-semibold text-fg">{priceStr}</span>
+              <span className="text-fg-muted text-sm">{billingCycle === 'yearly' ? '/ano' : '/mês'}</span>
             </div>
           </div>
 
           {/* Billing cycle toggle */}
-          <div className="px-8 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-center gap-3">
+          <div className="px-8 py-4 border-b border-border flex items-center justify-center gap-3">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition border ${
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition border ${
                 billingCycle === 'monthly'
-                  ? 'bg-emerald-500 text-white border-emerald-500'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+                  ? 'bg-primary text-on-primary border-primary'
+                  : 'bg-card text-fg-2 border-border'
               }`}
             >
               Mensal
             </button>
             <button
               onClick={() => setBillingCycle('yearly')}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition border flex items-center gap-2 ${
+              className={`rounded-lg px-4 py-2 text-xs font-semibold transition border flex items-center gap-2 ${
                 billingCycle === 'yearly'
-                  ? 'bg-emerald-500 text-white border-emerald-500'
-                  : 'bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700'
+                  ? 'bg-primary text-on-primary border-primary'
+                  : 'bg-card text-fg-2 border-border'
               }`}
             >
               Anual
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                billingCycle === 'yearly' ? 'bg-white/25 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40'
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                billingCycle === 'yearly' ? 'bg-white/25 text-white' : 'bg-primary-soft text-accent'
               }`}>
                 -20%
               </span>
@@ -182,11 +182,11 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
           </div>
 
           {/* Perks */}
-          <div className="px-8 py-5 border-b border-slate-100 dark:border-zinc-800">
-            <p className="text-xs font-semibold text-slate-400 dark:text-zinc-500 uppercase tracking-wide mb-3">Incluído no plano</p>
+          <div className="px-8 py-5 border-b border-border">
+            <p className="text-xs font-semibold text-fg-muted tracking-wide mb-3">Incluído no plano</p>
             <ul className="space-y-2">
               {plan.perks.map(p => (
-                <li key={p} className="flex items-start gap-2.5 text-sm text-slate-700 dark:text-zinc-300">
+                <li key={p} className="flex items-start gap-2.5 text-sm text-fg-2">
                   <Check className={`h-4 w-4 shrink-0 mt-0.5 ${plan.color}`} />
                   {p}
                 </li>
@@ -195,19 +195,19 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
           </div>
 
           {/* Payment method */}
-          <div className="px-8 py-4 bg-slate-50 dark:bg-zinc-800/40 border-b border-slate-100 dark:border-zinc-800">
-            <span className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-zinc-400"><CreditCard className="h-3.5 w-3.5 text-blue-500" /> Cartão de crédito, via Stripe</span>
+          <div className="px-8 py-4 bg-surface-2 border-b border-border">
+            <span className="flex items-center gap-1.5 text-xs text-fg-2"><CreditCard className="h-3.5 w-3.5 text-info" /> Cartão de crédito, via Stripe</span>
           </div>
 
           {/* CTA */}
           <div className="px-8 py-6 space-y-3">
             {error && (
-              <p className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/40 px-4 py-3 text-sm text-red-700 dark:text-red-400">{error}</p>
+              <p className="rounded-xl bg-danger-soft border border-danger/30 px-4 py-3 text-sm text-danger">{error}</p>
             )}
             <button
               onClick={handlePayStripe}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 rounded-xl bg-slate-900 hover:bg-slate-800 py-4 text-sm font-bold text-white disabled:opacity-60 transition shadow-lg"
+              className="w-full flex items-center justify-center gap-3 rounded-xl bg-inverse hover:opacity-90 py-4 text-sm font-semibold text-white disabled:opacity-60 transition shadow-lg"
             >
               {loading ? (
                 <><Loader2 className="h-4 w-4 animate-spin" /> Preparando checkout...</>
@@ -221,7 +221,7 @@ export function PaymentCheckout({ planKey, billing = 'monthly' }: { planKey: str
                 </>
               )}
             </button>
-            <p className="text-center text-xs text-slate-400 dark:text-zinc-500">
+            <p className="text-center text-xs text-fg-muted">
               O plano é ativado automaticamente após confirmação do pagamento.
             </p>
           </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import api from '@/services/api';
-import { Loader2, CheckCircle2 } from 'lucide-react';
+import { Loader2, CheckCircle2 } from '@/components/ui/icons';
 import { cn, parseDateOnly, todayISO } from '@/lib/utils';
 
 export type TransactionMode = 'EXPENSE' | 'INCOME' | 'PIGGY' | 'RESERVE';
@@ -194,13 +194,13 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
   };
 
   /* ── styles ──────────────────────────────────── */
-  const input = 'w-full bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:ring-2 ring-emerald-500/30 text-zinc-900 dark:text-zinc-100 transition';
-  const label = 'block text-[10px] font-black uppercase tracking-widest text-zinc-500 mb-1';
+  const input = 'w-full bg-surface-2 border border-border rounded-xl px-3.5 py-2.5 text-sm font-medium outline-none focus:ring-2 ring-primary/30 text-fg transition';
+  const label = 'block text-[11px] font-semibold text-fg-muted mb-1';
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
@@ -227,11 +227,11 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* Edição — info das parcelas (somente leitura) */}
       {isEditing && initialData?.totalInstallments > 1 && (
-        <div className="flex items-center gap-2 rounded-xl bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 px-4 py-2">
-          <span className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest">
+        <div className="flex items-center gap-2 rounded-xl bg-warning-soft border border-warning/30 px-4 py-2">
+          <span className="text-[11px] font-semibold text-warning">
             Parcela {initialData.installmentNumber}/{initialData.totalInstallments}
           </span>
-          <span className="text-[10px] text-orange-400 ml-auto">Editando apenas esta parcela</span>
+          <span className="text-[11px] text-warning ml-auto">Editando apenas esta parcela</span>
         </div>
       )}
 
@@ -340,9 +340,9 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── INCOME: Recorrência (apenas criação) ───────────────────────── */}
       {mode === 'INCOME' && !isEditing && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
+        <div className="rounded-2xl border border-border p-3 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-black uppercase tracking-widest text-zinc-500">
+            <span className="text-[11px] font-semibold text-fg-muted">
               Receita Recorrente
             </span>
             <button
@@ -350,7 +350,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
               onClick={() => setRecurring(!recurring)}
               className={cn(
                 'relative w-11 h-6 rounded-full transition-colors',
-                recurring ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600',
+                recurring ? 'bg-primary' : 'bg-track',
               )}
             >
               <span className={cn(
@@ -386,8 +386,8 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── EXPENSE: Parcelamento (apenas criação) ─────────────────────── */}
       {mode === 'EXPENSE' && !isEditing && canInstall && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
-          <span className="block text-[11px] font-black uppercase tracking-widest text-zinc-500">
+        <div className="rounded-2xl border border-border p-3 space-y-2">
+          <span className="block text-[11px] font-semibold text-fg-muted">
             Parcelamento
           </span>
           <div className="flex gap-2">
@@ -401,10 +401,10 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
                 type="button"
                 onClick={() => setInstallMode(v as any)}
                 className={cn(
-                  'flex-1 py-1.5 rounded-xl text-[10px] font-black uppercase border transition-all',
+                  'flex-1 py-1.5 rounded-xl text-[11px] font-semibold border transition-all',
                   installMode === v
-                    ? 'bg-emerald-500 text-white border-emerald-500'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-emerald-400',
+                    ? 'bg-primary text-on-primary border-primary'
+                    : 'border-border text-fg-muted hover:border-primary',
                 )}
               >
                 {txt}
@@ -438,8 +438,8 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
               </div>
               {installEnd && (
                 <div>
-                  <span className="block text-[10px] text-zinc-400 uppercase tracking-wide mb-1">Total calculado</span>
-                  <span className="text-3xl font-black text-emerald-500">{calcInstallments()}x</span>
+                  <span className="block text-[11px] text-fg-muted tracking-wide mb-1">Total calculado</span>
+                  <span className="text-2xl font-semibold text-accent">{calcInstallments()}x</span>
                 </div>
               )}
             </div>
@@ -449,8 +449,8 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
 
       {/* ── PIGGY: Destino (apenas criação) ───────────────────────────── */}
       {mode === 'PIGGY' && !isEditing && (
-        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-700 p-3 space-y-2">
-          <span className="block text-[11px] font-black uppercase tracking-widest text-zinc-500">
+        <div className="rounded-2xl border border-border p-3 space-y-2">
+          <span className="block text-[11px] font-semibold text-fg-muted">
             Destino
           </span>
           <div className="flex gap-2">
@@ -460,10 +460,10 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
                 type="button"
                 onClick={() => { setInvestTarget(v as any); setPiggyBankId(''); setDreamId(''); }}
                 className={cn(
-                  'flex-1 py-2 rounded-xl text-[10px] font-black uppercase border transition-all',
+                  'flex-1 py-2 rounded-xl text-[11px] font-semibold border transition-all',
                   investTarget === v
-                    ? 'bg-emerald-500 text-white border-emerald-500'
-                    : 'border-zinc-200 dark:border-zinc-700 text-zinc-500',
+                    ? 'bg-primary text-on-primary border-primary'
+                    : 'border-border text-fg-muted',
                 )}
               >
                 {txt}
@@ -495,7 +495,7 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
                 ))}
               </select>
               {selectedDream && !selectedDream.piggyBankId && (
-                <p className="text-[10px] text-amber-500 mt-1.5">
+                <p className="text-[11px] text-warning mt-1.5">
                   Sonho sem cofrinho vinculado — valor adicionado diretamente ao progresso.
                 </p>
               )}
@@ -505,21 +505,21 @@ export default function TransactionForm({ mode, initialData, onSuccess }: Props)
       )}
 
       {/* Erro */}
-      {error && <p className="text-xs text-red-500 font-semibold">{error}</p>}
+      {error && <p className="text-xs text-danger font-semibold">{error}</p>}
 
       {/* Submit */}
       <button
         type="submit"
         disabled={submitting}
         className={cn(
-          'w-full py-3.5 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-lg flex items-center justify-center',
+          'w-full py-3.5 rounded-2xl text-sm font-semibold transition-all shadow-lg flex items-center justify-center',
           success
-            ? 'bg-emerald-500 text-white'
+            ? 'bg-primary text-on-primary'
             : isEditing
-            ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+            ? 'bg-primary text-on-primary hover:bg-primary-hover'
             : mode === 'EXPENSE'
-            ? 'bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-100'
-            : 'bg-emerald-600 text-white hover:bg-emerald-700',
+            ? 'bg-primary text-on-primary hover:bg-primary-hover'
+            : 'bg-primary text-on-primary hover:bg-primary-hover',
         )}
       >
         {submitting ? (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import api from '@/services/api';
-import { X, PiggyBank, Loader2, Target, Upload, Link, Camera } from 'lucide-react';
+import { X, PiggyBank, Loader2, Target, Upload, Link, Camera } from '@/components/ui/icons';
 import { cn } from '@/lib/utils';
 import { CurrencyInput } from '@/lib/currency-input';
 import { ColorPicker } from '@/lib/color-picker';
@@ -108,8 +108,8 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
   const goal = form.yearlyGoal || form.monthlyGoal;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-[2rem] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-overlay backdrop-blur-sm">
+      <div className="w-full max-w-lg rounded-2xl bg-card dark:bg-surface shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
 
         {/* Header */}
         <div
@@ -121,17 +121,17 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
               <PiggyBank size={20} style={{ color: form.color }} />
             </div>
             <div>
-              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
+              <p className="text-[11px] font-semibold text-fg-muted">
                 {isEdit ? 'Editar Cofrinho' : 'Novo Cofrinho'}
               </p>
-              <h2 className="text-lg font-black uppercase italic tracking-tighter text-zinc-900 dark:text-white leading-none mt-0.5">
+              <h2 className="text-lg font-semibold tracking-tight text-fg leading-none mt-0.5">
                 {isEdit ? bank!.name : 'Definir Meta'}
               </h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
+            className="p-2 rounded-xl bg-surface-2 dark:bg-card hover:bg-hover transition"
           >
             <X size={18} />
           </button>
@@ -142,7 +142,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
 
           {/* Name */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+            <label className="text-[11px] font-semibold text-fg-muted ml-1">
               Nome do Cofrinho *
             </label>
             <input
@@ -150,19 +150,19 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
               value={form.name}
               onChange={(e) => set('name', e.target.value)}
               placeholder="Ex: Viagem Europa, Carro Novo..."
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+              className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
             />
           </div>
 
           {/* Color picker */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">Cor</label>
+            <label className="text-[11px] font-semibold text-fg-muted ml-1">Cor</label>
             <ColorPicker selected={form.color} onSelect={(c) => set('color', c)} />
           </div>
 
           {/* Image */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+            <label className="text-[11px] font-semibold text-fg-muted ml-1">
               Imagem
             </label>
 
@@ -177,7 +177,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
                 <button
                   type="button"
                   onClick={() => set('imageUrl', '')}
-                  className="absolute top-2 right-2 p-1.5 bg-black/50 rounded-lg text-white hover:bg-black/70 transition"
+                  className="absolute top-2 right-2 p-1.5 bg-overlay rounded-lg text-white hover:bg-overlay transition"
                 >
                   <X size={14} />
                 </button>
@@ -185,17 +185,17 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
             )}
 
             {/* Mode tabs */}
-            <div className="flex rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800">
+            <div className="flex rounded-xl overflow-hidden border border-border">
               {(['url', 'upload'] as ImageMode[]).map((mode) => (
                 <button
                   key={mode}
                   type="button"
                   onClick={() => setImageMode(mode)}
                   className={cn(
-                    'flex-1 py-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition',
+                    'flex-1 py-2 flex items-center justify-center gap-2 text-[11px] font-semibold transition',
                     imageMode === mode
-                      ? 'bg-zinc-900 dark:bg-white text-white dark:text-black'
-                      : 'bg-white dark:bg-zinc-900 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300',
+                      ? 'bg-primary text-on-primary'
+                      : 'bg-card text-fg-muted hover:text-fg-2',
                   )}
                 >
                   {mode === 'url' ? <Link size={12} /> : <Upload size={12} />}
@@ -211,7 +211,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
                 value={form.imageUrl}
                 onChange={(e) => set('imageUrl', e.target.value)}
                 placeholder="https://exemplo.com/imagem.jpg"
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:border-primary transition"
               />
             )}
 
@@ -222,25 +222,25 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
                 className={cn(
                   'border-2 border-dashed rounded-xl p-3 flex flex-col items-center gap-1.5 cursor-pointer transition',
                   uploading
-                    ? 'border-zinc-300 dark:border-zinc-700'
-                    : 'border-zinc-200 dark:border-zinc-800 hover:border-emerald-500 dark:hover:border-emerald-500',
+                    ? 'border-border'
+                    : 'border-border hover:border-primary',
                 )}
               >
                 {uploading ? (
                   <>
-                    <Loader2 size={20} className="animate-spin text-emerald-500" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                    <Loader2 size={20} className="animate-spin text-accent" />
+                    <span className="text-[11px] font-semibold text-fg-muted">
                       Enviando...
                     </span>
                   </>
                 ) : (
                   <>
-                    <Camera size={20} className="text-zinc-300 dark:text-zinc-700" />
+                    <Camera size={20} className="text-fg-disabled" />
                     <div className="text-center">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">
+                      <p className="text-[11px] font-semibold text-fg-muted">
                         Clique para selecionar
                       </p>
-                      <p className="text-[9px] text-zinc-400 mt-0.5">PNG, JPG até 2MB</p>
+                      <p className="text-[11px] text-fg-muted mt-0.5">PNG, JPG até 2MB</p>
                     </div>
                   </>
                 )}
@@ -259,39 +259,39 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
           {/* Goals */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+              <label className="text-[11px] font-semibold text-fg-muted ml-1">
                 Meta Mensal
               </label>
               <CurrencyInput
                 value={form.monthlyGoal}
                 onChange={(v) => set('monthlyGoal', v)}
                 placeholder="0,00"
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+              <label className="text-[11px] font-semibold text-fg-muted ml-1">
                 Meta Total
               </label>
               <CurrencyInput
                 value={form.yearlyGoal}
                 onChange={(v) => set('yearlyGoal', v)}
                 placeholder="0,00"
-                className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+                className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
               />
             </div>
           </div>
 
           {/* Target date */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest ml-1 flex items-center gap-1.5">
+            <label className="text-[11px] font-semibold text-fg-muted ml-1 flex items-center gap-1.5">
               <Target size={11} /> Data Alvo
             </label>
             <input
               type="date"
               value={form.targetDate}
               onChange={(e) => set('targetDate', e.target.value)}
-              className="w-full bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-emerald-500 transition"
+              className="w-full bg-surface-2 dark:bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm font-semibold focus:outline-none focus:border-primary transition"
             />
           </div>
 
@@ -302,15 +302,15 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
               style={{ backgroundColor: `${form.color}10`, borderColor: `${form.color}30` }}
             >
               <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Meta definida</p>
-                <p className="text-lg font-black" style={{ color: form.color }}>
+                <p className="text-[11px] font-semibold text-fg-muted">Meta definida</p>
+                <p className="text-lg font-semibold" style={{ color: form.color }}>
                   {fmt(goal)}
                 </p>
               </div>
               {form.targetDate && (
                 <div className="text-right">
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Prazo</p>
-                  <p className="text-sm font-black text-zinc-700 dark:text-zinc-300">
+                  <p className="text-[11px] font-semibold text-fg-muted">Prazo</p>
+                  <p className="text-sm font-semibold text-fg-2">
                     {new Date(form.targetDate + 'T00:00:00').toLocaleDateString('pt-BR', {
                       month: 'short',
                       year: 'numeric',
@@ -324,7 +324,7 @@ export function PiggyBankModal({ bank, onClose, onRefresh }: Props) {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-3 rounded-2xl font-black text-[11px] uppercase tracking-[0.3em] text-white transition disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-2xl font-semibold text-[11px] text-white transition disabled:opacity-50 flex items-center justify-center gap-2"
             style={{ backgroundColor: form.color }}
           >
             {saving && <Loader2 size={16} className="animate-spin" />}

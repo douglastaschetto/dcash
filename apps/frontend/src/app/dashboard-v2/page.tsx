@@ -8,16 +8,18 @@ import {
   ChevronLeft, ChevronRight, CheckCheck, CheckCircle2, Circle,
   Loader2, ArrowUpCircle, ArrowDownCircle, Layers,
   Star, BarChart2, AlignLeft, Tag, Wallet, Plus, PiggyBank,
-  Trophy, ShoppingBag, Target, CalendarDays,
-} from 'lucide-react';
+  Trophy, ShoppingBag, Target, CalendarDays, AlertTriangle,
+} from '@/components/ui/icons';
 import { cn, parseDateOnly } from '@/lib/utils';
-import { ErrorState } from '@/components/ui';
+import { Badge, ErrorState } from '@/components/ui';
 import TransactionForm, { TransactionMode } from '@/components/forms/TransactionForm';
 import { Modal } from './components/Modal';
 import { CategoryBar } from './components/CategoryBar';
 import { DRERow } from './components/DRERow';
+import { DRETable } from './components/DRETable';
 import { CategoryModal } from './components/CategoryModal';
 import { PaymentMethodModal } from './components/PaymentMethodModal';
+import { CashFlowChart } from './components/CashFlowChart';
 
 /* ── Inline helpers ──────────────────────────────────────────────── */
 const MONTHS_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
@@ -26,7 +28,30 @@ const fmtDate = (iso: string) => { const d = parseDateOnly(iso); return `${Strin
 const sameMonth = (iso: string, y: number, m: number) => { const d = parseDateOnly(iso); return d.getFullYear() === y && d.getMonth() === m; };
 
 /* ── Family member color palette (stable per member across chart + DRE) ── */
-const MEMBER_COLORS = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+const MEMBER_COLORS = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)', 'var(--series-4)', 'var(--series-5)'];
+
+const CARD = 'rounded-2xl border border-border bg-card p-5';
+
+function Kpi({ label, value, icon: Icon, tone, trend, tour }: {
+  label: string; value: string; icon: React.ElementType; tone?: 'up' | 'down'; trend: React.ReactNode; tour?: string;
+}) {
+  return (
+    <div data-tour={tour} className={CARD}>
+      <div className="flex items-center justify-between">
+        <p className="text-[13px] font-medium text-fg-2">{label}</p>
+        <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg border border-border',
+          tone === 'up' ? 'text-accent' : tone === 'down' ? 'text-danger' : 'text-fg-muted')}>
+          <Icon size={15} strokeWidth={1.75} />
+        </span>
+      </div>
+      <p className={cn('mt-3 text-[26px] leading-none font-semibold tracking-tight tabular-nums',
+        tone === 'down' ? 'text-danger' : 'text-fg')}>
+        {value}
+      </p>
+      <div className="mt-3 flex items-center gap-2 min-h-5">{trend ?? <span className="text-[11px] text-fg-muted">Sem histórico no mês anterior</span>}</div>
+    </div>
+  );
+}
 
 /* ── Main Page ───────────────────────────────────────────────────── */
 export default function DashboardV2Page() {
@@ -239,10 +264,10 @@ export default function DashboardV2Page() {
 
     const upcoming = [
       ...fixedBills.filter((b: any) => b.dayOfMonth).map((b: any) => ({
-        id: `bill-${b.id}`, day: b.dayOfMonth, title: b.title, color: '#f97316',
+        id: `bill-${b.id}`, day: b.dayOfMonth, title: b.title, color: 'var(--series-3)',
       })),
       ...calendarEvents.map((ev: any) => ({
-        id: `ev-${ev.id}`, day: new Date(ev.startDate).getDate(), title: ev.title, color: ev.color || '#8b5cf6',
+        id: `ev-${ev.id}`, day: new Date(ev.startDate).getDate(), title: ev.title, color: ev.color || 'var(--series-4)',
       })),
     ].sort((a, b) => a.day - b.day);
 
@@ -261,6 +286,14 @@ export default function DashboardV2Page() {
     const ids = Array.from(new Set(monthTx.filter((t: any) => t.userId).map((t: any) => t.userId)));
     return ids.map((id: any, idx: number) => ({ id, name: nameOf(id), color: MEMBER_COLORS[idx % MEMBER_COLORS.length] }));
   }, [monthTx, familyMembers, dash]);
+
+  /* ── DRE columns: every family member, even without entries this month ── */
+  const dreMembers = useMemo(() => {
+    const extra = familyMembers
+      .filter((m: any) => m.id && !allMembers.some((a) => a.id === m.id))
+      .map((m: any, i: number) => ({ id: m.id, name: m.name?.split(' ')[0] || 'Membro', color: MEMBER_COLORS[(allMembers.length + i) % MEMBER_COLORS.length] }));
+    return [...allMembers, ...extra];
+  }, [allMembers, familyMembers]);
 
   /* ── previous month (for MoM comparison) ───── */
   const { prevMonthIdx, prevYearForMonth } = useMemo(() => (
@@ -283,8 +316,12 @@ export default function DashboardV2Page() {
     const isUp = diff > 0;
     const good = diff === 0 ? true : (invert ? !isUp : isUp);
     return (
-      <span className={cn('text-[9px] font-bold', diff === 0 ? 'text-zinc-400' : good ? 'text-emerald-500' : 'text-red-500')}>
-        {diff === 0 ? '=' : isUp ? '▲' : '▼'} {pct.toFixed(0)}% vs {MONTHS_PT[prevMonthIdx].slice(0, 3)}
+      <span className="inline-flex items-center gap-1.5">
+        <span className={cn('inline-flex items-center gap-0.5 rounded-md border px-1.5 py-0.5 text-[11px] font-medium tabular-nums',
+          diff === 0 ? 'border-border text-fg-muted' : good ? 'border-primary-border bg-primary-soft text-accent' : 'border-danger/30 bg-danger-soft text-danger')}>
+          {diff === 0 ? '=' : isUp ? '↑' : '↓'} {pct.toFixed(0)}%
+        </span>
+        <span className="text-[11px] text-fg-muted">vs {MONTHS_PT[prevMonthIdx].toLowerCase()}</span>
       </span>
     );
   };
@@ -295,7 +332,7 @@ export default function DashboardV2Page() {
     monthTx.filter(t => t.type === 'EXPENSE').forEach(t => {
       const id    = t.category?.id   || 'sem-categoria';
       const name  = t.category?.name || 'Sem categoria';
-      const color = categories.find(c => c.id === id)?.color || '#94a3b8';
+      const color = categories.find(c => c.id === id)?.color || 'var(--text-muted)';
       if (!map[id]) map[id] = { id, name, amount: 0, color, byMember: {} };
       map[id].amount += Number(t.amount);
       if (t.userId) map[id].byMember[t.userId] = (map[id].byMember[t.userId] || 0) + Number(t.amount);
@@ -327,7 +364,7 @@ export default function DashboardV2Page() {
       // the tx-level `type` alone isn't enough to keep those out of "Despesas".
       if (catMatch && catMatch.type !== 'expense') return;
       const name  = t.category?.name || 'Sem categoria';
-      const color = catMatch?.color || '#94a3b8';
+      const color = catMatch?.color || 'var(--text-muted)';
       if (!map[id]) map[id] = { id, name, amount: 0, color, byMember: {} };
       map[id].amount += Number(t.amount);
       if (t.userId) map[id].byMember[t.userId] = (map[id].byMember[t.userId] || 0) + Number(t.amount);
@@ -354,7 +391,7 @@ export default function DashboardV2Page() {
     monthTx.filter(t => t.type === 'INCOME').forEach(t => {
       const id    = t.category?.id   || 'sem-receita';
       const name  = t.category?.name || 'Sem categoria';
-      const color = categories.find(c => c.id === id)?.color || '#10b981';
+      const color = categories.find(c => c.id === id)?.color || 'var(--primary)';
       if (!incMap[id]) incMap[id] = { name, amount: 0, color, byMember: {} };
       incMap[id].amount += Number(t.amount);
       if (t.userId) incMap[id].byMember[t.userId] = (incMap[id].byMember[t.userId] || 0) + Number(t.amount);
@@ -363,7 +400,7 @@ export default function DashboardV2Page() {
     const invMap: Record<string, { name: string; amount: number; color: string; byMember: Record<string, number> }> = {};
     monthTx.filter(t => t.piggyBankId).forEach(t => {
       const id = t.piggyBankId as string;
-      if (!invMap[id]) invMap[id] = { name: t.description || 'Cofrinho', amount: 0, color: '#8b5cf6', byMember: {} };
+      if (!invMap[id]) invMap[id] = { name: t.description || 'Cofrinho', amount: 0, color: 'var(--series-4)', byMember: {} };
       invMap[id].amount += Number(t.amount);
       if (t.userId) invMap[id].byMember[t.userId] = (invMap[id].byMember[t.userId] || 0) + Number(t.amount);
     });
@@ -429,23 +466,14 @@ export default function DashboardV2Page() {
 
   /* ── render ─────────────────────────────────── */
   const pageTitle = (
-    <div data-tour="dashboard-greeting">
-      <span className="block text-xl font-black">
-        {greeting}, {dash?.user?.name || 'usuário'}! 👋
-      </span>
-      {familyGroupName && (
-        <span className="block text-[11px] font-semibold text-zinc-400 mt-0.5">
-          {familyGroupName} 👨‍👩‍👧‍👦
-        </span>
-      )}
-    </div>
+    <span data-tour="dashboard-greeting">Dashboard financeiro</span>
   );
-  const pageSubtitle = 'Bem-vindo(a)';
+  const pageSubtitle = `${familyGroupName ? `Família ${familyGroupName} · ` : ''}${MONTHS_PT[selMonth]} ${selYear} · ${greeting}, ${dash?.user?.name?.split(' ')[0] || 'usuário'}`;
 
   if (loading) return (
     <AppLayout title={pageTitle} subtitle={pageSubtitle}>
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-emerald-500" size={36} />
+        <Loader2 className="animate-spin text-accent" size={28} />
       </div>
     </AppLayout>
   );
@@ -460,608 +488,557 @@ export default function DashboardV2Page() {
     </AppLayout>
   );
 
+  const card = 'rounded-2xl border border-border bg-card p-5';
+  const cardTitle = 'text-sm font-semibold text-fg';
+  const linkBtn = 'text-xs font-medium text-accent hover:underline underline-offset-2';
+  const btnSecondary = 'inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-[13px] font-medium text-fg-2 hover:bg-hover hover:text-fg hover:border-border-hover transition-colors';
+  const piggyPct = totalPiggyGoal > 0 ? Math.min(100, (totalPiggySaved / totalPiggyGoal) * 100) : 0;
+  const dreamPct = activeDream?.targetValue ? Math.min(100, (Number(activeDream.savedValue || 0) / Number(activeDream.targetValue)) * 100) : null;
+  const installPct = income > 0 ? installTotal / income : null;
+  const plannedCats = catBreakdownWithPlanning.filter(c => c.planned != null);
+
   return (
     <AppLayout title={pageTitle} subtitle={pageSubtitle} noPadding>
-      <div className="h-full flex flex-col overflow-hidden">
+      <div className="h-full overflow-y-auto">
+      <div className="w-full p-4 md:p-6 space-y-4">
 
-        {/* Frozen zone: quick actions, month selector, KPIs (does not scroll) */}
-        <div className="shrink-0 px-6 lg:px-8 pt-4 pb-3 space-y-3">
-
-        {/* ── Quick actions + Month selector ────────────────── */}
-        <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center justify-between">
-          <div data-tour="dashboard-quick-actions" className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1">
-            {([
-              { icon: ArrowUpCircle,   label: 'Nova receita',   color: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500 hover:text-white border-emerald-200 dark:border-emerald-900/40', action: () => setTxModal('INCOME')  },
-              { icon: ArrowDownCircle, label: 'Nova despesa',   color: 'bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white border-red-200 dark:border-red-900/40',                     action: () => setTxModal('EXPENSE') },
-              { icon: Tag,             label: 'Nova categoria', color: 'bg-purple-500/10 text-purple-600 hover:bg-purple-500 hover:text-white border-purple-200 dark:border-purple-900/40',      action: () => setCatOpen(true) },
-              { icon: Wallet,          label: 'Forma de pag.',  color: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500 hover:text-white border-blue-200 dark:border-blue-900/40',                 action: () => setPmOpen(true) },
-            ] as const).map(({ icon: Icon, label, color, action }) => (
-              <button key={label} onClick={action}
-                className={cn('flex items-center gap-2 px-3 py-2.5 rounded-xl border transition-all font-black text-[10px] uppercase tracking-tight', color)}>
-                <Icon size={15} className="shrink-0" />{label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-xl p-1 shrink-0">
-            <button onClick={prevMonth} className="p-1.5 hover:bg-emerald-500 hover:text-white rounded-lg transition text-zinc-600 dark:text-zinc-300">
-              <ChevronLeft size={14} />
+        {/* ── Toolbar: quick actions + month selector ─────────── */}
+        <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div data-tour="dashboard-quick-actions" className="flex flex-wrap items-center gap-2">
+            <button onClick={() => setTxModal('INCOME')}
+              className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3.5 text-[13px] font-medium text-on-primary hover:bg-primary-hover transition-colors">
+              <Plus size={15} /> Nova receita
             </button>
-            <span className="px-3 text-[11px] font-black uppercase tracking-widest text-zinc-800 dark:text-zinc-200 min-w-[110px] text-center">
+            <button onClick={() => setTxModal('EXPENSE')} className={btnSecondary}>
+              <ArrowDownCircle size={15} strokeWidth={1.75} className="text-danger" /> Nova despesa
+            </button>
+            <button onClick={() => setCatOpen(true)} className={btnSecondary}>
+              <Tag size={15} strokeWidth={1.75} /> Nova categoria
+            </button>
+            <button onClick={() => setPmOpen(true)} className={btnSecondary}>
+              <Wallet size={15} strokeWidth={1.75} /> Forma de pag.
+            </button>
+          </div>
+          <div className="flex items-center self-start rounded-lg border border-border bg-card p-0.5 sm:self-auto">
+            <button onClick={prevMonth} aria-label="Mês anterior" className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg transition-colors">
+              <ChevronLeft size={16} />
+            </button>
+            <span className="min-w-[128px] px-2 text-center text-[13px] font-medium text-fg">
               {MONTHS_PT[selMonth]} {selYear}
             </span>
-            <button onClick={nextMonth} className="p-1.5 hover:bg-emerald-500 hover:text-white rounded-lg transition text-zinc-600 dark:text-zinc-300">
-              <ChevronRight size={14} />
+            <button onClick={nextMonth} aria-label="Próximo mês" className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:bg-hover hover:text-fg transition-colors">
+              <ChevronRight size={16} />
             </button>
           </div>
         </div>
 
-        {/* ── Summary + Dreams ──────────────────────────────── */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <div data-tour="dashboard-balance-card" className="col-span-2 rounded-xl bg-white dark:bg-gradient-to-br dark:from-zinc-900 dark:to-zinc-800 border border-zinc-200 dark:border-zinc-700 p-4">
-            <p className="text-[8px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400">Saldo do mês</p>
-            <p className={cn('text-xl font-black italic tracking-tighter mt-0.5', balance >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400')}>
-              {balance >= 0 ? '+' : ''} R$ {fmtBRL(balance)}
-            </p>
-            <div className="flex gap-4 mt-2">
-              <div><p className="text-[8px] text-zinc-500 uppercase">Receitas</p><p className="text-xs font-black text-emerald-600 dark:text-emerald-400">+ R$ {fmtBRL(income)}</p></div>
-              <div><p className="text-[8px] text-zinc-500 uppercase">Despesas</p><p className="text-xs font-black text-red-600 dark:text-red-400">- R$ {fmtBRL(expense)}</p></div>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_380px] 2xl:grid-cols-[minmax(0,1fr)_420px]">
+
+        {/* ═══════════════ Main column ═══════════════ */}
+        <div className="space-y-4 min-w-0">
+
+          {/* ── Onboarding ───────────────────────────── */}
+          {showOnboard && (
+            <div className={card}>
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div>
+                  <p className={cardTitle}>Primeiros passos</p>
+                  <p className="text-xs text-fg-muted mt-0.5">{onboardDone} de {onboardSteps.length} concluídos</p>
+                </div>
+                <div className="flex gap-1">
+                  {onboardSteps.map((s, i) => <div key={i} className={cn('h-1.5 w-8 rounded-full', s.done ? 'bg-primary' : 'bg-track')} />)}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                {onboardSteps.map((step) => (
+                  <button key={step.label} onClick={() => router.push(step.href)}
+                    className={cn('flex items-center gap-2 rounded-lg border p-3 text-left transition-colors',
+                      step.done ? 'border-primary-border bg-primary-soft'
+                                : 'border-border hover:border-border-hover hover:bg-hover')}>
+                    {step.done ? <CheckCircle2 size={15} className="text-accent shrink-0" /> : <Circle size={15} className="text-fg-muted shrink-0" />}
+                    <span className={cn('text-xs font-medium leading-tight', step.done ? 'text-fg-muted line-through' : 'text-fg-2')}>{step.label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
+          )}
+
+          {/* ── KPIs ─────────────────────────────────── */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Kpi tour="dashboard-balance-card" label="Saldo do mês" icon={Wallet}
+              value={`${balance < 0 ? '−' : ''}R$ ${fmtBRL(Math.abs(balance))}`}
+              tone={balance < 0 ? 'down' : undefined}
+              trend={renderTrend(balance, prevReceitaLiquida)} />
+            <Kpi label="Receitas" icon={ArrowUpCircle} tone="up"
+              value={`R$ ${fmtBRL(income)}`} trend={renderTrend(income, prevIncome)} />
+            <Kpi label="Despesas" icon={ArrowDownCircle}
+              value={`R$ ${fmtBRL(expense)}`} trend={renderTrend(expense, prevExpense, true)} />
           </div>
 
-          {dreams.length > 0 ? (
-            <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 text-white p-3 flex items-center gap-2">
-              <div className="p-1.5 bg-white/15 rounded-lg shrink-0"><Star size={15} /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[7px] font-black uppercase tracking-widest opacity-70">Sonho {dreamIdx + 1}/{dreams.length}</p>
-                <p className="text-xs font-black italic tracking-tight truncate mt-0.5">
-                  {activeDream?.title || activeDream?.name || '—'}
-                </p>
-                {activeDream?.targetValue && (
-                  <div className="h-1 bg-white/20 rounded-full overflow-hidden mt-1">
-                    <div className="h-full bg-white rounded-full transition-all duration-700"
-                      style={{ width: `${Math.min(100, (Number(activeDream.savedValue || 0) / Number(activeDream.targetValue)) * 100)}%` }} />
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border-2 border-dashed border-purple-200 dark:border-purple-900 flex flex-col items-center justify-center gap-1 p-3 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/20 transition"
-              onClick={() => router.push('/dreams')}>
-              <Star size={15} className="text-purple-400" />
-              <p className="text-[8px] font-black text-purple-500 uppercase tracking-widest text-center">Definir sonho</p>
-            </div>
-          )}
+          {/* ── Cash flow ─────────────────────────────── */}
+          <CashFlowChart transactions={monthTx} year={selYear} month={selMonth} />
 
-          {piggyBanks.length > 0 ? (
-            <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-emerald-600 to-emerald-800 text-white p-3 flex items-center gap-2 cursor-pointer"
-              onClick={() => router.push('/piggy-banks')}>
-              <div className="p-1.5 bg-white/15 rounded-lg shrink-0"><PiggyBank size={15} /></div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[7px] font-black uppercase tracking-widest opacity-70">Cofrinhos</p>
-                <p className="text-xs font-black italic tracking-tight truncate mt-0.5">
-                  R$ {fmtBRL(totalPiggySaved)}
-                </p>
-                {totalPiggyGoal > 0 && (
-                  <div className="h-1 bg-white/20 rounded-full overflow-hidden mt-1">
-                    <div className="h-full bg-white rounded-full transition-all duration-700"
-                      style={{ width: `${Math.min(100, (totalPiggySaved / totalPiggyGoal) * 100)}%` }} />
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-xl border-2 border-dashed border-emerald-200 dark:border-emerald-900 flex flex-col items-center justify-center gap-1 p-3 cursor-pointer hover:bg-emerald-50 dark:hover:bg-emerald-950/20 transition"
-              onClick={() => router.push('/piggy-banks')}>
-              <PiggyBank size={15} className="text-emerald-400" />
-              <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest text-center">Criar cofrinho</p>
-            </div>
-          )}
-        </div>
-        </div>
-
-        {/* Scrollable zone: everything below the frozen KPIs/buttons */}
-        <div className="flex-1 overflow-y-auto px-6 lg:px-8 pb-6 space-y-4">
-
-        {/* ── Category chart + Todos ─────────────────────────
-              [Chart/DRE (2-col)]   [Todos (1-col)]            */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-          {/* Category chart */}
-          <div className="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-5">
+          {/* ── Category chart / DRE ──────────────────── */}
+          <div className={card}>
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-5">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">
-                  Despesas por categoria — {MONTHS_PT[selMonth]}
-                </p>
-                {overBudgetCount > 0 && (
-                  <p className="text-[10px] font-black text-red-600 mt-0.5">
-                    ⚠ {overBudgetCount} categoria{overBudgetCount > 1 ? 's' : ''} acima do planejado
+                <p className={cardTitle}>Despesas por categoria</p>
+                {overBudgetCount > 0 ? (
+                  <p className="mt-0.5 flex items-center gap-1 text-xs font-medium text-danger">
+                    <AlertTriangle size={12} /> {overBudgetCount} categoria{overBudgetCount > 1 ? 's' : ''} acima do planejado
                   </p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-fg-muted">{MONTHS_PT[selMonth]} de {selYear}</p>
                 )}
               </div>
-              <div className="flex rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                <button onClick={() => setChartView('chart')}
-                  className={cn('flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase transition',
-                    chartView === 'chart' ? 'bg-emerald-500 text-white' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
-                  <BarChart2 size={12} /> Gráfico
+              <div className="flex rounded-lg border border-border bg-surface-2 p-0.5" role="tablist">
+                <button role="tab" aria-selected={chartView === 'chart'} onClick={() => setChartView('chart')}
+                  className={cn('flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors border',
+                    chartView === 'chart' ? 'bg-card text-fg border-border shadow-xs' : 'text-fg-muted hover:text-fg border-transparent')}>
+                  <BarChart2 size={13} /> Gráfico
                 </button>
-                <button data-tour="dashboard-dre-toggle" onClick={() => setChartView('dre')}
-                  className={cn('flex items-center gap-1.5 px-3 py-1.5 text-[9px] font-black uppercase transition',
-                    chartView === 'dre' ? 'bg-emerald-500 text-white' : 'text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800')}>
-                  <AlignLeft size={12} /> DRE
+                <button role="tab" aria-selected={chartView === 'dre'} data-tour="dashboard-dre-toggle" onClick={() => setChartView('dre')}
+                  className={cn('flex h-7 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors border',
+                    chartView === 'dre' ? 'bg-card text-fg border-border shadow-xs' : 'text-fg-muted hover:text-fg border-transparent')}>
+                  <AlignLeft size={13} /> DRE
                 </button>
               </div>
             </div>
 
             {chartView === 'chart' && (
               <>
-                <div className="flex items-center justify-between flex-wrap gap-2 text-[8px] font-black text-zinc-400 uppercase tracking-widest mb-3">
-                  <div className="flex items-center flex-wrap gap-3">
-                    {allMembers.map((m) => (
-                      <span key={m.id} className="flex items-center gap-1.5">
-                        <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: m.color }} /> {m.name}
-                      </span>
-                    ))}
-                    {hasChartPlanning && <span className="flex items-center gap-1"><span className="inline-block w-2 h-2 rounded-full bg-zinc-400 opacity-70" />Meta</span>}
+                {(allMembers.length > 1 || hasChartPlanning) && (
+                  <div className="flex items-center justify-between flex-wrap gap-2 text-xs text-fg-2 mb-4">
+                    <div className="flex items-center flex-wrap gap-3">
+                      {allMembers.length > 1 && allMembers.map((m) => (
+                        <span key={m.id} className="flex items-center gap-1.5">
+                          <span className="inline-block w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: m.color }} /> {m.name}
+                        </span>
+                      ))}
+                      {hasChartPlanning && <span className="flex items-center gap-1.5"><span className="inline-block w-0.5 h-3 rounded-full bg-fg-muted" />Meta</span>}
+                    </div>
                   </div>
-                  <span className="text-zinc-500">Total: R$ {fmtBRL(chartTotal)}</span>
-                </div>
+                )}
                 {chartBreakdownWithPlanning.length === 0 ? (
-                  <p className="text-center py-8 text-[11px] text-zinc-400 font-black uppercase tracking-widest">Nenhuma despesa neste mês</p>
+                  <p className="text-center py-10 text-[13px] text-fg-muted">Nenhuma despesa neste mês</p>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {chartBreakdownWithPlanning.slice(0, 8).map((cat, i) => {
-                      const segments = allMembers
-                        .map((m) => ({ id: m.id, name: m.name, amount: cat.byMember?.[m.id] || 0, color: m.color }))
-                        .filter((s) => s.amount > 0);
-                      const finalSegments = segments.length > 0 ? segments : [{ id: 'total', name: cat.name, amount: cat.amount, color: cat.color }];
+                      const segments = allMembers.length > 1
+                        ? allMembers
+                            .map((m) => ({ id: m.id, name: m.name, amount: cat.byMember?.[m.id] || 0, color: m.color }))
+                            .filter((s) => s.amount > 0)
+                        : [];
+                      const finalSegments = segments.length > 0 ? segments : [{ id: 'total', name: cat.name, amount: cat.amount, color: 'var(--primary)' }];
                       return (
                         <CategoryBar key={cat.id} rank={i + 1} name={cat.name} amount={cat.amount}
                           total={chartTotal} planned={cat.planned} overBudget={cat.overBudget} segments={finalSegments} />
                       );
                     })}
                     {chartBreakdownWithPlanning.length > 8 && (
-                      <p className="text-center text-[9px] font-black text-zinc-400 mt-2">+{chartBreakdownWithPlanning.length - 8} categorias</p>
+                      <p className="text-center text-xs text-fg-muted pt-1">+{chartBreakdownWithPlanning.length - 8} categorias</p>
                     )}
                   </div>
                 )}
-                {!hasChartPlanning && chartBreakdownWithPlanning.length > 0 && (
-                  <p className="text-center text-[9px] text-zinc-400 mt-4 border-t border-zinc-100 dark:border-zinc-800 pt-3">
-                    <button onClick={() => router.push('/planning')} className="text-emerald-600 font-black hover:underline">Planejar este mês</button>
-                    {' '}para ver metas por categoria
-                  </p>
-                )}
+                <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3 text-xs">
+                  <span className="text-fg-muted">Total <span className="font-semibold tabular-nums text-fg">R$ {fmtBRL(chartTotal)}</span></span>
+                  {!hasChartPlanning && chartBreakdownWithPlanning.length > 0 && (
+                    <span className="text-fg-muted">
+                      <button onClick={() => router.push('/planning')} className={linkBtn}>Planejar este mês</button>
+                      {' '}para ver metas por categoria
+                    </span>
+                  )}
+                </div>
               </>
             )}
 
             {chartView === 'dre' && (
-              <div className="space-y-0.5">
-                <DRERow label="RECEITA BRUTA" value={dreData.totalIncome} bold positive
-                  sub={renderTrend(dreData.totalIncome, prevIncome)} />
-                {dreData.incomeCategories.map((c: any) => (
-                  <div key={c.name}>
-                    <DRERow indent label={c.name} value={c.amount} color={c.color} positive />
-                    {Object.entries(c.byMember || {}).map(([uid, amt]: [string, any]) => (
-                      <DRERow key={uid} indent2 label={allMembers.find((m) => m.id === uid)?.name || 'Você'} value={amt} muted />
+              <DRETable
+                dre={dreData}
+                members={dreMembers}
+                trends={{
+                  income: renderTrend(dreData.totalIncome, prevIncome),
+                  expense: renderTrend(dreData.totalExpense, prevExpense, true),
+                  liquid: renderTrend(dreData.receitaLiquida, prevReceitaLiquida),
+                  result: renderTrend(dreData.resultado, prevResultado),
+                }}
+                expenseNote={totalPlanned > 0 ? (
+                  <span className={cn('mt-0.5 block text-[11px] font-medium', dreData.totalExpense > totalPlanned ? 'text-danger' : 'text-fg-muted')}>
+                    {dreData.totalExpense > totalPlanned ? 'Acima do orçamento' : `${((dreData.totalExpense / totalPlanned) * 100).toFixed(0)}% do orçamento`}
+                  </span>
+                ) : undefined}
+              />
+            )}
+          </div>
+
+          {/* ── Últimas transações (tabela) ───────────── */}
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="flex items-center justify-between px-5 pt-5 pb-4">
+              <p className={cardTitle}>Últimas transações</p>
+              <button onClick={() => router.push('/transactions')} className={linkBtn}>Ver todas</button>
+            </div>
+            {last5.length === 0 ? (
+              <p className="text-center pb-10 pt-4 text-[13px] text-fg-muted">Nenhuma transação</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[560px] text-[13px]">
+                  <thead>
+                    <tr className="border-y border-border bg-surface-2 text-left text-xs text-fg-muted">
+                      <th className="px-5 py-2.5 font-medium">Descrição</th>
+                      <th className="px-3 py-2.5 font-medium">Categoria</th>
+                      <th className="px-3 py-2.5 font-medium">Data</th>
+                      <th className="px-3 py-2.5 font-medium">Tipo</th>
+                      <th className="px-5 py-2.5 font-medium text-right">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {last5.map((t: any) => (
+                      <tr key={t.id} className="hover:bg-hover transition-colors">
+                        <td className="px-5 py-3">
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border',
+                              t.type === 'INCOME' ? 'text-accent' : 'text-fg-muted')}>
+                              {t.type === 'INCOME' ? <ArrowUpCircle size={14} strokeWidth={1.75} /> : <ArrowDownCircle size={14} strokeWidth={1.75} />}
+                            </span>
+                            <span className="truncate font-medium text-fg max-w-[220px]">{t.description}</span>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-fg-2 truncate max-w-[160px]">{t.category?.name || '—'}</td>
+                        <td className="px-3 py-3 text-fg-2 tabular-nums">{fmtDate(t.date)}</td>
+                        <td className="px-3 py-3">
+                          <Badge tone={t.type === 'INCOME' ? 'success' : 'neutral'}>{t.type === 'INCOME' ? 'Receita' : 'Despesa'}</Badge>
+                        </td>
+                        <td className={cn('px-5 py-3 text-right font-semibold tabular-nums whitespace-nowrap', t.type === 'INCOME' ? 'text-accent' : 'text-fg')}>
+                          {t.type === 'INCOME' ? '+' : '−'} R$ {fmtBRL(Number(t.amount))}
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                ))}
-                {dreData.incomeCategories.length === 0 && <DRERow indent label="Sem receitas lançadas" muted />}
-                <DRERow separator label="" />
-
-                <DRERow label="(-) DESPESAS OPERACIONAIS" value={dreData.totalExpense} bold negative
-                  sub={
-                    <div className="flex items-center gap-3 flex-wrap">
-                      {renderTrend(dreData.totalExpense, prevExpense, true)}
-                      {totalPlanned > 0 && (
-                        <span className={cn('text-[9px] font-bold', dreData.totalExpense > totalPlanned ? 'text-red-500' : 'text-zinc-400')}>
-                          {dreData.totalExpense > totalPlanned ? '⚠ acima do orçamento' : `${((dreData.totalExpense / totalPlanned) * 100).toFixed(0)}% do orçamento`}
-                        </span>
-                      )}
-                    </div>
-                  } />
-                {dreData.expenseCategories.map(c => (
-                  <div key={c.id}>
-                    <DRERow indent label={c.name} value={c.amount} color={c.color} negative />
-                    {Object.entries((c as any).byMember || {}).map(([uid, amt]: [string, any]) => (
-                      <DRERow key={uid} indent2 label={allMembers.find((m) => m.id === uid)?.name || 'Você'} value={amt} muted />
-                    ))}
-                    {c.planned != null && (
-                      <div className={cn('pl-8 text-[9px] font-bold pb-0.5', c.overBudget ? 'text-red-500' : 'text-zinc-400')}>
-                        {c.overBudget ? `⚠ Acima do orçado (R$ ${fmtBRL(c.planned)})` : `Orçado: R$ ${fmtBRL(c.planned)}`}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {dreData.expenseCategories.length === 0 && <DRERow indent label="Sem despesas lançadas" muted />}
-                <DRERow separator label="" />
-
-                <DRERow label="= RECEITA LÍQUIDA" value={Math.abs(dreData.receitaLiquida)} bold
-                  positive={dreData.receitaLiquida >= 0} negative={dreData.receitaLiquida < 0}
-                  sub={renderTrend(dreData.receitaLiquida, prevReceitaLiquida)} />
-
-                {dreData.investCategories.length > 0 && (<>
-                  <DRERow separator label="" />
-                  <DRERow label="(-) INVESTIMENTOS / POUPANÇA" value={dreData.totalInvest} bold negative />
-                  {dreData.investCategories.map((c: any) => (
-                    <div key={c.name}>
-                      <DRERow indent label={c.name} value={c.amount} color={c.color} negative />
-                      {Object.entries(c.byMember || {}).map(([uid, amt]: [string, any]) => (
-                        <DRERow key={uid} indent2 label={allMembers.find((m) => m.id === uid)?.name || 'Você'} value={amt} muted />
-                      ))}
-                    </div>
-                  ))}
-                  <DRERow separator label="" />
-                </>)}
-
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-3 py-2 mt-2 space-y-1.5">
-                  <DRERow label="= RESULTADO FINAL" value={Math.abs(dreData.resultado)} bold
-                    positive={dreData.resultado >= 0} negative={dreData.resultado < 0}
-                    sub={renderTrend(dreData.resultado, prevResultado)} />
-                  <div className="flex items-center justify-between py-0.5">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Margem líquida</span>
-                    <span className={cn('text-[12px] font-black', dreData.margem >= 0 ? 'text-emerald-600' : 'text-red-600')}>{dreData.margem.toFixed(1)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between py-0.5">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Ponto de equilíbrio</span>
-                    <span className="text-[12px] font-black text-zinc-700 dark:text-zinc-300">R$ {fmtBRL(dreData.pontoEquilibrio)}</span>
-                  </div>
-                  <div className="flex items-center justify-between py-0.5">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Status</span>
-                    <span className={cn('text-[11px] font-black px-2 py-0.5 rounded-full',
-                      dreData.resultado >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400')}>
-                      {dreData.resultado >= 0 ? 'Superávit' : 'Déficit'}
-                    </span>
-                  </div>
-                </div>
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
 
-          {/* Todos */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <CheckCheck size={16} className="text-emerald-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Tarefas</p>
+          {/* ── Agenda + Desafio ─────────────────────── */}
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className={card}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <CalendarDays size={16} strokeWidth={1.75} className="text-fg-muted" />
+                  <p className={cardTitle}>Agenda da família</p>
+                </div>
+                <button onClick={() => router.push('/calendar')} className={linkBtn}>Ver agenda</button>
               </div>
-              <button onClick={() => router.push('/todos')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver todas</button>
+
+              <div className="grid grid-cols-7 gap-1 mb-1">
+                {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
+                  <span key={i} className="text-[11px] font-medium text-fg-muted text-center">{d}</span>
+                ))}
+              </div>
+              <div className="grid grid-cols-7 gap-1">
+                {calendarGrid.cells.map((cell, i) => {
+                  if (cell === null) return <div key={i} />;
+                  const hasBills = cell.bills.length > 0;
+                  const hasAny = cell.hasIncome || cell.hasExpense || cell.hasInvest || hasBills || cell.events.length > 0;
+                  const tooltip = [
+                    ...cell.bills.map((b: any) => `Conta: ${b.title}`),
+                    ...cell.events.map((e: any) => e.title),
+                  ].join(', ') || undefined;
+                  return (
+                    <div key={i}
+                      title={tooltip}
+                      className={cn(
+                        'relative aspect-square flex items-center justify-center rounded-md text-xs tabular-nums',
+                        isToday(cell.day)
+                          ? 'bg-primary text-on-primary font-semibold'
+                          : hasAny
+                            ? 'bg-surface-2 text-fg font-medium'
+                            : 'text-fg-muted',
+                      )}
+                    >
+                      {cell.day}
+                      {hasAny && (
+                        <span className="absolute bottom-1 flex items-center gap-0.5">
+                          {cell.hasIncome && <span className="w-1 h-1 rounded-full bg-primary" />}
+                          {cell.hasExpense && <span className="w-1 h-1 rounded-full bg-danger" />}
+                          {cell.hasInvest && <span className="w-1 h-1 rounded-full" style={{ background: 'var(--series-2)' }} />}
+                          {hasBills && <span className="w-1 h-1 rounded-full" style={{ background: 'var(--series-3)' }} />}
+                          {cell.events.length > 0 && <span className="w-1 h-1 rounded-full" style={{ background: 'var(--series-4)' }} />}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-x-3 gap-y-1 mt-3 flex-wrap">
+                {[
+                  { color: 'var(--primary)', label: 'Receita' },
+                  { color: 'var(--danger)', label: 'Despesa' },
+                  { color: 'var(--series-2)', label: 'Investimento' },
+                  { color: 'var(--series-3)', label: 'Conta fixa' },
+                  { color: 'var(--series-4)', label: 'Evento' },
+                ].map((l) => (
+                  <div key={l.label} className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: l.color }} />
+                    <span className="text-[11px] text-fg-muted">{l.label}</span>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            {/* Quick add */}
+            <div className={card}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Trophy size={16} strokeWidth={1.75} className="text-fg-muted" />
+                  <p className={cardTitle}>Desafio do mês</p>
+                </div>
+                <button onClick={() => router.push('/challenges')} className={linkBtn}>Ver todos</button>
+              </div>
+              {monthChallenge ? (
+                <div className="rounded-xl border border-border bg-surface-2 p-4">
+                  <p className="text-[13px] text-fg leading-relaxed whitespace-pre-line">
+                    {monthChallenge.challenge}
+                  </p>
+                  <div className="mt-3">
+                    <Badge tone={monthChallenge.status === 'Concluída' ? 'success' : monthChallenge.status === 'Em andamento' ? 'warning' : 'neutral'}>
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {monthChallenge.status}
+                    </Badge>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 gap-2 text-center">
+                  <Trophy size={22} strokeWidth={1.5} className="text-fg-disabled" />
+                  <p className="text-[13px] text-fg-muted">Nenhum desafio para este mês</p>
+                  <button onClick={() => router.push('/challenges')} className={linkBtn}>Criar desafio</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ═══════════════ Right rail ═══════════════ */}
+        <div className="space-y-4 min-w-0">
+
+          {/* ── Hero: cofrinhos + sonho ───────────────── */}
+          <div className="hero-card relative overflow-hidden rounded-2xl p-5">
+            <div className="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full border border-white/10" />
+            <div className="pointer-events-none absolute -right-2 -top-8 h-28 w-28 rounded-full border border-white/10" />
+            <button onClick={() => router.push('/piggy-banks')} className="block w-full text-left">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-[13px] font-medium text-white/70">
+                  <PiggyBank size={16} strokeWidth={1.75} /> Cofrinhos
+                </span>
+                <span className="text-[11px] text-white/50">{piggyBanks.length} ativo{piggyBanks.length === 1 ? '' : 's'}</span>
+              </div>
+              {piggyBanks.length > 0 ? (
+                <>
+                  <p className="mt-5 text-[26px] leading-none font-semibold tracking-tight tabular-nums">R$ {fmtBRL(totalPiggySaved)}</p>
+                  {totalPiggyGoal > 0 && (
+                    <>
+                      <div className="mt-4 h-1.5 rounded-full bg-white/15 overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-300 transition-all duration-700" style={{ width: `${piggyPct}%` }} />
+                      </div>
+                      <p className="mt-2 text-[11px] text-white/60 tabular-nums">{piggyPct.toFixed(0)}% da meta de R$ {fmtBRL(totalPiggyGoal)}</p>
+                    </>
+                  )}
+                </>
+              ) : (
+                <p className="mt-5 text-[13px] text-white/80">Crie seu primeiro cofrinho e acompanhe sua reserva aqui.</p>
+              )}
+            </button>
+
+            <div className="mt-5 border-t border-white/10 pt-4">
+              {dreams.length > 0 ? (
+                <button onClick={() => router.push('/dreams')} className="flex w-full items-center gap-3 text-left">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10"><Star size={15} strokeWidth={1.75} /></span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-white/50">Sonho {dreamIdx + 1} de {dreams.length}</p>
+                    <p className="truncate text-[13px] font-medium">{activeDream?.title || activeDream?.name || '—'}</p>
+                    {dreamPct !== null && (
+                      <div className="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden">
+                        <div className="h-full rounded-full bg-white/80 transition-all duration-700" style={{ width: `${dreamPct}%` }} />
+                      </div>
+                    )}
+                  </div>
+                </button>
+              ) : (
+                <button onClick={() => router.push('/dreams')} className="flex items-center gap-2 text-[13px] font-medium text-white/80 hover:text-white">
+                  <Star size={15} strokeWidth={1.75} /> Definir um sonho
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── Planejamento do mês ───────────────────── */}
+          <div data-tour="dashboard-planning-card" className={card}>
+            <div className="flex items-center justify-between mb-3">
+              <p className={cardTitle}>Planejamento do mês</p>
+              <button onClick={() => router.push('/planning')} className={linkBtn}>Ajustar</button>
+            </div>
+            {totalPlanned === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 gap-2 text-center">
+                <Target size={22} strokeWidth={1.5} className="text-fg-disabled" />
+                <p className="text-[13px] text-fg-muted">Sem planejamento definido</p>
+                <button onClick={() => router.push('/planning')} className={linkBtn}>Planejar este mês</button>
+              </div>
+            ) : (
+              <>
+                <p className="text-[22px] leading-tight font-semibold tracking-tight tabular-nums text-fg">
+                  R$ {fmtBRL(totalCat)} <span className="text-[13px] font-normal text-fg-muted">usados de R$ {fmtBRL(totalPlanned)}</span>
+                </p>
+                <div className="mt-3 h-2 rounded-full bg-track overflow-hidden">
+                  <div
+                    className={cn('h-full rounded-full transition-all duration-700', totalCat > totalPlanned ? 'bg-danger' : 'bg-primary')}
+                    style={{ width: `${Math.min(100, (totalCat / totalPlanned) * 100)}%` }}
+                  />
+                </div>
+
+                {plannedCats.length > 0 && (
+                  <div className="mt-4 space-y-3">
+                    {plannedCats.slice(0, 4).map((cat) => (
+                      <div key={cat.id}>
+                        <div className="flex items-center justify-between gap-2 text-xs mb-1">
+                          <span className="text-fg-2 truncate">{cat.name}</span>
+                          <span className={cn('tabular-nums shrink-0', cat.overBudget ? 'text-danger font-medium' : 'text-fg-muted')}>
+                            {fmtBRL(cat.amount)} / {fmtBRL(cat.planned!)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-track overflow-hidden">
+                          <div className={cn('h-full rounded-full transition-all duration-700', cat.overBudget ? 'bg-danger' : 'bg-primary/70')}
+                            style={{ width: `${Math.min(100, (cat.amount / cat.planned!) * 100)}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* ── Tarefas ──────────────────────────────── */}
+          <div className={cn(card, 'flex flex-col')}>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <CheckCheck size={16} strokeWidth={1.75} className="text-fg-muted" />
+                <p className={cardTitle}>Tarefas</p>
+                {todos.length > 0 && <Badge>{todos.length}</Badge>}
+              </div>
+              <button onClick={() => router.push('/todos')} className={linkBtn}>Ver todas</button>
+            </div>
+
             <div className="flex items-center gap-2 mb-3">
               <input
                 value={newTaskTitle}
                 onChange={(e) => setNewTaskTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && quickAddTodo()}
                 placeholder="Nova tarefa..."
-                className="flex-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg px-3 py-2 text-xs outline-none focus:border-emerald-500 transition"
+                className="field h-9 !text-[13px]"
               />
               <button
                 onClick={quickAddTodo}
                 disabled={addingTask || !newTaskTitle.trim()}
-                className="p-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:opacity-50 transition shrink-0"
+                aria-label="Adicionar tarefa"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-on-primary hover:bg-primary-hover disabled:opacity-40 transition-colors"
               >
-                {addingTask ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {addingTask ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
               </button>
             </div>
 
             {todos.length === 0 ? (
-              <div className="flex flex-col items-center justify-center flex-1 py-8 text-zinc-400">
-                <CheckCircle2 size={32} className="mb-2 text-emerald-300" />
-                <p className="text-xs font-black uppercase tracking-widest">Tudo em dia!</p>
+              <div className="flex flex-col items-center justify-center py-6 gap-2">
+                <CheckCircle2 size={22} strokeWidth={1.5} className="text-accent" />
+                <p className="text-[13px] text-fg-muted">Tudo em dia!</p>
               </div>
             ) : (
-              <div className="space-y-2 flex-1">
-                {todos.slice(0, 7).map((todo: any) => (
-                  <div key={todo.id} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700">
+              <div className="divide-y divide-border -mx-1">
+                {todos.slice(0, 6).map((todo: any) => (
+                  <div key={todo.id} className="flex items-center gap-3 px-1 py-2.5">
                     <button
                       onClick={() => completeTodo(todo.id)}
                       disabled={completingTodo === todo.id}
-                      className="shrink-0 text-zinc-400 hover:text-emerald-500 disabled:opacity-50 transition"
+                      aria-label="Concluir tarefa"
+                      className="shrink-0 text-fg-muted hover:text-accent disabled:opacity-50 transition-colors"
                     >
                       {completingTodo === todo.id
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <Circle size={13} />}
+                        ? <Loader2 size={16} className="animate-spin" />
+                        : <Circle size={16} strokeWidth={1.75} />}
                     </button>
-                    <span className="flex-1 text-[11px] font-medium text-zinc-800 dark:text-zinc-200 truncate">{todo.title}</span>
-                    {todo.familyGroupId && (
-                      <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300 uppercase shrink-0">Fam.</span>
-                    )}
+                    <span className="flex-1 text-[13px] text-fg truncate">{todo.title}</span>
+                    {todo.familyGroupId && <Badge tone="info">Família</Badge>}
                   </div>
                 ))}
-                {todos.length > 7 && <p className="text-center text-[9px] font-black text-zinc-400 pt-1">+{todos.length - 7} tarefas</p>}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── Onboarding ───────────────────────────────────── */}
-        {showOnboard && (
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Bem-vindo!</p>
-                <p className="text-sm font-black text-zinc-900 dark:text-zinc-100">{onboardDone} de {onboardSteps.length} passos concluídos</p>
-              </div>
-              <div className="flex gap-1">
-                {onboardSteps.map((s, i) => <div key={i} className={cn('h-2 w-6 rounded-full', s.done ? 'bg-emerald-500' : 'bg-zinc-200 dark:bg-zinc-700')} />)}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2">
-              {onboardSteps.map((step) => (
-                <button key={step.label} onClick={() => router.push(step.href)}
-                  className={cn('flex items-center gap-2 p-3 rounded-xl border text-left transition-all',
-                    step.done ? 'border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 opacity-60'
-                              : 'border-zinc-300 dark:border-zinc-600 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/10')}>
-                  {step.done ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <Circle size={14} className="text-zinc-400 shrink-0" />}
-                  <span className="text-[10px] font-black text-zinc-700 dark:text-zinc-300 leading-tight">{step.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Gastos por categoria-família · Desafio do mês · Planejamento (maior) ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-          {/* Agenda da família */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <CalendarDays size={14} className="text-blue-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Agenda da família</p>
-              </div>
-              <button onClick={() => router.push('/calendar')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver agenda</button>
-            </div>
-
-            <div className="grid grid-cols-7 gap-1 mb-1">
-              {['D', 'S', 'T', 'Q', 'Q', 'S', 'S'].map((d, i) => (
-                <span key={i} className="text-[8px] font-black text-zinc-400 uppercase text-center">{d}</span>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">
-              {calendarGrid.cells.map((cell, i) => {
-                if (cell === null) return <div key={i} />;
-                const hasBills = cell.bills.length > 0;
-                const hasAny = cell.hasIncome || cell.hasExpense || cell.hasInvest || hasBills || cell.events.length > 0;
-                const tooltip = [
-                  ...cell.bills.map((b: any) => `Conta: ${b.title}`),
-                  ...cell.events.map((e: any) => e.title),
-                ].join(', ') || undefined;
-                return (
-                  <div key={i}
-                    title={tooltip}
-                    className={cn(
-                      'relative aspect-square flex items-center justify-center rounded-lg text-[10px] font-bold',
-                      isToday(cell.day)
-                        ? 'bg-emerald-500 text-white'
-                        : hasAny
-                          ? 'bg-blue-50 dark:bg-blue-950/30 text-zinc-800 dark:text-zinc-200'
-                          : 'text-zinc-500 dark:text-zinc-400',
-                    )}
-                  >
-                    {cell.day}
-                    {hasAny && (
-                      <span className="absolute bottom-0.5 flex items-center gap-0.5">
-                        {cell.hasIncome && <span className="w-1 h-1 rounded-full bg-emerald-500" />}
-                        {cell.hasExpense && <span className="w-1 h-1 rounded-full bg-red-500" />}
-                        {cell.hasInvest && <span className="w-1 h-1 rounded-full bg-blue-500" />}
-                        {hasBills && <span className="w-1 h-1 rounded-full bg-orange-500" />}
-                        {cell.events.length > 0 && <span className="w-1 h-1 rounded-full bg-purple-500" />}
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center gap-3 mt-2 flex-wrap">
-              {[
-                { color: 'bg-emerald-500', label: 'Receita' },
-                { color: 'bg-red-500', label: 'Despesa' },
-                { color: 'bg-blue-500', label: 'Investimento' },
-                { color: 'bg-orange-500', label: 'Conta fixa' },
-                { color: 'bg-purple-500', label: 'Evento' },
-              ].map((l) => (
-                <div key={l.label} className="flex items-center gap-1">
-                  <span className={cn('w-1.5 h-1.5 rounded-full', l.color)} />
-                  <span className="text-[8px] font-bold text-zinc-400 uppercase">{l.label}</span>
-                </div>
-              ))}
-            </div>
-
-          </div>
-
-          {/* Desafio do mês */}
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Trophy size={14} className="text-emerald-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Desafio do mês</p>
-              </div>
-              <button onClick={() => router.push('/challenges')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver todos</button>
-            </div>
-            {monthChallenge ? (
-              <div className="flex items-start gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
-                <div className={cn('shrink-0 mt-0.5 h-2.5 w-2.5 rounded-full',
-                  monthChallenge.status === 'Concluída' ? 'bg-emerald-500' :
-                  monthChallenge.status === 'Em andamento' ? 'bg-amber-500' : 'bg-slate-400')} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-zinc-800 dark:text-zinc-200 leading-relaxed whitespace-pre-line">
-                    {monthChallenge.challenge}
-                  </p>
-                  <span className={cn('inline-block mt-2 text-[9px] font-semibold px-2 py-0.5 rounded-full',
-                    monthChallenge.status === 'Concluída' ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300' :
-                    monthChallenge.status === 'Em andamento' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300' :
-                    'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300')}>
-                    {monthChallenge.status}
-                  </span>
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-6 gap-2 text-zinc-400">
-                <Trophy size={28} className="text-zinc-200 dark:text-zinc-700" />
-                <p className="text-xs font-black uppercase tracking-widest text-center">Nenhum desafio para este mês</p>
-                <button onClick={() => router.push('/challenges')} className="text-[10px] font-black text-emerald-600 hover:underline">Criar desafio →</button>
+                {todos.length > 6 && <p className="text-center text-xs text-fg-muted pt-2.5">+{todos.length - 6} tarefas</p>}
               </div>
             )}
           </div>
 
-          {/* Planejamento do mês (maior) */}
-          <div data-tour="dashboard-planning-card" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4 flex flex-col">
+          {/* ── Raio-X dos parcelamentos ──────────────── */}
+          <div data-tour="dashboard-installments-card" className={card}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Target size={14} className="text-blue-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Planejamento do mês</p>
+                <Layers size={16} strokeWidth={1.75} className="text-fg-muted" />
+                <p className={cardTitle}>Raio-X parcelamentos</p>
               </div>
-              <button onClick={() => router.push('/planning')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ajustar</button>
+              <button onClick={() => router.push('/installments')} className={linkBtn}>Ver</button>
             </div>
-            {totalPlanned === 0 ? (
-              <div className="flex flex-col items-center justify-center flex-1 py-8 text-zinc-400">
-                <Target size={28} className="mb-2 text-zinc-200 dark:text-zinc-700" />
-                <p className="text-xs font-black uppercase tracking-widest text-center">Sem planejamento definido</p>
-                <button onClick={() => router.push('/planning')} className="mt-2 text-[10px] font-black text-emerald-600 hover:underline">Planejar este mês →</button>
-              </div>
+            {installGroups.length === 0 ? (
+              <p className="text-center py-6 text-[13px] text-fg-muted">Sem parcelamentos ativos</p>
             ) : (
               <>
-                <div className="flex items-center justify-between text-[10px] font-black mb-1.5">
-                  <span className="text-zinc-500">R$ {fmtBRL(totalCat)} gasto</span>
-                  <span className={cn(totalCat > totalPlanned ? 'text-red-500' : 'text-zinc-700 dark:text-zinc-300')}>
-                    de R$ {fmtBRL(totalPlanned)}
-                  </span>
-                </div>
-                <div className="h-2 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                  <div
-                    className={cn('h-full rounded-full transition-all duration-700', totalCat > totalPlanned ? 'bg-red-500' : 'bg-blue-500')}
-                    style={{ width: `${Math.min(100, (totalCat / totalPlanned) * 100)}%` }}
-                  />
-                </div>
-
-                <div className="space-y-2 mt-3 flex-1">
-                  {catBreakdownWithPlanning.filter(c => c.planned != null).slice(0, 4).map((cat) => (
-                    <div key={cat.id}>
-                      <div className="flex items-center justify-between text-[9px] font-bold mb-0.5">
-                        <span className="text-zinc-600 dark:text-zinc-300 truncate">{cat.name}</span>
-                        <span className={cn(cat.overBudget ? 'text-red-500' : 'text-zinc-400')}>
-                          R$ {fmtBRL(cat.amount)} / {fmtBRL(cat.planned!)}
-                        </span>
-                      </div>
-                      <div className="h-1.5 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700"
-                          style={{ width: `${Math.min(100, (cat.amount / cat.planned!) * 100)}%`, backgroundColor: cat.overBudget ? '#ef4444' : (cat.color || '#3b82f6') }} />
-                      </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Grupos', value: String(installGroups.length) },
+                    { label: 'Saldo devedor', value: `R$ ${fmtBRL(installTotal)}` },
+                    { label: '% da renda', value: installPct !== null ? `${(installPct * 100).toFixed(0)}%` : '—', danger: installPct !== null && installPct > 0.3 },
+                  ].map((s) => (
+                    <div key={s.label} className="rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+                      <p className="text-[11px] text-fg-muted">{s.label}</p>
+                      <p className={cn('mt-0.5 text-[15px] font-semibold tabular-nums truncate', s.danger ? 'text-danger' : 'text-fg')}>{s.value}</p>
                     </div>
                   ))}
+                  <div className="rounded-lg border border-border bg-surface-2 px-3 py-2.5">
+                    <p className="text-[11px] text-fg-muted">Status</p>
+                    <div className="mt-1">
+                      <Badge tone={installPct !== null && installPct < 0.3 ? 'success' : 'warning'}>
+                        {installPct !== null && installPct < 0.3 ? 'Saudável' : 'Atenção'}
+                      </Badge>
+                    </div>
+                  </div>
                 </div>
               </>
             )}
           </div>
-        </div>
 
-        {/* ── Últimas transações + Lista de desejos  +  Raio-X parcelamentos ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-
-          {/* Últimas transações (menor) + Lista de desejos, lado a lado */}
-          <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-            {/* Últimas transações (5) */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Últimas transações</p>
-                <button onClick={() => router.push('/transactions')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver todas</button>
-              </div>
-              <div className="space-y-1.5">
-                {last5.length === 0 ? (
-                  <p className="text-center py-8 text-xs text-zinc-400 font-black uppercase tracking-widest">Nenhuma transação</p>
-                ) : (
-                  last5.map((t: any) => (
-                    <div key={t.id} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
-                      <div className={cn('p-1.5 rounded-lg shrink-0', t.type === 'INCOME' ? 'bg-emerald-500/10' : 'bg-red-500/10')}>
-                        {t.type === 'INCOME' ? <ArrowUpCircle size={12} className="text-emerald-600" /> : <ArrowDownCircle size={12} className="text-red-500" />}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-black text-zinc-800 dark:text-zinc-200 truncate">{t.description}</p>
-                        <p className="text-[9px] text-zinc-400">{fmtDate(t.date)}</p>
-                      </div>
-                      <span className={cn('text-[10px] font-black shrink-0', t.type === 'INCOME' ? 'text-emerald-600' : 'text-zinc-700 dark:text-zinc-300')}>
-                        {t.type === 'INCOME' ? '+' : '-'} R$ {fmtBRL(Number(t.amount))}
-                      </span>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-
-            {/* Lista de desejos pendentes */}
-            <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <ShoppingBag size={14} className="text-pink-500" />
-                  <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Lista de desejos</p>
-                </div>
-                <button onClick={() => router.push('/wishlists')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver todas</button>
-              </div>
-              {pendingWishlist.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-8 text-zinc-400">
-                  <ShoppingBag size={28} className="mb-2 text-zinc-200 dark:text-zinc-700" />
-                  <p className="text-xs font-black uppercase tracking-widest">Nenhum desejo pendente</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {pendingWishlist.map((w: any) => (
-                    <div key={w.id} className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800 transition">
-                      <div className="p-1.5 rounded-lg bg-pink-500/10 shrink-0">
-                        <ShoppingBag size={12} className="text-pink-500" />
-                      </div>
-                      <span className="flex-1 text-[10px] font-black text-zinc-800 dark:text-zinc-200 truncate">{w.product}</span>
-                      <span className="text-[8px] font-black text-zinc-400 uppercase shrink-0">{w.priority?.split(' - ')[1]}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Raio-X dos parcelamentos */}
-          <div data-tour="dashboard-installments-card" className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-2xl p-4">
+          {/* ── Lista de desejos ──────────────────────── */}
+          <div className={card}>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Layers size={14} className="text-orange-500" />
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Raio-X parcelamentos</p>
+                <ShoppingBag size={16} strokeWidth={1.75} className="text-fg-muted" />
+                <p className={cardTitle}>Lista de desejos</p>
               </div>
-              <button onClick={() => router.push('/installments')} className="text-[9px] font-black text-emerald-600 hover:text-emerald-700 uppercase tracking-widest">Ver</button>
+              <button onClick={() => router.push('/wishlists')} className={linkBtn}>Ver todas</button>
             </div>
-            {installGroups.length === 0 ? (
-              <p className="text-center py-6 text-xs text-zinc-400 font-black uppercase tracking-widest">Sem parcelamentos ativos</p>
+            {pendingWishlist.length === 0 ? (
+              <p className="text-center py-6 text-[13px] text-fg-muted">Nenhum desejo pendente</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 border border-zinc-200 dark:border-zinc-700">
-                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Grupos</p>
-                  <p className="text-lg font-black text-zinc-900 dark:text-zinc-100 mt-0.5">{installGroups.length}</p>
-                </div>
-                <div className="bg-zinc-50 dark:bg-zinc-800 rounded-xl p-3 border border-zinc-200 dark:border-zinc-700">
-                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Devedor</p>
-                  <p className="text-sm font-black text-zinc-900 dark:text-zinc-100 mt-0.5">R$ {fmtBRL(installTotal)}</p>
-                </div>
-                <div className={cn('rounded-xl p-3 border', income > 0 && (installTotal / income) > 0.3 ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900' : 'bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700')}>
-                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest">% da renda</p>
-                  <p className={cn('text-lg font-black mt-0.5', income > 0 && (installTotal / income) > 0.3 ? 'text-red-600' : 'text-zinc-900 dark:text-zinc-100')}>
-                    {income > 0 ? `${((installTotal / income) * 100).toFixed(0)}%` : '—'}
-                  </p>
-                </div>
-                <div className="bg-emerald-50 dark:bg-emerald-950/20 rounded-xl p-3 border border-emerald-200 dark:border-emerald-900">
-                  <p className="text-[8px] font-black uppercase text-zinc-400 tracking-widest">Status</p>
-                  <p className={cn('text-xs font-black mt-0.5', income > 0 && (installTotal / income) < 0.3 ? 'text-emerald-600' : 'text-amber-600')}>
-                    {income > 0 && (installTotal / income) < 0.3 ? 'Saudável' : 'Atenção'}
-                  </p>
-                </div>
+              <div className="divide-y divide-border -mx-1">
+                {pendingWishlist.map((w: any) => (
+                  <div key={w.id} className="flex items-center gap-3 px-1 py-2.5">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-border text-fg-muted">
+                      <ShoppingBag size={13} strokeWidth={1.75} />
+                    </span>
+                    <span className="flex-1 text-[13px] text-fg truncate">{w.product}</span>
+                    {w.priority?.split(' - ')[1] && <Badge>{w.priority.split(' - ')[1]}</Badge>}
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
-
         </div>
+      </div>
       </div>
 
       {/* ════════════════════════════════════════
@@ -1075,8 +1052,8 @@ export default function DashboardV2Page() {
           title={
             <>
               Nova{' '}
-              <span className={txModal === 'EXPENSE' ? 'text-red-500' : txModal === 'INCOME' ? 'text-emerald-500' : 'text-blue-500'}>
-                {txModal === 'EXPENSE' ? 'Despesa' : txModal === 'INCOME' ? 'Receita' : 'Investimento'}
+              <span className={txModal === 'EXPENSE' ? 'text-danger' : txModal === 'INCOME' ? 'text-accent' : 'text-info'}>
+                {txModal === 'EXPENSE' ? 'despesa' : txModal === 'INCOME' ? 'receita' : 'investimento'}
               </span>
             </>
           }

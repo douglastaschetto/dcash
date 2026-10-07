@@ -1,6 +1,15 @@
 import {
-  Controller, Post, Body, Get, Delete, Param, Put,
-  UseGuards, Request, UnauthorizedException, Query,
+  Controller,
+  Post,
+  Body,
+  Get,
+  Delete,
+  Param,
+  Put,
+  UseGuards,
+  Request,
+  UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import { WishlistService } from './wishlist.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -24,6 +33,11 @@ export class WishlistController {
     return this.service.searchPrices(q ?? '');
   }
 
+  @Get('search-images')
+  searchImages(@Query('q') q: string) {
+    return this.service.searchImages(q ?? '');
+  }
+
   @Post()
   create(@Request() req, @Body() dto: CreateWishDto) {
     return this.service.create(this.uid(req), dto);
@@ -45,12 +59,16 @@ export class WishlistController {
   }
 
   @Post(':id/prices')
-  addPrice(@Param('id') id: string, @Request() req, @Body() dto: CreatePriceDto) {
+  addPrice(
+    @Param('id') id: string,
+    @Request() req,
+    @Body() dto: CreatePriceDto,
+  ) {
     return this.service.addPrice(id, this.uid(req), dto);
   }
 
   @Delete('prices/:priceId')
-  removePrice(@Param('priceId') priceId: string) {
-    return this.service.removePrice(priceId);
+  removePrice(@Param('priceId') priceId: string, @Request() req) {
+    return this.service.removePrice(priceId, this.uid(req));
   }
 }
